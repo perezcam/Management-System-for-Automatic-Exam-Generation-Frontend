@@ -1,5 +1,6 @@
 import { LoginForm } from "@/components/LoginForm";
 import { FileCheck2 } from "lucide-react";
+import '@/app/globals.css'
 
 export default function Login() {
   return (
