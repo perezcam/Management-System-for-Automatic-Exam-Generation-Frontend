@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Sparkles, Wand2 } from "lucide-react"
 
-export function GeneradorPreguntasView() {
+export default function GeneradorPreguntasView() {
   return (
     <div className="flex-1 p-6 overflow-auto">
       <div className="max-w-4xl mx-auto">

@@ -1,5 +1,4 @@
 import { Button } from "./ui/button"
-import { Badge } from "./ui/badge"
 import { ClipboardCheck, MessageSquare, BarChart3, Users, Database, Settings, FileText, Sparkles, FileStack } from "lucide-react"
 
 interface MailSidebarProps {
@@ -10,15 +9,15 @@ interface MailSidebarProps {
 
 export function MailSidebar({ selectedFolder, onFolderSelect }: MailSidebarProps) {
   const folders = [
-    { id: 'pruebas-aprobar', name: 'Pruebas a Aprobar', icon: ClipboardCheck, count: 5 },
-    { id: 'mensajeria', name: 'Mensajería', icon: MessageSquare, count: 3 },
-    { id: 'estadisticas-curso', name: 'Estadísticas de Curso', icon: BarChart3, count: 0 },
-    { id: 'admin-profesores', name: 'Administración de Profesores', icon: Users, count: 2 },
-    { id: 'banco-examenes', name: 'Banco de Exámenes', icon: FileStack, count: 0 },
-    { id: 'generador-preguntas', name: 'Generador de Preguntas', icon: Sparkles, count: 0 },
-    { id: 'generador-examenes', name: 'Generador de Exámenes', icon: FileText, count: 0 },
-    { id: 'banco-preguntas', name: 'Banco de Preguntas', icon: Database, count: 0 },
-    { id: 'administracion', name: 'Administración', icon: Settings, count: 0 },
+    { id: 'pruebas-aprobar', name: 'Pruebas a Aprobar', icon: ClipboardCheck },
+    { id: 'mensajeria', name: 'Mensajería', icon: MessageSquare },
+    { id: 'estadisticas-curso', name: 'Estadísticas de Curso', icon: BarChart3 },
+    { id: 'admin-profesores', name: 'Administración de Profesores', icon: Users },
+    { id: 'banco-examenes', name: 'Banco de Exámenes', icon: FileStack },
+    { id: 'generador-preguntas', name: 'Generador de Preguntas', icon: Sparkles },
+    { id: 'generador-examenes', name: 'Generador de Exámenes', icon: FileText },
+    { id: 'banco-preguntas', name: 'Banco de Preguntas', icon: Database },
+    { id: 'administracion', name: 'Administración', icon: Settings },
   ]
 
   return (
@@ -35,11 +34,6 @@ export function MailSidebar({ selectedFolder, onFolderSelect }: MailSidebarProps
             >
               <Icon className="mr-2 h-4 w-4" />
               <span className="flex-1 text-left">{folder.name}</span>
-              {folder.count > 0 && (
-                <Badge variant="secondary" className="ml-auto">
-                  {folder.count}
-                </Badge>
-              )}
             </Button>
           )
         })}

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { FileStack, Search, Plus, Filter } from "lucide-react"
 
-export function BancoExamenesView() {
+export default function BancoExamenesView() {
   return (
     <div className="flex-1 p-6 overflow-auto">
       <div className="max-w-7xl mx-auto">

@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Settings, Users, Shield, Bell, Database, FileText } from "lucide-react"
 
-export function AdministracionView() {
+export default function AdministracionView() {
   const adminSections = [
     {
       title: "Gestión de Usuarios",

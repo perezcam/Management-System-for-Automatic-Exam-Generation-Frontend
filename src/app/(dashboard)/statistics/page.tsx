@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card"
 import { BarChart3, TrendingUp, Users, FileText } from "lucide-react"
 
-export function EstadisticasCursoView() {
+export default function EstadisticasCursoView() {
   return (
     <div className="flex-1 p-6 overflow-auto">
       <div className="max-w-7xl mx-auto">

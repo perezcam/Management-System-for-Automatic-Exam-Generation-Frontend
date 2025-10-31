@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from "react"
 import { MailList, Email } from "@/components/mail-list"
 import { MailDetail } from "@/components/mail-detail"
@@ -45,7 +47,7 @@ const mockEmails: Email[] = [
   }
 ]
 
-export function MensajeriaView() {
+export default function MensajeriaView() {
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null)
   const [showMessageDetail, setShowMessageDetail] = useState(true)
   const [composeOpen, setComposeOpen] = useState(false)

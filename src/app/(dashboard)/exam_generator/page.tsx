@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { FileText, Plus, Save } from "lucide-react"
 
-export function GeneradorExamenesView() {
+export default function GeneradorExamenesView() {
   return (
     <div className="flex-1 p-6 overflow-auto">
       <div className="max-w-5xl mx-auto">

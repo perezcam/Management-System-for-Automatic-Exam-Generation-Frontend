@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from "react"
 import { MailList, Email } from "@/components/mail-list"
 import { ComposeDialog } from "@/components/compose-dialog"
@@ -30,7 +32,7 @@ const mockEmails: Email[] = [
   }
 ]
 
-export function AdminProfesoresView() {
+export default function AdminProfesoresView() {
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null)
   const [composeOpen, setComposeOpen] = useState(false)
 

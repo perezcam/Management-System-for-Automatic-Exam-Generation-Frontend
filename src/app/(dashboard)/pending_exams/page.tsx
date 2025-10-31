@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from "react"
 import { MailList, Email } from "@/components/mail-list"
 import { MailDetail } from "@/components/mail-detail"
@@ -67,7 +69,7 @@ const mockEmails: Email[] = [
   }
 ]
 
-export function PruebasAprobarView() {
+export default function PruebasAprobarView() {
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null)
   const [composeOpen, setComposeOpen] = useState(false)
   const [composeReplyTo, setComposeReplyTo] = useState<string>("")

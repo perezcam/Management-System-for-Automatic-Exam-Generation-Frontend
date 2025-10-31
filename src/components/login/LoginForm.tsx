@@ -7,6 +7,7 @@ import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { redirect } from 'next/navigation';
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -19,7 +20,8 @@ export function LoginForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Login attempt:', formData);
-    // Aquí irá la lógica de autenticación
+    
+    redirect('/pending_exams');
   };
 
   return (
