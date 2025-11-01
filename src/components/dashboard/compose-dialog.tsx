@@ -1,10 +1,10 @@
 import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"
-import { Button } from "./ui/button"
-import { Input } from "./ui/input"
-import { Textarea } from "./ui/textarea"
-import { Label } from "./ui/label"
-import { Separator } from "./ui/separator"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
+import { Button } from "../ui/button"
+import { Input } from "../ui/input"
+import { Textarea } from "../ui/textarea"
+import { Label } from "../ui/label"
+import { Separator } from "../ui/separator"
 import { Send, Paperclip, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight } from "lucide-react"
 
 interface ComposeDialogProps {

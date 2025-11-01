@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { MailSidebar } from "@/components/mail-sidebar";
-import { MailHeader } from "@/components/mail-header";
+import { MailSidebar } from "@/components/dashboard/mail-sidebar";
+import { MailHeader } from "@/components/dashboard/mail-header";
 
 const FOLDER_TO_ROUTE: Record<string, string> = {
   "pruebas-aprobar": "/pending_exams",

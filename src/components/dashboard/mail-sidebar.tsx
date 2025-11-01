@@ -1,4 +1,4 @@
-import { Button } from "./ui/button"
+import { Button } from "../ui/button"
 import { ClipboardCheck, MessageSquare, BarChart3, Users, Database, Settings, FileText, Sparkles, FileStack } from "lucide-react"
 
 interface MailSidebarProps {

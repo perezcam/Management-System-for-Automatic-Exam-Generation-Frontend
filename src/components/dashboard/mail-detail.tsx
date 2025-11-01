@@ -1,8 +1,8 @@
-import { Card } from "./ui/card"
-import { Button } from "./ui/button"
-import { Avatar, AvatarFallback } from "./ui/avatar"
-import { Badge } from "./ui/badge"
-import { Separator } from "./ui/separator"
+import { Card } from "../ui/card"
+import { Button } from "../ui/button"
+import { Avatar, AvatarFallback } from "../ui/avatar"
+import { Badge } from "../ui/badge"
+import { Separator } from "../ui/separator"
 import { Reply, Paperclip } from "lucide-react"
 import { Email } from "./mail-list"
 

@@ -1,8 +1,8 @@
-import { Card } from "./ui/card"
-import { Badge } from "./ui/badge"
-import { Avatar, AvatarFallback } from "./ui/avatar"
+import { Card } from "../ui/card"
+import { Badge } from "../ui/badge"
+import { Avatar, AvatarFallback } from "../ui/avatar"
 import { Paperclip } from "lucide-react"
-import { cn } from "./ui/utils"
+import { cn } from "../../utils/clsx"
 
 export interface Email {
   id: string

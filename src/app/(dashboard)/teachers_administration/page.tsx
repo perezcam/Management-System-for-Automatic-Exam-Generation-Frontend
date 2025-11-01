@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from "react"
-import { MailList, Email } from "@/components/mail-list"
-import { ComposeDialog } from "@/components/compose-dialog"
+import { MailList, Email } from "@/components/dashboard/mail-list"
+import { ComposeDialog } from "@/components/dashboard/compose-dialog"
 
 // Mock email data for teacher administration
 const mockEmails: Email[] = [

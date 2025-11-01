@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
-import { Checkbox } from '../ui/checkbox';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
@@ -74,11 +73,6 @@ export function LoginForm() {
           </div>
 
           <div className="flex items-center space-x-2">
-            <Checkbox
-              id="remember"
-              checked={formData.rememberMe}
-              onCheckedChange={(checked: boolean) => setFormData({ ...formData, rememberMe: checked })}
-            />
             <Label htmlFor="remember" className="text-sm cursor-pointer">
               Recordarme
             </Label>
