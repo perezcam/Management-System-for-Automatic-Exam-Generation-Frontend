@@ -1,16 +1,8 @@
-"use client";
-
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Settings, HelpCircle } from "lucide-react";
 
-type MailHeaderProps = {
-  // Opcionales para que puedas pasarlas desde el shell sin obligar su uso aquí
-  searchQuery?: string;
-  onSearchChange?: (value: string) => void;
-};
-
-export function MailHeader({}: MailHeaderProps) {
+export function MailHeader() {
   return (
     <div className="border-b p-4">
       <div className="flex items-center justify-between">

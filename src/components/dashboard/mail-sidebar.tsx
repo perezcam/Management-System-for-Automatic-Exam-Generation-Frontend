@@ -1,5 +1,5 @@
 import { Button } from "../ui/button"
-import { ClipboardCheck, MessageSquare, BarChart3, Users, Database, Settings, FileText, Sparkles, FileStack } from "lucide-react"
+import { ClipboardCheck, MessageSquare, BarChart3, Users, Database, Settings, FileText, Sparkles, FileStack, FileCheck, BookOpen } from "lucide-react"
 
 interface MailSidebarProps {
   selectedFolder: string
@@ -9,15 +9,17 @@ interface MailSidebarProps {
 
 export function MailSidebar({ selectedFolder, onFolderSelect }: MailSidebarProps) {
   const folders = [
-    { id: 'pruebas-aprobar', name: 'Pruebas a Aprobar', icon: ClipboardCheck },
-    { id: 'mensajeria', name: 'Mensajería', icon: MessageSquare },
-    { id: 'estadisticas-curso', name: 'Estadísticas de Curso', icon: BarChart3 },
-    { id: 'admin-profesores', name: 'Administración de Profesores', icon: Users },
-    { id: 'banco-examenes', name: 'Banco de Exámenes', icon: FileStack },
-    { id: 'generador-preguntas', name: 'Generador de Preguntas', icon: Sparkles },
-    { id: 'generador-examenes', name: 'Generador de Exámenes', icon: FileText },
-    { id: 'banco-preguntas', name: 'Banco de Preguntas', icon: Database },
-    { id: 'administracion', name: 'Administración', icon: Settings },
+    { id: 'messaging', name: 'Mensajería', icon: MessageSquare },
+    { id: 'exams', name: 'Pruebas', icon: FileCheck },
+    { id: 'subjects', name: 'Asignaturas', icon: BookOpen },
+    { id: 'question-bank', name: 'Banco de Preguntas', icon: Database },
+    { id: 'question-generator', name: 'Generador de Preguntas', icon: Sparkles },
+    { id: 'exam-bank', name: 'Banco de Exámenes', icon: FileStack },
+    { id: 'exam-generator', name: 'Generador de Exámenes', icon: FileText },
+    { id: 'pending-exams', name: 'Pruebas a Aprobar', icon: ClipboardCheck },
+    { id: 'statistics', name: 'Estadísticas de Curso', icon: BarChart3 },
+    { id: 'administration', name: 'Administración de Usuarios', icon: Users },
+    { id: 'configuration', name: 'Configuración', icon: Settings },
   ]
 
   return (

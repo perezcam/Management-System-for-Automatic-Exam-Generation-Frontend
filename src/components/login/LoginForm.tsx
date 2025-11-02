@@ -20,7 +20,7 @@ export function LoginForm() {
     e.preventDefault();
     console.log('Login attempt:', formData);
     
-    redirect('/pending_exams');
+    redirect('/messaging');
   };
 
   return (
@@ -70,12 +70,6 @@ export function LoginForm() {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Label htmlFor="remember" className="text-sm cursor-pointer">
-              Recordarme
-            </Label>
           </div>
 
           <Button type="submit" className="w-full">

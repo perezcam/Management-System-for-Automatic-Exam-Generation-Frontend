@@ -1,42 +1,43 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { MailSidebar } from "@/components/dashboard/mail-sidebar";
 import { MailHeader } from "@/components/dashboard/mail-header";
 
 const FOLDER_TO_ROUTE: Record<string, string> = {
-  "pruebas-aprobar": "/pending_exams",
-  mensajeria: "/messaging",
-  "estadisticas-curso": "/statistics",
-  "admin-profesores": "/teachers_administration",
-  "banco-examenes": "/exam_bank",
-  "generador-preguntas": "/question_generator",
-  "generador-examenes": "/exam_generator",
-  "banco-preguntas": "/question_bank",
-  administracion: "/administration",
+  "messaging": "/messaging",
+  "pending-exams": "/pending_exams",
+  "statistics": "/statistics",
+  "administration": "/administration",
+  "exam-bank": "/exam_bank",
+  "question-generator": "/question_generator",
+  "exam-generator": "/exam_generator",
+  "question-bank": "/question_bank",
+  "configuration": "/configuration",
+  "subjects": "/subjects",
+  "exams": "/exams",
 };
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [searchQuery, setSearchQuery] = useState("");
 
   const selectedFolder = useMemo(() => {
     const entry = Object.entries(FOLDER_TO_ROUTE).find(([, route]) =>
       pathname?.startsWith(route)
     );
-    return entry?.[0] ?? "pruebas-aprobar";
+    return entry?.[0] ?? "messaging";
   }, [pathname]);
 
   const handleFolderSelect = (folder: string) => {
-    const route = FOLDER_TO_ROUTE[folder] ?? "/dashboard/pending_exams";
+    const route = FOLDER_TO_ROUTE[folder] ?? "/messaging";
     router.push(route);
   };
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      <MailHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+      <MailHeader />
       <div className="flex flex-1 overflow-hidden">
         <MailSidebar
           selectedFolder={selectedFolder}
