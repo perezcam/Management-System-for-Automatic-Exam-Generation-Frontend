@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
-import { Checkbox } from '../ui/checkbox';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { redirect } from 'next/navigation';
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -19,7 +19,8 @@ export function LoginForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Login attempt:', formData);
-    // Aquí irá la lógica de autenticación
+    
+    redirect('/messaging');
   };
 
   return (
@@ -69,17 +70,6 @@ export function LoginForm() {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="remember"
-              checked={formData.rememberMe}
-              onCheckedChange={(checked: boolean) => setFormData({ ...formData, rememberMe: checked })}
-            />
-            <Label htmlFor="remember" className="text-sm cursor-pointer">
-              Recordarme
-            </Label>
           </div>
 
           <Button type="submit" className="w-full">
