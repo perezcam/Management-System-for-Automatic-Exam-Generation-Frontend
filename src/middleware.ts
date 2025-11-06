@@ -1,28 +1,9 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { jwtVerify } from "jose";
 import { allowedRoutesFor, canAccess, type Role } from "@/utils/access";
-
+import {getRolesFromToken} from "@/utils/auth";
 const COOKIE_NAME = "token";
 const LOGIN_PATH = "/login";
-
-const ALL_ROLES: Role[] = ["student","admin","teacher","subjectleader","examiner"];
-const isRole = (x: unknown): x is Role => typeof x === "string" && ALL_ROLES.includes(x as Role);
-
-async function getRolesFromToken(token?: string): Promise<Role[]> {
-  if (!token) return [];
-  try {
-    const { payload } = await jwtVerify(
-      token,
-      new TextEncoder().encode(process.env.JWT_SECRET!)
-    );
-    const roles = (payload).roles;
-    if (!Array.isArray(roles)) return [];
-    return roles.filter(isRole);
-  } catch {
-    return [];
-  }
-}
 
 function firstAllowedUrl(req: NextRequest, roles: Role[]) {
   const first = allowedRoutesFor(roles)[0];
