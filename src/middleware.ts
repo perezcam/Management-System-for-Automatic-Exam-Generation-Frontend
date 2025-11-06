@@ -6,28 +6,28 @@ import { allowedRoutesFor, canAccess, type Role } from "@/utils/access";
 const COOKIE_NAME = "token";
 const LOGIN_PATH = "/login";
 
-async function getRoleFromToken(cookieToken?: string): Promise<Role | null> {
-  if (!cookieToken) return null;
+const ALL_ROLES: Role[] = ["student","admin","teacher","subjectleader","examiner"];
+const isRole = (x: unknown): x is Role => typeof x === "string" && ALL_ROLES.includes(x as Role);
+
+async function getRolesFromToken(token?: string): Promise<Role[]> {
+  if (!token) return [];
   try {
     const { payload } = await jwtVerify(
-      cookieToken,
+      token,
       new TextEncoder().encode(process.env.JWT_SECRET!)
     );
-    return (payload.role as Role | undefined) ?? null;
+    const roles = (payload).roles;
+    if (!Array.isArray(roles)) return [];
+    return roles.filter(isRole);
   } catch {
-    return null; 
+    return [];
   }
 }
 
-function firstAllowedOrUnauthorizedUrl(req: NextRequest, role: Role | null) {
-  const first = allowedRoutesFor(role)[0];
+function firstAllowedUrl(req: NextRequest, roles: Role[]) {
+  const first = allowedRoutesFor(roles)[0];
   const url = req.nextUrl.clone();
-  if (first) {
-    url.pathname = first;
-    url.search = "";
-    return url;
-  }
-  url.pathname = "/unauthorized";
+  url.pathname = first ?? "/unauthorized";
   url.search = "";
   return url;
 }
@@ -35,19 +35,20 @@ function firstAllowedOrUnauthorizedUrl(req: NextRequest, role: Role | null) {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // 1) Autenticación
   const token = req.cookies.get(COOKIE_NAME)?.value;
-  const role = await getRoleFromToken(token);
+  const roles = await getRolesFromToken(token);
 
-  if (!role) {
+  if (!roles.length) {
     const url = req.nextUrl.clone();
     url.pathname = LOGIN_PATH;
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 
-  if (!canAccess(pathname, role)) {
-    const url = firstAllowedOrUnauthorizedUrl(req, role);
-    return NextResponse.redirect(url);
+  // 2) Autorización por roles
+  if (!canAccess(pathname, roles)) {
+    return NextResponse.redirect(firstAllowedUrl(req, roles));
   }
 
   return NextResponse.next();
@@ -55,27 +56,16 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/pending_exams",
-    "/pending_exams/:path*",
-    "/messaging",
-    "/messaging/:path*",
-    "/statistics",
-    "/statistics/:path*",
-    "/administration",
-    "/administration/:path*",
-    "/exam_bank",
-    "/exam_bank/:path*",
-    "/question_generator",
-    "/question_generator/:path*",
-    "/exam_generator",
-    "/exam_generator/:path*",
-    "/question_bank",
-    "/question_bank/:path*",
-    "/configuration",
-    "/configuration/:path*",
-    "/subjects",
-    "/subjects/:path*",
-    "/exams",
-    "/exams/:path*",
+    "/pending_exams","/pending_exams/:path*",
+    "/messaging","/messaging/:path*",
+    "/statistics","/statistics/:path*",
+    "/administration","/administration/:path*",
+    "/exam_bank","/exam_bank/:path*",
+    "/question_generator","/question_generator/:path*",
+    "/exam_generator","/exam_generator/:path*",
+    "/question_bank","/question_bank/:path*",
+    "/configuration","/configuration/:path*",
+    "/subjects","/subjects/:path*",
+    "/exams","/exams/:path*",
   ],
 };

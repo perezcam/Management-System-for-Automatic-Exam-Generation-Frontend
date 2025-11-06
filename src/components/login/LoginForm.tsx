@@ -6,7 +6,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -16,12 +16,36 @@ export function LoginForm() {
     rememberMe: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Login attempt:', formData);
-    
-    redirect('/messaging');
-  };
+
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
+  const url = `${BACKEND_URL}/apj/user/login?` +
+    new URLSearchParams({
+      email: formData.email,
+      password: formData.password,
+    }).toString();
+
+  // 1) Login (GET)
+  const r = await fetch(url, { method: "GET" });
+  if (!r.ok) return;
+
+  const { token } = await r.json();
+  if (!token) return;
+
+  // 2) Guardar el token en cookie httpOnly de tu dominio
+  await fetch("/api/session", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token }),
+    credentials: "include",
+  });
+
+  // 3) Navegar
+  router.push("/messaging");
+};
 
   return (
     <Card className="w-full max-w-md">
