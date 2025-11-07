@@ -1,27 +1,15 @@
-FROM node:20-alpine AS build
-
-WORKDIR /app
-
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-COPY . .
-
-# Build the application
-RUN npm run build
-
-
 FROM node:20-alpine
 
 WORKDIR /app
 
+# Copiamos manifiestos y instalamos deps en build (rápido y reproducible)
 COPY package*.json ./
+RUN npm ci
 
-# Install only production dependencies
-RUN npm install --omit=dev
+# Copiamos el resto del código
+COPY . .
 
+ENV HOST=0.0.0.0
 EXPOSE 3000
 
 CMD ["npm", "run", "dev"]
