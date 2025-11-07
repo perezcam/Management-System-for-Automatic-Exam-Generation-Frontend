@@ -2,15 +2,17 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+
 export async function GET() {
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
-  if (!token) return NextResponse.json({ name: "Bienvenido" }, { status: 401 });
+  if (!token || !ACCESS_SECRET) return NextResponse.json({ name: "Usuario" }, { status: 401 });
 
   try {
     const { payload } = await jwtVerify(
       token,
-      new TextEncoder().encode(process.env.JWT_SECRET!)
+      new TextEncoder().encode(ACCESS_SECRET)
     );
 
     const userId = payload.sub as string | undefined;

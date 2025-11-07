@@ -3,11 +3,15 @@ import { jwtVerify } from "jose";
 
 const COOKIE_NAME = "token";
 
-const SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+const SECRET = ACCESS_SECRET ? new TextEncoder().encode(ACCESS_SECRET) : undefined;
 const ISSUER = process.env.JWT_ISSUER;
 const AUDIENCE = process.env.JWT_AUDIENCE;
 
 export async function POST(req: Request) {
+  if (!SECRET) {
+    return NextResponse.json({ error: "Configura JWT_ACCESS_SECRET" }, { status: 500 });
+  }
   const { token } = await req.json();
   if (!token || typeof token !== "string") {
     return NextResponse.json({ error: "Token requerido" }, { status: 400 });
