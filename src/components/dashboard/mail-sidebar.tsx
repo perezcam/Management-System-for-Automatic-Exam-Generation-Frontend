@@ -1,7 +1,7 @@
 import { Button } from "../ui/button";
 import {
   ClipboardCheck, MessageSquare, BarChart3, Users, Database,
-  Settings, FileText, Sparkles, FileStack, FileCheck, BookOpen
+  Settings, FileText, FileStack, FileCheck, BookOpen
 } from "lucide-react";
 import type { FolderKey } from "@/utils/access";
 
@@ -18,7 +18,6 @@ export function MailSidebar({ selectedFolder, onFolderSelect, allowedKeys }: Mai
     { id: "exams", name: "Pruebas", icon: FileCheck },
     { id: "subjects", name: "Asignaturas", icon: BookOpen },
     { id: "question-bank", name: "Banco de Preguntas", icon: Database },
-    { id: "question-generator", name: "Generador de Preguntas", icon: Sparkles },
     { id: "exam-bank", name: "Banco de Exámenes", icon: FileStack },
     { id: "exam-generator", name: "Generador de Exámenes", icon: FileText },
     { id: "pending-exams", name: "Pruebas a Aprobar", icon: ClipboardCheck },

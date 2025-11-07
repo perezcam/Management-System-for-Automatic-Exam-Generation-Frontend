@@ -12,7 +12,6 @@ export const FOLDER_TO_ROUTE = {
   "statistics": "/statistics",
   "administration": "/administration",
   "exam-bank": "/exam_bank",
-  "question-generator": "/question_generator",
   "exam-generator": "/exam_generator",
   "question-bank": "/question_bank",
   "configuration": "/configuration",

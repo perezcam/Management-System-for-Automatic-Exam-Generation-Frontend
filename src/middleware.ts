@@ -13,7 +13,7 @@ function firstAllowedUrl(req: NextRequest, roles: Role[]) {
   return url;
 }
 
-export async function middleware(req: NextRequest) {
+export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // 1) Autenticación
@@ -42,7 +42,6 @@ export const config = {
     "/statistics","/statistics/:path*",
     "/administration","/administration/:path*",
     "/exam_bank","/exam_bank/:path*",
-    "/question_generator","/question_generator/:path*",
     "/exam_generator","/exam_generator/:path*",
     "/question_bank","/question_bank/:path*",
     "/configuration","/configuration/:path*",
