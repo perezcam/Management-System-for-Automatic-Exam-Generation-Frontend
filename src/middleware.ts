@@ -44,7 +44,6 @@ export const config = {
     "/exam_bank","/exam_bank/:path*",
     "/exam_generator","/exam_generator/:path*",
     "/question_bank","/question_bank/:path*",
-    "/configuration","/configuration/:path*",
     "/subjects","/subjects/:path*",
     "/exams","/exams/:path*",
   ],

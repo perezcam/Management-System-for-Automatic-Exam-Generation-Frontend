@@ -8,7 +8,6 @@ export const FOLDER_TO_ROUTE = {
   "exam-bank": "/exam_bank",
   "exam-generator": "/exam_generator",
   "question-bank": "/question_bank",
-  "configuration": "/configuration",
   "subjects": "/subjects",
   "exams": "/exams",
 } as const;
@@ -19,10 +18,10 @@ export const DASHBOARD_PREFIX = "";
 
 export const ROLE_ALLOWED_KEYS: Record<Role, FolderKey[]> = {
   admin: [
-    "messaging", "statistics", "administration", "configuration",
+    "messaging", "statistics", "administration",
   ],
   teacher: [
-    "messaging", "question-bank", "exam-bank","exam-generator","messaging", "configuration",
+    "messaging", "question-bank", "exam-bank","exam-generator","messaging",
   ],
   subjectleader: [
     "administration", "statistics", "pending-exams", "messaging", "subjects",

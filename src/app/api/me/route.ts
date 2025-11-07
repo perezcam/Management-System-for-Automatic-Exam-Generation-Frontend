@@ -5,7 +5,7 @@ import { jwtVerify } from "jose";
 export async function GET() {
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
-  if (!token) return NextResponse.json({ name: "Usuario" }, { status: 401 });
+  if (!token) return NextResponse.json({ name: "Bienvenido" }, { status: 401 });
 
   try {
     const { payload } = await jwtVerify(
@@ -14,7 +14,7 @@ export async function GET() {
     );
 
     const userId = payload.sub as string | undefined;
-    if (!userId) return NextResponse.json({ name: "Usuario" }, { status: 400 });
+    if (!userId) return NextResponse.json({ name: "Bienvenido" }, { status: 400 });
 
     const resp = await fetch(`${process.env.BACKEND_URL}/api/user/${userId}`, {
       cache: "no-store",
@@ -24,11 +24,11 @@ export async function GET() {
       },
     });
 
-    if (!resp.ok) return NextResponse.json({ name: "Usuario" }, { status: resp.status });
+    if (!resp.ok) return NextResponse.json({ name: "Bienvenido" }, { status: resp.status });
 
     const name = (await resp.text()).trim();
-    return NextResponse.json({ name: name || "Usuario" });
+    return NextResponse.json({ name: name || "Bienvenido" });
   } catch {
-    return NextResponse.json({ name: "Usuario" }, { status: 401 });
+    return NextResponse.json({ name: "Bienvenido" }, { status: 401 });
   }
 }

@@ -19,22 +19,24 @@ import { ReportsView } from "@/components/dashboard/administration/reports/repor
 export default function AdministracionView() {
   const [activeSection, setActiveSection] = useState<string | null>(null)
 
+  // Estados para gestión de usuarios
   const [users, setUsers] = useState<User[]>([
     { id: "1", username: "mmedina", email: "mauricio.medina@universidad.edu", role: "Administrador" },
     { id: "2", username: "csilva", email: "carmen.silva@universidad.edu", role: "Profesor", nombre: "Carmen Silva", especialidad: "Matemáticas", rolesProfesor: ["Examinador"] },
     { id: "3", username: "jlopez", email: "juan.lopez@universidad.edu", role: "Estudiante", nombre: "Juan López", edad: 22, curso: "3er Año" },
-    { id: "4", username: "agarcia", email: "ana.garcia@universidad.edu", role: "Profesor", nombre: "Ana García", especialidad: "Física", rolesProfesor: ["Jefe de Asignatura"] },
-    { id: "5", username: "rmartinez", email: "roberto.martinez@universidad.edu", role: "Profesor", nombre: "Roberto Martínez", especialidad: "Computación", rolesProfesor: ["Examinador", "Jefe de Asignatura"] },
+    { id: "4", username: "agarcia", email: "ana.garcia@universidad.edu", role: "Profesor", nombre: "Ana García", especialidad: "Física", rolesProfesor: ["Jefe de Asignatura"], asignaturas: ["2"] },
+    { id: "5", username: "rmartinez", email: "roberto.martinez@universidad.edu", role: "Profesor", nombre: "Roberto Martínez", especialidad: "Computación", rolesProfesor: ["Examinador", "Jefe de Asignatura"], asignaturas: ["1"] },
   ])
 
+  // Estados para configuración de preguntas
   const [questionTypes, setQuestionTypes] = useState<QuestionType[]>([
     { id: "1", name: "Ensayo" },
     { id: "2", name: "Opción Múltiple" },
     { id: "3", name: "Verdadero/Falso" }
   ])
   const [subjects, setSubjects] = useState<Subject[]>([
-    { id: "1", name: "Ciencia de la Computación", programa: "Licenciatura en Computación" },
-    { id: "2", name: "Matemáticas Discretas", programa: "Licenciatura en Computación" }
+    { id: "1", name: "Ciencia de la Computación", programa: "Licenciatura en Computación", profesorJefe: "Roberto Martínez" },
+    { id: "2", name: "Matemáticas Discretas", programa: "Licenciatura en Computación", profesorJefe: "Carmen Silva" }
   ])
   const [topics, setTopics] = useState<Topic[]>([
     { id: "1", name: "Algoritmos", subjectId: "1", subtopics: ["Ordenamiento", "Búsqueda", "Recursión"] },
@@ -68,6 +70,10 @@ export default function AdministracionView() {
     setSubjects([...subjects, subject])
   }
 
+  const handleUpdateSubject = (subjectId: string, updates: Partial<Subject>) => {
+    setSubjects(subjects.map(s => s.id === subjectId ? { ...s, ...updates } : s))
+  }
+
   const handleDeleteSubject = (subjectId: string) => {
     setSubjects(subjects.filter(s => s.id !== subjectId))
   }
@@ -75,6 +81,10 @@ export default function AdministracionView() {
   // Funciones para gestión de tópicos
   const handleCreateTopic = (topic: Topic) => {
     setTopics([...topics, topic])
+  }
+
+  const handleUpdateTopic = (topicId: string, updates: Partial<Topic>) => {
+    setTopics(topics.map(t => t.id === topicId ? { ...t, ...updates } : t))
   }
 
   const handleDeleteTopic = (topicId: string) => {
@@ -85,6 +95,14 @@ export default function AdministracionView() {
     setTopics(topics.map(t =>
       t.id === topicId
         ? { ...t, subtopics: [...t.subtopics, subtopic] }
+        : t
+    ))
+  }
+
+  const handleUpdateSubtopic = (topicId: string, oldSubtopic: string, newSubtopic: string) => {
+    setTopics(topics.map(t =>
+      t.id === topicId
+        ? { ...t, subtopics: t.subtopics.map(s => s === oldSubtopic ? newSubtopic : s) }
         : t
     ))
   }
@@ -107,7 +125,10 @@ export default function AdministracionView() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Formulario de Registro */}
             <div className="lg:col-span-1">
-              <UserRegistrationForm onCreateUser={handleCreateUser} />
+              <UserRegistrationForm 
+                onCreateUser={handleCreateUser}
+                subjects={subjects.map(s => ({ id: s.id, name: s.name }))}
+              />
             </div>
 
             {/* Lista de Usuarios */}
@@ -116,6 +137,7 @@ export default function AdministracionView() {
                 users={users}
                 onUpdateUser={handleUpdateUser}
                 onDeleteUser={handleDeleteUser}
+                subjects={subjects.map(s => ({ id: s.id, name: s.name }))}
               />
             </div>
           </div>
@@ -161,11 +183,18 @@ export default function AdministracionView() {
           <SubjectsTopicsManagement
             subjects={subjects}
             topics={topics}
+            profesores={users
+              .filter(u => u.role === "Profesor")
+              .map(u => ({ id: u.id, nombre: u.nombre || u.username }))
+            }
             onCreateSubject={handleCreateSubject}
+            onUpdateSubject={handleUpdateSubject}
             onDeleteSubject={handleDeleteSubject}
             onCreateTopic={handleCreateTopic}
+            onUpdateTopic={handleUpdateTopic}
             onDeleteTopic={handleDeleteTopic}
             onAddSubtopic={handleAddSubtopic}
+            onUpdateSubtopic={handleUpdateSubtopic}
             onDeleteSubtopic={handleDeleteSubtopic}
           />
         </div>

@@ -6,7 +6,7 @@ import { Input } from "../../../ui/input"
 import { Label } from "../../../ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select"
 import { Checkbox } from "../../../ui/checkbox"
-import { Plus } from "lucide-react"
+import { Plus, AlertCircle } from "lucide-react"
 import { useState } from "react"
 
 export type User = {
@@ -19,13 +19,15 @@ export type User = {
   curso?: string
   especialidad?: string
   rolesProfesor?: string[]
+  asignaturas?: string[]
 }
 
 interface UserRegistrationFormProps {
   onCreateUser: (user: User) => void
+  subjects?: { id: string; name: string }[]
 }
 
-export function UserRegistrationForm({ onCreateUser }: UserRegistrationFormProps) {
+export function UserRegistrationForm({ onCreateUser, subjects = [] }: UserRegistrationFormProps) {
   const [userType, setUserType] = useState<"Administrador" | "Estudiante" | "Profesor">("Administrador")
   const [newUser, setNewUser] = useState({ 
     username: "", 
@@ -35,15 +37,38 @@ export function UserRegistrationForm({ onCreateUser }: UserRegistrationFormProps
     edad: "",
     curso: "",
     especialidad: "",
-    rolesProfesor: [] as string[]
+    rolesProfesor: [] as string[],
+    asignaturas: [] as string[]
   })
 
   const toggleRolProfesor = (rol: string) => {
-    setNewUser(prev => ({
-      ...prev,
-      rolesProfesor: prev.rolesProfesor.includes(rol)
+    setNewUser(prev => {
+      const newRoles = prev.rolesProfesor.includes(rol)
         ? prev.rolesProfesor.filter(r => r !== rol)
         : [...prev.rolesProfesor, rol]
+      
+      // Si se deselecciona "Jefe de Asignatura", limpiar las asignaturas
+      if (rol === "Jefe de Asignatura" && !newRoles.includes("Jefe de Asignatura")) {
+        return {
+          ...prev,
+          rolesProfesor: newRoles,
+          asignaturas: []
+        }
+      }
+      
+      return {
+        ...prev,
+        rolesProfesor: newRoles
+      }
+    })
+  }
+
+  const toggleAsignatura = (asignaturaId: string) => {
+    setNewUser(prev => ({
+      ...prev,
+      asignaturas: prev.asignaturas.includes(asignaturaId)
+        ? prev.asignaturas.filter(a => a !== asignaturaId)
+        : [...prev.asignaturas, asignaturaId]
     }))
   }
 
@@ -66,6 +91,9 @@ export function UserRegistrationForm({ onCreateUser }: UserRegistrationFormProps
         user.nombre = newUser.nombre
         user.especialidad = newUser.especialidad
         user.rolesProfesor = newUser.rolesProfesor
+        if (newUser.rolesProfesor.includes("Jefe de Asignatura")) {
+          user.asignaturas = newUser.asignaturas
+        }
       }
 
       onCreateUser(user)
@@ -79,10 +107,36 @@ export function UserRegistrationForm({ onCreateUser }: UserRegistrationFormProps
         edad: "",
         curso: "",
         especialidad: "",
-        rolesProfesor: []
+        rolesProfesor: [],
+        asignaturas: []
       })
       setUserType("Administrador")
     }
+  }
+
+  // Verificar si el formulario es válido para enviar
+  const isFormValid = () => {
+    // Validación básica
+    if (!newUser.username || !newUser.email || !newUser.password) {
+      return false
+    }
+
+    // Validaciones específicas por tipo de usuario
+    if (userType === "Estudiante" && (!newUser.nombre || !newUser.edad || !newUser.curso)) {
+      return false
+    }
+
+    if (userType === "Profesor") {
+      if (!newUser.nombre || !newUser.especialidad) {
+        return false
+      }
+      // Si es Jefe de Asignatura, debe tener al menos una asignatura seleccionada
+      if (newUser.rolesProfesor.includes("Jefe de Asignatura") && newUser.asignaturas.length === 0) {
+        return false
+      }
+    }
+
+    return true
   }
 
   return (
@@ -191,6 +245,45 @@ export function UserRegistrationForm({ onCreateUser }: UserRegistrationFormProps
                 </div>
               </div>
             </div>
+            {/* Asignaturas para Jefe de Asignatura */}
+            {newUser.rolesProfesor.includes("Jefe de Asignatura") && (
+              <div className="space-y-2">
+                <Label>Asignaturas {newUser.asignaturas.length > 0 && `(${newUser.asignaturas.length} seleccionada${newUser.asignaturas.length > 1 ? 's' : ''})`}</Label>
+                {subjects.length > 0 ? (
+                  <>
+                    <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                      {subjects.map(subject => (
+                        <div key={subject.id} className="flex items-center space-x-2">
+                          <Checkbox 
+                            id={subject.id}
+                            checked={newUser.asignaturas.includes(subject.id)}
+                            onCheckedChange={() => toggleAsignatura(subject.id)}
+                          />
+                          <label
+                            htmlFor={subject.id}
+                            className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                          >
+                            {subject.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    {newUser.asignaturas.length === 0 && (
+                      <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                        <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-amber-800">
+                          Debe seleccionar al menos una asignatura para el rol de Jefe de Asignatura
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground p-3 border rounded-md">
+                    No hay asignaturas disponibles. Crea asignaturas en la sección de Configuración de Preguntas.
+                  </p>
+                )}
+              </div>
+            )}
           </>
         )}
 
@@ -227,7 +320,7 @@ export function UserRegistrationForm({ onCreateUser }: UserRegistrationFormProps
             required
           />
         </div>
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full" disabled={!isFormValid()}>
           <Plus className="h-4 w-4 mr-2" />
           Crear {userType}
         </Button>
