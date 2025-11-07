@@ -1,3 +1,5 @@
+'use client';
+
 import { Card } from "../../../ui/card"
 import { Input } from "../../../ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select"
@@ -73,7 +75,7 @@ export function UserList({ users, onUpdateUser, onDeleteUser }: UserListProps) {
         {/* Búsqueda y Filtro */}
         <div className="mb-4 flex items-center gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-9 text-muted-foreground" />
             <Input
               placeholder="Buscar por username..."
               className="pl-10"
@@ -82,7 +84,7 @@ export function UserList({ users, onUpdateUser, onDeleteUser }: UserListProps) {
             />
           </div>
           <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[100px]">
               <SelectValue placeholder="Filtrar por rol" />
             </SelectTrigger>
             <SelectContent>

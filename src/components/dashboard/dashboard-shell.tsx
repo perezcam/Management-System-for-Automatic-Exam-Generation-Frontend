@@ -24,7 +24,7 @@ export default function DashboardShell({
   }, [pathname]);
 
   const handleFolderSelect = (folder: FolderKey) => {
-    if (!allowedKeys.includes(folder)) return; // ignora no permitidos
+    if (!allowedKeys.includes(folder)) return; 
     const route = FOLDER_TO_ROUTE[folder] ?? "/messaging";
     router.push(route);
   };

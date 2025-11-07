@@ -1,3 +1,5 @@
+'use client'
+
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Users, FileText, Settings } from "lucide-react"
@@ -7,19 +9,16 @@ import { UserManagementHeader } from "@/components/dashboard/administration/user
 import { UserRegistrationForm, type User } from "@/components/dashboard/administration/users/user-registration-form"
 import { UserList } from "@/components/dashboard/administration/users/user-list"
 
-// Importar componentes de Configuración de Preguntas
 import { QuestionsConfigHeader } from "@/components/dashboard/administration/questions/questions-config-header"
 import { QuestionTypeForm, type QuestionType } from "@/components/dashboard/administration/questions/question-type-form"
 import { QuestionTypeList } from "@/components/dashboard/administration/questions/question-type-list"
 import { SubjectsTopicsManagement, type Subject, type Topic } from "@/components/dashboard/administration/questions/subjects-topics-management"
 
-// Importar componente de Reportes
 import { ReportsView } from "@/components/dashboard/administration/reports/reports-view"
 
-export function AdministracionView() {
+export default function AdministracionView() {
   const [activeSection, setActiveSection] = useState<string | null>(null)
 
-  // Estados para gestión de usuarios
   const [users, setUsers] = useState<User[]>([
     { id: "1", username: "mmedina", email: "mauricio.medina@universidad.edu", role: "Administrador" },
     { id: "2", username: "csilva", email: "carmen.silva@universidad.edu", role: "Profesor", nombre: "Carmen Silva", especialidad: "Matemáticas", rolesProfesor: ["Examinador"] },
@@ -28,7 +27,6 @@ export function AdministracionView() {
     { id: "5", username: "rmartinez", email: "roberto.martinez@universidad.edu", role: "Profesor", nombre: "Roberto Martínez", especialidad: "Computación", rolesProfesor: ["Examinador", "Jefe de Asignatura"] },
   ])
 
-  // Estados para configuración de preguntas
   const [questionTypes, setQuestionTypes] = useState<QuestionType[]>([
     { id: "1", name: "Ensayo" },
     { id: "2", name: "Opción Múltiple" },

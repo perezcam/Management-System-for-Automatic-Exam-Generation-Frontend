@@ -1,16 +1,21 @@
-import { cookies } from "next/headers";
+"use client";
+
+import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Settings, HelpCircle } from "lucide-react";
 
-export async function MailHeader() {
-  const r = await fetch("/api/me", {
-    cache: "no-store",
-    headers: { cookie: cookies().toString() },
-  });
+export function MailHeader() {
+  const [name, setName] = useState("Usuario");
 
-  const data = r.ok ? await r.json() : { name: "Usuario" };
-  const name: string = data.name ?? "Usuario";
+  useEffect(() => {
+    fetch("/api/me", {
+      cache: "no-store",
+    })
+      .then(r => r.json())
+      .then(d => setName(d?.name || "Usuario"))
+      .catch(() => setName("Usuario"));
+  }, []);
 
   const initials =
     name.split(" ").filter(Boolean).map(w => w[0]?.toUpperCase()).slice(0, 2).join("") || "U";
