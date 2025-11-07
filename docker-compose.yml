@@ -1,28 +1,19 @@
-services:
-  dev:
-    image: node:20-alpine
-    working_dir: /app
-    # Monta tu código dentro del contenedor
-    volumes:
-      - ./:/app
-      - /app/node_modules
-    command: sh -c "npm install && npm run dev"
-    environment:
-      - HOST=0.0.0.0
-      - CHOKIDAR_USEPOLLING=true   # ayuda con hot-reload dentro de Docker
-      - NEXT_TELEMETRY_DISABLED=1
-    ports:
-      - "3000:3000"                # Next por defecto
-    profiles: ["dev"]
+version: "3.9"
 
-  web:
+services:
+  frontend:
     build:
       context: .
       dockerfile: Dockerfile
-    environment:
-      - NODE_ENV=production
-      - NEXT_TELEMETRY_DISABLED=1
     ports:
       - "3000:3000"
-    profiles: ["prod"]
+    environment:
+      - HOST=0.0.0.0
+      - NEXT_TELEMETRY_DISABLED=1
+      - WATCHPACK_POLLING=true   # hot reload más fiable en Docker
+    volumes:
+      - ./:/app                  # tu código con hot reload
+      - node_modules:/app/node_modules  # preserva deps del contenedor
 
+volumes:
+  node_modules:

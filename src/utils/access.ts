@@ -1,4 +1,10 @@
-export type Role = "student" | "admin" | "teacher" | "subjectleader" | "examiner";
+export enum Role {
+  Student = "student",
+  Admin = "admin",
+  Teacher = "teacher",
+  SubjectLeader = "subjectleader",
+  Examiner = "examiner",
+}
 
 export const FOLDER_TO_ROUTE = {
   "messaging": "/messaging",
@@ -17,23 +23,28 @@ export type FolderKey = keyof typeof FOLDER_TO_ROUTE;
 
 export const DASHBOARD_PREFIX = ""; 
 
+const ROLE_VALUES = Object.values(Role) as Role[];
+
 export const ROLE_ALLOWED_KEYS: Record<Role, FolderKey[]> = {
-  admin: [
+  [Role.Admin]: [
     "messaging", "statistics", "administration", "configuration",
   ],
-  teacher: [
-    "messaging", "question-bank", "exam-bank","exam-generator","messaging", "configuration",
+  [Role.Teacher]: [
+    "messaging", "question-bank", "question-generator", "exam-bank","exam-generator","messaging", "configuration",
   ],
-  subjectleader: [
+  [Role.SubjectLeader]: [
     "administration", "statistics", "pending-exams", "messaging", "subjects",
   ],
-  examiner: [
+  [Role.Examiner]: [
     "exam-bank","exam-generator", "pending-exams", "messaging",
   ],
-  student: [
+  [Role.Student]: [
     "exams", "subjects", "messaging",
   ],
 };
+export function isRole(value: unknown): value is Role {
+  return typeof value === "string" && ROLE_VALUES.includes(value as Role);
+}
 
 function normalize(path: string) {
   if (path.length > 1 && path.endsWith("/")) return path.slice(0, -1);
