@@ -1,5 +1,3 @@
-'use client';
-
 import { Card } from "../../../ui/card"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../../../ui/alert-dialog"
 import { Settings, Trash2 } from "lucide-react"

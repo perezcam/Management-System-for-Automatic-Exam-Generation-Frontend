@@ -1,5 +1,3 @@
-'use client';
-
 import { Card } from "../../../ui/card"
 import { Input } from "../../../ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select"
@@ -16,9 +14,10 @@ interface UserListProps {
   users: User[]
   onUpdateUser: (userId: string, updates: Partial<User>) => void
   onDeleteUser: (userId: string) => void
+  subjects?: { id: string; name: string }[]
 }
 
-export function UserList({ users, onUpdateUser, onDeleteUser }: UserListProps) {
+export function UserList({ users, onUpdateUser, onDeleteUser, subjects = [] }: UserListProps) {
   const [userSearchQuery, setUserSearchQuery] = useState("")
   const [userRoleFilter, setUserRoleFilter] = useState("all")
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
@@ -75,7 +74,7 @@ export function UserList({ users, onUpdateUser, onDeleteUser }: UserListProps) {
         {/* Búsqueda y Filtro */}
         <div className="mb-4 flex items-center gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-9 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por username..."
               className="pl-10"
@@ -84,7 +83,7 @@ export function UserList({ users, onUpdateUser, onDeleteUser }: UserListProps) {
             />
           </div>
           <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
-            <SelectTrigger className="w-[100px]">
+            <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filtrar por rol" />
             </SelectTrigger>
             <SelectContent>
@@ -129,6 +128,9 @@ export function UserList({ users, onUpdateUser, onDeleteUser }: UserListProps) {
                           {user.rolesProfesor && user.rolesProfesor.length > 0 && (
                             <> • {user.rolesProfesor.join(", ")}</>
                           )}
+                          {user.rolesProfesor && user.rolesProfesor.includes("Jefe de Asignatura") && user.asignaturas && user.asignaturas.length > 0 && (
+                            <> • Asignaturas: {user.asignaturas.map(asigId => subjects.find(s => s.id === asigId)?.name || asigId).join(", ")}</>
+                          )}
                         </p>
                       )}
                     </div>
@@ -166,7 +168,7 @@ export function UserList({ users, onUpdateUser, onDeleteUser }: UserListProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-role">Rol</Label>
-              <Select value={editForm.role} onValueChange={(value:string) => setEditForm({ ...editForm, role: value })}>
+              <Select value={editForm.role} onValueChange={(value) => setEditForm({ ...editForm, role: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

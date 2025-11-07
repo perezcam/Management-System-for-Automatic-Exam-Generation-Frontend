@@ -14,7 +14,6 @@ export const FOLDER_TO_ROUTE = {
   "exam-bank": "/exam_bank",
   "exam-generator": "/exam_generator",
   "question-bank": "/question_bank",
-  "configuration": "/configuration",
   "subjects": "/subjects",
   "exams": "/exams",
 } as const;
@@ -26,11 +25,11 @@ export const DASHBOARD_PREFIX = "";
 const ROLE_VALUES = Object.values(Role) as Role[];
 
 export const ROLE_ALLOWED_KEYS: Record<Role, FolderKey[]> = {
-  [Role.Admin]: [
-    "messaging", "statistics", "administration", "configuration",
+  admin: [
+    "messaging", "statistics", "administration",
   ],
-  [Role.Teacher]: [
-    "messaging", "question-bank", "question-generator", "exam-bank","exam-generator","messaging", "configuration",
+  teacher: [
+    "messaging", "question-bank", "exam-bank","exam-generator","messaging",
   ],
   [Role.SubjectLeader]: [
     "administration", "statistics", "pending-exams", "messaging", "subjects",
