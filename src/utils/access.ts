@@ -6,7 +6,6 @@ export const FOLDER_TO_ROUTE = {
   "statistics": "/statistics",
   "administration": "/administration",
   "exam-bank": "/exam_bank",
-  "question-generator": "/question_generator",
   "exam-generator": "/exam_generator",
   "question-bank": "/question_bank",
   "configuration": "/configuration",
@@ -23,7 +22,7 @@ export const ROLE_ALLOWED_KEYS: Record<Role, FolderKey[]> = {
     "messaging", "statistics", "administration", "configuration",
   ],
   teacher: [
-    "messaging", "question-bank", "question-generator", "exam-bank","exam-generator","messaging", "configuration",
+    "messaging", "question-bank", "exam-bank","exam-generator","messaging", "configuration",
   ],
   subjectleader: [
     "administration", "statistics", "pending-exams", "messaging", "subjects",
