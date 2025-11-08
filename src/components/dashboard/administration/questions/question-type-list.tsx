@@ -2,22 +2,28 @@ import { Card } from "../../../ui/card"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../../../ui/alert-dialog"
 import { Settings, Trash2 } from "lucide-react"
 import { useState } from "react"
-import type { QuestionType } from "./question-type-form"
+import type { QuestionTypeDetail } from "@/types/question_administration"
 
 interface QuestionTypeListProps {
-  questionTypes: QuestionType[]
-  onDeleteType: (typeId: string) => void
+  questionTypes: QuestionTypeDetail[]
+  onDeleteType: (typeId: string) => Promise<void> | void
 }
 
 export function QuestionTypeList({ questionTypes, onDeleteType }: QuestionTypeListProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [selectedType, setSelectedType] = useState<QuestionType | null>(null)
+  const [selectedType, setSelectedType] = useState<QuestionTypeDetail | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  const handleDeleteType = () => {
-    if (selectedType) {
-      onDeleteType(selectedType.id)
+  const handleDeleteType = async () => {
+    if (!selectedType) return
+
+    try {
+      setIsDeleting(true)
+      await onDeleteType(selectedType.question_type_id)
       setShowDeleteDialog(false)
       setSelectedType(null)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -26,9 +32,12 @@ export function QuestionTypeList({ questionTypes, onDeleteType }: QuestionTypeLi
       <Card className="p-6">
         <h2 className="text-lg mb-4">Tipos de Preguntas</h2>
         <div className="space-y-2">
+          {questionTypes.length === 0 && (
+            <p className="text-sm text-muted-foreground">Aún no hay tipos de preguntas registrados.</p>
+          )}
           {questionTypes.map((type) => (
             <div
-              key={type.id}
+              key={type.question_type_id}
               className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
               onClick={() => {
                 setSelectedType(type)
@@ -41,7 +50,7 @@ export function QuestionTypeList({ questionTypes, onDeleteType }: QuestionTypeLi
                     <Settings className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <p className="font-medium">{type.name}</p>
+                    <p className="font-medium">{type.question_type_name}</p>
                   </div>
                 </div>
               </div>
@@ -59,15 +68,15 @@ export function QuestionTypeList({ questionTypes, onDeleteType }: QuestionTypeLi
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Esta acción eliminará permanentemente el tipo de pregunta {selectedType?.name} del sistema.
+              Esta acción no se puede deshacer. Esta acción eliminará permanentemente el tipo de pregunta {selectedType?.question_type_name} del sistema.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowDeleteDialog(false)}>
               Cancelar
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteType}>
-              Eliminar
+            <AlertDialogAction onClick={handleDeleteType} disabled={isDeleting}>
+              {isDeleting ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

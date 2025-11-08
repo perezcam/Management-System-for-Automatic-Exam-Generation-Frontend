@@ -1,173 +1,257 @@
+import { useMemo, useState } from "react"
+import { Plus, Trash2, GraduationCap, FolderTree, BookOpen, Search, Edit2, Loader2 } from "lucide-react"
+
 import { Card } from "../../../ui/card"
 import { Button } from "../../../ui/button"
 import { Input } from "../../../ui/input"
 import { Label } from "../../../ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../../ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../../../ui/alert-dialog"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../../../ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select"
-import { Plus, Trash2, GraduationCap, FolderTree, BookOpen, Search, Edit2 } from "lucide-react"
-import { useState } from "react"
-
-export type Subject = {
-  id: string
-  name: string
-  programa: string
-  profesorJefe?: string
-}
-
-export type Topic = {
-  id: string
-  name: string
-  subjectId: string
-  subtopics: string[]
-}
+import type {
+  CreateSubjectPayload,
+  CreateSubtopicPayload,
+  CreateTopicPayload,
+  SubjectDetail,
+  SubTopicDetail,
+  TopicDetail,
+  UpdateSubjectPayload,
+  UpdateTopicPayload,
+} from "@/types/question_administration"
 
 interface SubjectsTopicsManagementProps {
-  subjects: Subject[]
-  topics: Topic[]
-  profesores: { id: string; nombre: string }[]
-  onCreateSubject: (subject: Subject) => void
-  onUpdateSubject: (subjectId: string, updates: Partial<Subject>) => void
-  onDeleteSubject: (subjectId: string) => void
-  onCreateTopic: (topic: Topic) => void
-  onUpdateTopic: (topicId: string, updates: Partial<Topic>) => void
-  onDeleteTopic: (topicId: string) => void
-  onAddSubtopic: (topicId: string, subtopic: string) => void
-  onUpdateSubtopic: (topicId: string, oldSubtopic: string, newSubtopic: string) => void
-  onDeleteSubtopic: (topicId: string, subtopic: string) => void
+  subjects: SubjectDetail[]
+  topics: TopicDetail[]
+  loading?: boolean
+  onCreateSubject: (payload: CreateSubjectPayload) => Promise<void>
+  onUpdateSubject: (subjectId: string, payload: UpdateSubjectPayload) => Promise<void>
+  onDeleteSubject: (subjectId: string) => Promise<void>
+  onCreateTopic: (payload: CreateTopicPayload) => Promise<void>
+  onUpdateTopic: (topicId: string, payload: UpdateTopicPayload) => Promise<void>
+  onDeleteTopic: (topicId: string) => Promise<void>
+  onCreateSubtopic: (payload: CreateSubtopicPayload) => Promise<SubTopicDetail>
+  onDeleteSubtopic: (subtopicId: string) => Promise<void>
+}
+
+const emptyCreateSubject: CreateSubjectPayload = {
+  subject_name: "",
+  subject_program: "",
+}
+
+const emptyCreateTopic: CreateTopicPayload = {
+  topic_name: "",
+  subject_associated_id: "",
 }
 
 export function SubjectsTopicsManagement({
   subjects,
   topics,
-  profesores,
+  loading,
   onCreateSubject,
   onUpdateSubject,
   onDeleteSubject,
   onCreateTopic,
   onUpdateTopic,
   onDeleteTopic,
-  onAddSubtopic,
-  onUpdateSubtopic,
-  onDeleteSubtopic
+  onCreateSubtopic,
+  onDeleteSubtopic,
 }: SubjectsTopicsManagementProps) {
-  // Estados para búsqueda
   const [subjectSearchQuery, setSubjectSearchQuery] = useState("")
   const [topicSearchQuery, setTopicSearchQuery] = useState("")
   const [subtopicSearchQuery, setSubtopicSearchQuery] = useState("")
 
-  // Estados para diálogos de materias
   const [showNewSubjectDialog, setShowNewSubjectDialog] = useState(false)
   const [showEditSubjectDialog, setShowEditSubjectDialog] = useState(false)
   const [showDeleteSubjectDialog, setShowDeleteSubjectDialog] = useState(false)
-  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
-  const [newSubjectForm, setNewSubjectForm] = useState({ name: "", programa: "" })
-  const [editSubjectForm, setEditSubjectForm] = useState({ name: "", programa: "", profesorJefe: "" })
-
-  // Estados para diálogos de tópicos
   const [showNewTopicDialog, setShowNewTopicDialog] = useState(false)
   const [showEditTopicDialog, setShowEditTopicDialog] = useState(false)
   const [showDeleteTopicDialog, setShowDeleteTopicDialog] = useState(false)
-  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null)
-  const [newTopicForm, setNewTopicForm] = useState({ name: "", subjectId: "" })
-  const [editTopicForm, setEditTopicForm] = useState({ name: "" })
-
-  // Estados para diálogos de subtópicos
   const [showAddSubtopicDialog, setShowAddSubtopicDialog] = useState(false)
-  const [showEditSubtopicDialog, setShowEditSubtopicDialog] = useState(false)
   const [showDeleteSubtopicDialog, setShowDeleteSubtopicDialog] = useState(false)
-  const [selectedSubtopic, setSelectedSubtopic] = useState<string>("")
+
+  const [selectedSubject, setSelectedSubject] = useState<SubjectDetail | null>(null)
+  const [selectedTopic, setSelectedTopic] = useState<TopicDetail | null>(null)
+  const [selectedSubtopic, setSelectedSubtopic] = useState<SubTopicDetail | null>(null)
+
+  const [newSubjectForm, setNewSubjectForm] = useState<CreateSubjectPayload>(emptyCreateSubject)
+  const [editSubjectForm, setEditSubjectForm] = useState<CreateSubjectPayload>(emptyCreateSubject)
+
+  const [newTopicForm, setNewTopicForm] = useState<CreateTopicPayload>(emptyCreateTopic)
+  const [editTopicForm, setEditTopicForm] = useState<CreateTopicPayload>(emptyCreateTopic)
+
   const [newSubtopicName, setNewSubtopicName] = useState("")
-  const [editSubtopicName, setEditSubtopicName] = useState("")
 
-  const handleCreateSubject = () => {
-    if (newSubjectForm.name.trim() && newSubjectForm.programa.trim()) {
-      onCreateSubject({ 
-        id: String(Date.now()), 
-        name: newSubjectForm.name, 
-        programa: newSubjectForm.programa
+  const [creatingSubject, setCreatingSubject] = useState(false)
+  const [updatingSubject, setUpdatingSubject] = useState(false)
+  const [deletingSubject, setDeletingSubject] = useState(false)
+
+  const [creatingTopic, setCreatingTopic] = useState(false)
+  const [updatingTopic, setUpdatingTopic] = useState(false)
+  const [deletingTopic, setDeletingTopic] = useState(false)
+
+  const [creatingSubtopic, setCreatingSubtopic] = useState(false)
+  const [deletingSubtopic, setDeletingSubtopic] = useState(false)
+
+  const filteredSubjects = useMemo(
+    () =>
+      subjects.filter((subject) =>
+        subject.subject_name.toLowerCase().includes(subjectSearchQuery.toLowerCase()),
+      ),
+    [subjectSearchQuery, subjects],
+  )
+
+  const filteredTopics = useMemo(
+    () =>
+      topics.filter((topic) => topic.topic_name.toLowerCase().includes(topicSearchQuery.toLowerCase())),
+    [topicSearchQuery, topics],
+  )
+
+  const isInitialLoading = loading && subjects.length === 0 && topics.length === 0
+
+  const handleCreateSubject = async () => {
+    if (!newSubjectForm.subject_name.trim() || !newSubjectForm.subject_program.trim()) return
+    try {
+      setCreatingSubject(true)
+      await onCreateSubject({
+        subject_name: newSubjectForm.subject_name.trim(),
+        subject_program: newSubjectForm.subject_program.trim(),
       })
-      setNewSubjectForm({ name: "", programa: "" })
       setShowNewSubjectDialog(false)
+      setNewSubjectForm(emptyCreateSubject)
+    } catch (error) {
+      console.error("No se pudo crear la materia", error)
+    } finally {
+      setCreatingSubject(false)
     }
   }
 
-  const handleDeleteSubject = () => {
-    if (selectedSubject) {
-      onDeleteSubject(selectedSubject.id)
-      setShowDeleteSubjectDialog(false)
-      setSelectedSubject(null)
-    }
-  }
+  const handleUpdateSubject = async () => {
+    if (!selectedSubject) return
+    if (!editSubjectForm.subject_name.trim() || !editSubjectForm.subject_program.trim()) return
 
-  const handleCreateTopic = () => {
-    if (newTopicForm.name.trim() && newTopicForm.subjectId.trim()) {
-      onCreateTopic({ id: String(Date.now()), name: newTopicForm.name, subjectId: newTopicForm.subjectId, subtopics: [] })
-      setNewTopicForm({ name: "", subjectId: "" })
-      setShowNewTopicDialog(false)
-    }
-  }
-
-  const handleDeleteTopic = () => {
-    if (selectedTopic) {
-      onDeleteTopic(selectedTopic.id)
-      setShowDeleteTopicDialog(false)
-      setSelectedTopic(null)
-    }
-  }
-
-  const handleAddSubtopic = () => {
-    if (selectedTopic && newSubtopicName.trim()) {
-      onAddSubtopic(selectedTopic.id, newSubtopicName)
-      setNewSubtopicName("")
-      setShowAddSubtopicDialog(false)
-      setSelectedTopic(null)
-    }
-  }
-
-  const handleDeleteSubtopic = () => {
-    if (selectedTopic && selectedSubtopic) {
-      onDeleteSubtopic(selectedTopic.id, selectedSubtopic)
-      setShowDeleteSubtopicDialog(false)
-      setSelectedTopic(null)
-      setSelectedSubtopic("")
-    }
-  }
-
-  const handleEditSubject = () => {
-    if (selectedSubject && editSubjectForm.name.trim() && editSubjectForm.programa.trim()) {
-      onUpdateSubject(selectedSubject.id, {
-        name: editSubjectForm.name,
-        programa: editSubjectForm.programa,
-        profesorJefe: editSubjectForm.profesorJefe || undefined
+    try {
+      setUpdatingSubject(true)
+      await onUpdateSubject(selectedSubject.subject_id, {
+        subject_name: editSubjectForm.subject_name.trim(),
+        subject_program: editSubjectForm.subject_program.trim(),
       })
       setShowEditSubjectDialog(false)
       setSelectedSubject(null)
+    } catch (error) {
+      console.error("No se pudo actualizar la materia", error)
+    } finally {
+      setUpdatingSubject(false)
     }
   }
 
-  const handleEditTopic = () => {
-    if (selectedTopic && editTopicForm.name.trim()) {
-      onUpdateTopic(selectedTopic.id, { name: editTopicForm.name })
+  const handleDeleteSubject = async () => {
+    if (!selectedSubject) return
+    try {
+      setDeletingSubject(true)
+      await onDeleteSubject(selectedSubject.subject_id)
+      setShowDeleteSubjectDialog(false)
+      setSelectedSubject(null)
+    } catch (error) {
+      console.error("No se pudo eliminar la materia", error)
+    } finally {
+      setDeletingSubject(false)
+    }
+  }
+
+  const handleCreateTopic = async () => {
+    if (!newTopicForm.topic_name.trim() || !newTopicForm.subject_associated_id) return
+    try {
+      setCreatingTopic(true)
+      await onCreateTopic({
+        topic_name: newTopicForm.topic_name.trim(),
+        subject_associated_id: newTopicForm.subject_associated_id,
+      })
+      setShowNewTopicDialog(false)
+      setNewTopicForm(emptyCreateTopic)
+    } catch (error) {
+      console.error("No se pudo crear el tópico", error)
+    } finally {
+      setCreatingTopic(false)
+    }
+  }
+
+  const handleUpdateTopic = async () => {
+    if (!selectedTopic) return
+    if (!editTopicForm.topic_name?.trim() || !editTopicForm.subject_associated_id) return
+
+    try {
+      setUpdatingTopic(true)
+      await onUpdateTopic(selectedTopic.topic_id, {
+        topic_name: editTopicForm.topic_name.trim(),
+        subject_associated_id: editTopicForm.subject_associated_id,
+      })
       setShowEditTopicDialog(false)
       setSelectedTopic(null)
+    } catch (error) {
+      console.error("No se pudo actualizar el tópico", error)
+    } finally {
+      setUpdatingTopic(false)
     }
   }
 
-  const handleEditSubtopic = () => {
-    if (selectedTopic && selectedSubtopic && editSubtopicName.trim()) {
-      onUpdateSubtopic(selectedTopic.id, selectedSubtopic, editSubtopicName)
-      setShowEditSubtopicDialog(false)
+  const handleDeleteTopic = async () => {
+    if (!selectedTopic) return
+    try {
+      setDeletingTopic(true)
+      await onDeleteTopic(selectedTopic.topic_id)
+      setShowDeleteTopicDialog(false)
       setSelectedTopic(null)
-      setSelectedSubtopic("")
-      setEditSubtopicName("")
+    } catch (error) {
+      console.error("No se pudo eliminar el tópico", error)
+    } finally {
+      setDeletingTopic(false)
     }
+  }
+
+  const handleCreateSubtopic = async () => {
+    if (!selectedTopic || !newSubtopicName.trim()) return
+    try {
+      setCreatingSubtopic(true)
+      await onCreateSubtopic({
+        topic_associated_id: selectedTopic.topic_id,
+        subtopic_name: newSubtopicName.trim(),
+      })
+      setShowAddSubtopicDialog(false)
+      setSelectedTopic(null)
+      setNewSubtopicName("")
+    } catch (error) {
+      console.error("No se pudo registrar el subtópico", error)
+    } finally {
+      setCreatingSubtopic(false)
+    }
+  }
+
+  const handleDeleteSubtopic = async () => {
+    if (!selectedSubtopic) return
+    try {
+      setDeletingSubtopic(true)
+      await onDeleteSubtopic(selectedSubtopic.subtopic_id)
+      setShowDeleteSubtopicDialog(false)
+      setSelectedSubtopic(null)
+    } catch (error) {
+      console.error("No se pudo eliminar el subtópico", error)
+    } finally {
+      setDeletingSubtopic(false)
+    }
+  }
+
+  if (isInitialLoading) {
+    return (
+      <Card className="p-6 mt-6 flex items-center gap-3 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Cargando materias y tópicos...
+      </Card>
+    )
   }
 
   return (
     <>
-      {/* Gestión de Materias */}
       <div className="grid grid-cols-1 gap-6">
         <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
@@ -178,10 +262,9 @@ export function SubjectsTopicsManagement({
             </Button>
           </div>
 
-          {/* Buscador de Materias */}
           <div className="mb-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar materia por nombre..."
                 className="pl-10"
@@ -190,96 +273,94 @@ export function SubjectsTopicsManagement({
               />
             </div>
           </div>
-          
+
           <Accordion type="single" collapsible className="w-full">
-            {subjects
-              .filter(subject => subject.name.toLowerCase().includes(subjectSearchQuery.toLowerCase()))
-              .map((subject) => {
-              const relatedTopics = topics.filter(t => t.subjectId === subject.id)
-              return (
-                <AccordionItem key={subject.id} value={subject.id}>
-                  <AccordionTrigger className="hover:no-underline">
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
-                        <GraduationCap className="h-5 w-5 text-orange-600" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium">{subject.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {relatedTopics.length} tópicos
-                          {subject.profesorJefe && (
-                            <span className="text-xs"> • Profesor: {subject.profesorJefe}</span>
-                          )}
-                        </p>
-                      </div>
+            {filteredSubjects.map((subject) => (
+              <AccordionItem key={subject.subject_id} value={subject.subject_id}>
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
+                      <GraduationCap className="h-5 w-5 text-orange-600" />
                     </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="ml-14 space-y-2 pt-2">
-                      <div className="flex gap-2 mb-3">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedSubject(subject)
-                            setEditSubjectForm({ 
-                              name: subject.name, 
-                              programa: subject.programa,
-                              profesorJefe: subject.profesorJefe || ""
-                            })
-                            setShowEditSubjectDialog(true)
-                          }}
-                        >
-                          <Edit2 className="h-4 w-4 mr-2" />
-                          Editar Materia
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedSubject(subject)
-                            setShowDeleteSubjectDialog(true)
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Eliminar Materia
-                        </Button>
-                      </div>
-                      {relatedTopics.length > 0 ? (
-                        <div className="space-y-2">
-                          <p className="text-sm mb-2">Tópicos asociados:</p>
-                          {relatedTopics.map((topic) => (
-                            <div
-                              key={topic.id}
-                              className="flex items-center justify-between p-3 border rounded-lg bg-muted/50"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
-                                  <FolderTree className="h-4 w-4 text-purple-600" />
-                                </div>
-                                <div>
-                                  <p className="text-sm">{topic.name}</p>
-                                  <p className="text-xs text-muted-foreground">{topic.subtopics.length} subtópicos</p>
-                                </div>
+                    <div className="text-left">
+                      <p className="font-medium">{subject.subject_name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {subject.subject_program}
+                        {subject.subject_leader_name && (
+                          <span className="text-xs"> • Jefe: {subject.subject_leader_name}</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="ml-14 space-y-2 pt-2">
+                    <div className="flex gap-2 mb-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedSubject(subject)
+                          setEditSubjectForm({
+                            subject_name: subject.subject_name,
+                            subject_program: subject.subject_program,
+                          })
+                          setShowEditSubjectDialog(true)
+                        }}
+                      >
+                        <Edit2 className="h-4 w-4 mr-2" />
+                        Editar Materia
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedSubject(subject)
+                          setShowDeleteSubjectDialog(true)
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Eliminar Materia
+                      </Button>
+                    </div>
+                    {subject.topics.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-sm mb-2">Tópicos asociados:</p>
+                        {subject.topics.map((topic) => (
+                          <div
+                            key={topic.topic_id}
+                            className="flex items-center justify-between p-3 border rounded-lg bg-muted/50"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
+                                <FolderTree className="h-4 w-4 text-purple-600" />
+                              </div>
+                              <div>
+                                <p className="text-sm">{topic.topic_name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {topic.subtopics.length} subtópicos
+                                </p>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground py-2">No hay tópicos asociados a esta materia</p>
-                      )}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              )
-            })}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground py-2">
+                        No hay tópicos asociados a esta materia
+                      </p>
+                    )}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
           </Accordion>
-          
+
           {subjects.length === 0 && (
             <div className="text-center py-8">
-              <p className="text-muted-foreground mb-4">No hay materias creadas</p>
+              <p className="text-muted-foreground mb-4">No hay materias registradas</p>
               <Button onClick={() => setShowNewSubjectDialog(true)} variant="outline">
                 <Plus className="h-4 w-4 mr-2" />
                 Crear Primera Materia
@@ -289,7 +370,6 @@ export function SubjectsTopicsManagement({
         </Card>
       </div>
 
-      {/* Gestión de Tópicos y Subtópicos */}
       <div className="grid grid-cols-1 gap-6 mt-6">
         <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
@@ -300,10 +380,9 @@ export function SubjectsTopicsManagement({
             </Button>
           </div>
 
-          {/* Buscador de Tópicos */}
           <div className="mb-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar tópico por nombre..."
                 className="pl-10"
@@ -312,23 +391,24 @@ export function SubjectsTopicsManagement({
               />
             </div>
           </div>
-          
+
           <Accordion type="single" collapsible className="w-full">
-            {topics
-              .filter(topic => topic.name.toLowerCase().includes(topicSearchQuery.toLowerCase()))
-              .map((topic) => {
-              const subject = subjects.find(s => s.id === topic.subjectId)
+            {filteredTopics.map((topic) => {
+              const subject = subjects.find((s) => s.subject_id === topic.subject_id)
+              const filteredSubtopics = topic.subtopics.filter((subtopic) =>
+                subtopic.subtopic_name.toLowerCase().includes(subtopicSearchQuery.toLowerCase()),
+              )
               return (
-                <AccordionItem key={topic.id} value={topic.id}>
+                <AccordionItem key={topic.topic_id} value={topic.topic_id}>
                   <AccordionTrigger className="hover:no-underline">
                     <div className="flex items-center gap-3 flex-1">
                       <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
                         <FolderTree className="h-5 w-5 text-purple-600" />
                       </div>
                       <div className="text-left">
-                        <p className="font-medium">{topic.name}</p>
+                        <p className="font-medium">{topic.topic_name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {subject?.name || 'Sin materia'} • {topic.subtopics.length} subtópicos
+                          {subject?.subject_name || "Sin materia"} • {topic.subtopics.length} subtópicos
                         </p>
                       </div>
                     </div>
@@ -336,8 +416,8 @@ export function SubjectsTopicsManagement({
                   <AccordionContent>
                     <div className="ml-14 space-y-2 pt-2">
                       <div className="flex gap-2 mb-3">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation()
@@ -348,21 +428,24 @@ export function SubjectsTopicsManagement({
                           <Plus className="h-4 w-4 mr-2" />
                           Agregar Subtópico
                         </Button>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation()
                             setSelectedTopic(topic)
-                            setEditTopicForm({ name: topic.name })
+                            setEditTopicForm({
+                              topic_name: topic.topic_name,
+                              subject_associated_id: topic.subject_id,
+                            })
                             setShowEditTopicDialog(true)
                           }}
                         >
                           <Edit2 className="h-4 w-4 mr-2" />
                           Editar Tópico
                         </Button>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation()
@@ -375,11 +458,10 @@ export function SubjectsTopicsManagement({
                         </Button>
                       </div>
 
-                      {/* Buscador de Subtópicos */}
                       {topic.subtopics.length > 0 && (
                         <div className="mb-3">
                           <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                               placeholder="Buscar subtópico..."
                               className="pl-10"
@@ -390,35 +472,20 @@ export function SubjectsTopicsManagement({
                         </div>
                       )}
 
-                      {topic.subtopics.length > 0 ? (
+                      {filteredSubtopics.length > 0 ? (
                         <div className="space-y-2">
-                          {topic.subtopics
-                            .filter(subtopic => subtopic.toLowerCase().includes(subtopicSearchQuery.toLowerCase()))
-                            .map((subtopic) => (
+                          {filteredSubtopics.map((subtopic) => (
                             <div
-                              key={subtopic}
+                              key={subtopic.subtopic_id}
                               className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
                             >
                               <div className="flex items-center gap-3">
                                 <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
                                   <BookOpen className="h-4 w-4 text-blue-600" />
                                 </div>
-                                <p className="text-sm">{subtopic}</p>
+                                <p className="text-sm">{subtopic.subtopic_name}</p>
                               </div>
                               <div className="flex gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setSelectedTopic(topic)
-                                    setSelectedSubtopic(subtopic)
-                                    setEditSubtopicName(subtopic)
-                                    setShowEditSubtopicDialog(true)
-                                  }}
-                                >
-                                  <Edit2 className="h-4 w-4 text-muted-foreground" />
-                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -444,7 +511,7 @@ export function SubjectsTopicsManagement({
               )
             })}
           </Accordion>
-          
+
           {topics.length === 0 && (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">No hay tópicos creados</p>
@@ -457,33 +524,28 @@ export function SubjectsTopicsManagement({
         </Card>
       </div>
 
-      {/* DIÁLOGOS */}
-
-      {/* Dialog Nueva Materia */}
       <Dialog open={showNewSubjectDialog} onOpenChange={setShowNewSubjectDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Crear Nueva Materia</DialogTitle>
-            <DialogDescription>
-              Ingresa el nombre y programa de la nueva materia
-            </DialogDescription>
+            <DialogDescription>Ingresa el nombre y el programa de la materia</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="new-subject-name">Nombre de la Materia</Label>
               <Input
                 id="new-subject-name"
-                value={newSubjectForm.name}
-                onChange={(e) => setNewSubjectForm({ ...newSubjectForm, name: e.target.value })}
+                value={newSubjectForm.subject_name}
+                onChange={(e) => setNewSubjectForm({ ...newSubjectForm, subject_name: e.target.value })}
                 placeholder="Ej: Ciencia de la Computación"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-subject-programa">Programa</Label>
+              <Label htmlFor="new-subject-program">Programa</Label>
               <Input
-                id="new-subject-programa"
-                value={newSubjectForm.programa}
-                onChange={(e) => setNewSubjectForm({ ...newSubjectForm, programa: e.target.value })}
+                id="new-subject-program"
+                value={newSubjectForm.subject_program}
+                onChange={(e) => setNewSubjectForm({ ...newSubjectForm, subject_program: e.target.value })}
                 placeholder="Ej: Licenciatura en Computación"
               />
             </div>
@@ -492,61 +554,98 @@ export function SubjectsTopicsManagement({
             <Button variant="outline" onClick={() => setShowNewSubjectDialog(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleCreateSubject}>
-              Crear Materia
+            <Button onClick={handleCreateSubject} disabled={creatingSubject}>
+              {creatingSubject ? "Creando..." : "Crear Materia"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de Eliminación de Materia */}
+      <Dialog open={showEditSubjectDialog} onOpenChange={setShowEditSubjectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Materia</DialogTitle>
+            <DialogDescription>Actualiza la información principal de la materia</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-subject-name">Nombre de la Materia</Label>
+              <Input
+                id="edit-subject-name"
+                value={editSubjectForm.subject_name}
+                onChange={(e) => setEditSubjectForm({ ...editSubjectForm, subject_name: e.target.value })}
+                placeholder="Ej: Ciencia de la Computación"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-subject-program">Programa</Label>
+              <Input
+                id="edit-subject-program"
+                value={editSubjectForm.subject_program}
+                onChange={(e) => setEditSubjectForm({ ...editSubjectForm, subject_program: e.target.value })}
+                placeholder="Ej: Licenciatura en Computación"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setShowEditSubjectDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateSubject} disabled={updatingSubject}>
+              {updatingSubject ? "Guardando..." : "Guardar Cambios"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={showDeleteSubjectDialog} onOpenChange={setShowDeleteSubjectDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogTitle>¿Eliminar materia?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Esta acción eliminará permanentemente la materia {selectedSubject?.name} del sistema.
+              Esta acción no se puede deshacer. Se eliminará la materia {selectedSubject?.subject_name} y sus
+              tópicos asociados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowDeleteSubjectDialog(false)}>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteSubject}>
-              Eliminar
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteSubject} disabled={deletingSubject}>
+              {deletingSubject ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Dialog Nuevo Tópico */}
       <Dialog open={showNewTopicDialog} onOpenChange={setShowNewTopicDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Crear Nuevo Tópico</DialogTitle>
-            <DialogDescription>
-              Ingresa el nombre del nuevo tópico
-            </DialogDescription>
+            <DialogDescription>Asocia el tópico a una materia y define su nombre</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="new-topic-name">Nombre del Tópico</Label>
               <Input
                 id="new-topic-name"
-                value={newTopicForm.name}
-                onChange={(e) => setNewTopicForm({ ...newTopicForm, name: e.target.value })}
+                value={newTopicForm.topic_name}
+                onChange={(e) => setNewTopicForm({ ...newTopicForm, topic_name: e.target.value })}
                 placeholder="Ej: Algoritmos"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-topic-subject">Materia</Label>
-              <Select value={newTopicForm.subjectId} onValueChange={(value) => setNewTopicForm({ ...newTopicForm, subjectId: value })}>
+              <Label>Materia asociada</Label>
+              <Select
+                value={newTopicForm.subject_associated_id}
+                onValueChange={(value) => setNewTopicForm({ ...newTopicForm, subject_associated_id: value })}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona una materia" />
+                  <SelectValue placeholder="Seleccione una materia" />
                 </SelectTrigger>
                 <SelectContent>
-                  {subjects.map(subject => (
-                    <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject.subject_id} value={subject.subject_id}>
+                      {subject.subject_name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -556,41 +655,81 @@ export function SubjectsTopicsManagement({
             <Button variant="outline" onClick={() => setShowNewTopicDialog(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleCreateTopic}>
-              Crear Tópico
+            <Button onClick={handleCreateTopic} disabled={creatingTopic}>
+              {creatingTopic ? "Creando..." : "Crear Tópico"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de Eliminación de Tópico */}
+  <Dialog open={showEditTopicDialog} onOpenChange={setShowEditTopicDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Tópico</DialogTitle>
+            <DialogDescription>Actualiza el nombre o la materia asociada</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-topic-name">Nombre del Tópico</Label>
+              <Input
+                id="edit-topic-name"
+                value={editTopicForm.topic_name ?? ""}
+                onChange={(e) => setEditTopicForm({ ...editTopicForm, topic_name: e.target.value })}
+                placeholder="Ej: Algoritmos"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Materia asociada</Label>
+              <Select
+                value={editTopicForm.subject_associated_id}
+                onValueChange={(value) => setEditTopicForm({ ...editTopicForm, subject_associated_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione una materia" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject.subject_id} value={subject.subject_id}>
+                      {subject.subject_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setShowEditTopicDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateTopic} disabled={updatingTopic}>
+              {updatingTopic ? "Guardando..." : "Guardar Cambios"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={showDeleteTopicDialog} onOpenChange={setShowDeleteTopicDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogTitle>¿Eliminar tópico?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Esta acción eliminará permanentemente el tópico {selectedTopic?.name} y todos sus subtópicos del sistema.
+              Se eliminará el tópico {selectedTopic?.topic_name} y todos sus subtópicos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowDeleteTopicDialog(false)}>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteTopic}>
-              Eliminar
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTopic} disabled={deletingTopic}>
+              {deletingTopic ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Dialog Agregar Subtópico */}
       <Dialog open={showAddSubtopicDialog} onOpenChange={setShowAddSubtopicDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Agregar Subtópico</DialogTitle>
-            <DialogDescription>
-              Ingresa el nombre del nuevo subtópico para {selectedTopic?.name}
-            </DialogDescription>
+            <DialogDescription>Completa el nombre del nuevo subtópico</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -607,147 +746,29 @@ export function SubjectsTopicsManagement({
             <Button variant="outline" onClick={() => setShowAddSubtopicDialog(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleAddSubtopic}>
-              Agregar Subtópico
+            <Button onClick={handleCreateSubtopic} disabled={creatingSubtopic}>
+              {creatingSubtopic ? "Agregando..." : "Agregar Subtópico"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de Eliminación de Subtópico */}
       <AlertDialog open={showDeleteSubtopicDialog} onOpenChange={setShowDeleteSubtopicDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogTitle>¿Eliminar subtópico?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Esta acción eliminará permanentemente el subtópico {selectedSubtopic} del sistema.
+              Esta acción eliminará permanentemente el subtópico {selectedSubtopic?.subtopic_name}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowDeleteSubtopicDialog(false)}>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteSubtopic}>
-              Eliminar
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteSubtopic} disabled={deletingSubtopic}>
+              {deletingSubtopic ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Dialog Editar Materia */}
-      <Dialog open={showEditSubjectDialog} onOpenChange={setShowEditSubjectDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Materia</DialogTitle>
-            <DialogDescription>
-              Modifica la información de la materia
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-subject-name">Nombre de la Materia</Label>
-              <Input
-                id="edit-subject-name"
-                value={editSubjectForm.name}
-                onChange={(e) => setEditSubjectForm({ ...editSubjectForm, name: e.target.value })}
-                placeholder="Ej: Ciencia de la Computación"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-subject-programa">Programa</Label>
-              <Input
-                id="edit-subject-programa"
-                value={editSubjectForm.programa}
-                onChange={(e) => setEditSubjectForm({ ...editSubjectForm, programa: e.target.value })}
-                placeholder="Ej: Licenciatura en Computación"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-subject-profesor">Profesor Jefe (Opcional)</Label>
-              <Select value={editSubjectForm.profesorJefe} onValueChange={(value) => setEditSubjectForm({ ...editSubjectForm, profesorJefe: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un profesor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {profesores.map(profesor => (
-                    <SelectItem key={profesor.id} value={profesor.nombre}>{profesor.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setShowEditSubjectDialog(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleEditSubject}>
-              Guardar Cambios
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog Editar Tópico */}
-      <Dialog open={showEditTopicDialog} onOpenChange={setShowEditTopicDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Tópico</DialogTitle>
-            <DialogDescription>
-              Modifica el nombre del tópico
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-topic-name">Nombre del Tópico</Label>
-              <Input
-                id="edit-topic-name"
-                value={editTopicForm.name}
-                onChange={(e) => setEditTopicForm({ ...editTopicForm, name: e.target.value })}
-                placeholder="Ej: Algoritmos"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setShowEditTopicDialog(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleEditTopic}>
-              Guardar Cambios
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog Editar Subtópico */}
-      <Dialog open={showEditSubtopicDialog} onOpenChange={setShowEditSubtopicDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Subtópico</DialogTitle>
-            <DialogDescription>
-              Modifica el nombre del subtópico
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-subtopic-name">Nombre del Subtópico</Label>
-              <Input
-                id="edit-subtopic-name"
-                value={editSubtopicName}
-                onChange={(e) => setEditSubtopicName(e.target.value)}
-                placeholder="Ej: Ordenamiento"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setShowEditSubtopicDialog(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleEditSubtopic}>
-              Guardar Cambios
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }
