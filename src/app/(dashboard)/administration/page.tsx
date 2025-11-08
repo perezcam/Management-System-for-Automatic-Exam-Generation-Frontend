@@ -6,7 +6,7 @@ import { Users, FileText, Settings } from "lucide-react"
 import { useState } from "react"
 
 import { UserManagementHeader } from "@/components/dashboard/administration/users/user-management-header"
-import { UserRegistrationForm, type User } from "@/components/dashboard/administration/users/user-registration-form"
+import { UserRegistrationForm } from "@/components/dashboard/administration/users/user-registration-form"
 import { UserList } from "@/components/dashboard/administration/users/user-list"
 
 import { QuestionsConfigHeader } from "@/components/dashboard/administration/questions/questions-config-header"
@@ -15,18 +15,28 @@ import { QuestionTypeList } from "@/components/dashboard/administration/question
 import { SubjectsTopicsManagement, type Subject, type Topic } from "@/components/dashboard/administration/questions/subjects-topics-management"
 
 import { ReportsView } from "@/components/dashboard/administration/reports/reports-view"
+import { useUsers } from "@/hooks/use-users"
 
 export default function AdministracionView() {
   const [activeSection, setActiveSection] = useState<string | null>(null)
 
-  // Estados para gestión de usuarios
-  const [users, setUsers] = useState<User[]>([
-    { id: "1", username: "mmedina", email: "mauricio.medina@universidad.edu", role: "Administrador" },
-    { id: "2", username: "csilva", email: "carmen.silva@universidad.edu", role: "Profesor", nombre: "Carmen Silva", especialidad: "Matemáticas", rolesProfesor: ["Examinador"] },
-    { id: "3", username: "jlopez", email: "juan.lopez@universidad.edu", role: "Estudiante", nombre: "Juan López", edad: 22, curso: "3er Año" },
-    { id: "4", username: "agarcia", email: "ana.garcia@universidad.edu", role: "Profesor", nombre: "Ana García", especialidad: "Física", rolesProfesor: ["Jefe de Asignatura"], asignaturas: ["2"] },
-    { id: "5", username: "rmartinez", email: "roberto.martinez@universidad.edu", role: "Profesor", nombre: "Roberto Martínez", especialidad: "Computación", rolesProfesor: ["Examinador", "Jefe de Asignatura"], asignaturas: ["1"] },
-  ])
+  // Datos de usuarios desde el backend
+  const {
+    teachers,
+    users,
+    loading: usersLoading,
+    error: usersError,
+    refresh: refreshUsers,
+    createAdmin,
+    createStudent,
+    createTeacher,
+    updateAdmin,
+    updateStudent,
+    updateTeacher,
+    deleteAdmin,
+    deleteStudent,
+    deleteTeacher,
+  } = useUsers()
 
   // Estados para configuración de preguntas
   const [questionTypes, setQuestionTypes] = useState<QuestionType[]>([
@@ -42,19 +52,6 @@ export default function AdministracionView() {
     { id: "1", name: "Algoritmos", subjectId: "1", subtopics: ["Ordenamiento", "Búsqueda", "Recursión"] },
     { id: "2", name: "Estructuras de Datos", subjectId: "1", subtopics: ["Listas", "Árboles", "Grafos"] }
   ])
-
-  // Funciones para gestión de usuarios
-  const handleCreateUser = (user: User) => {
-    setUsers([...users, user])
-  }
-
-  const handleUpdateUser = (userId: string, updates: Partial<User>) => {
-    setUsers(users.map(u => u.id === userId ? { ...u, ...updates } : u))
-  }
-
-  const handleDeleteUser = (userId: string) => {
-    setUsers(users.filter(u => u.id !== userId))
-  }
 
   // Funciones para gestión de tipos de preguntas
   const handleCreateType = (type: QuestionType) => {
@@ -122,23 +119,46 @@ export default function AdministracionView() {
         <div className="max-w-7xl mx-auto">
           <UserManagementHeader onBack={() => setActiveSection(null)} />
 
+          {usersError && (
+            <div className="mb-6 rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+              <div className="flex items-center justify-between gap-4">
+                <span>Error al cargar usuarios: {usersError.message}</span>
+                <Button variant="outline" size="sm" onClick={refreshUsers}>
+                  Reintentar
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Formulario de Registro */}
             <div className="lg:col-span-1">
               <UserRegistrationForm 
-                onCreateUser={handleCreateUser}
                 subjects={subjects.map(s => ({ id: s.id, name: s.name }))}
+                onCreateAdmin={createAdmin}
+                onCreateStudent={createStudent}
+                onCreateTeacher={createTeacher}
               />
             </div>
 
             {/* Lista de Usuarios */}
             <div className="lg:col-span-2">
-              <UserList 
-                users={users}
-                onUpdateUser={handleUpdateUser}
-                onDeleteUser={handleDeleteUser}
-                subjects={subjects.map(s => ({ id: s.id, name: s.name }))}
-              />
+              {usersLoading ? (
+                <Card className="p-6 flex items-center justify-center text-sm text-muted-foreground h-full">
+                  Cargando usuarios...
+                </Card>
+              ) : (
+                <UserList 
+                  users={users}
+                  subjects={subjects.map(s => ({ id: s.id, name: s.name }))}
+                  onUpdateAdmin={updateAdmin}
+                  onUpdateStudent={updateStudent}
+                  onUpdateTeacher={updateTeacher}
+                  onDeleteAdmin={deleteAdmin}
+                  onDeleteStudent={deleteStudent}
+                  onDeleteTeacher={deleteTeacher}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -183,10 +203,7 @@ export default function AdministracionView() {
           <SubjectsTopicsManagement
             subjects={subjects}
             topics={topics}
-            profesores={users
-              .filter(u => u.role === "Profesor")
-              .map(u => ({ id: u.id, nombre: u.nombre || u.username }))
-            }
+            profesores={teachers.map(teacher => ({ id: teacher.id, nombre: teacher.name }))}
             onCreateSubject={handleCreateSubject}
             onUpdateSubject={handleUpdateSubject}
             onDeleteSubject={handleDeleteSubject}

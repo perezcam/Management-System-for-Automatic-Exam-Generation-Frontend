@@ -1,6 +1,6 @@
 import { Button } from "../ui/button";
 import {
-  ClipboardCheck, MessageSquare, BarChart3, Users, Database, FileText, FileStack, FileCheck, BookOpen
+  ClipboardCheck, MessageSquare, BarChart3, Database, FileText, FileStack, FileCheck, BookOpen, Shield
 } from "lucide-react";
 import type { FolderKey } from "@/utils/access";
 
@@ -21,7 +21,7 @@ export function MailSidebar({ selectedFolder, onFolderSelect, allowedKeys }: Mai
     { id: "exam-generator", name: "Generador de Exámenes", icon: FileText },
     { id: "pending-exams", name: "Pruebas a Aprobar", icon: ClipboardCheck },
     { id: "statistics", name: "Estadísticas de Curso", icon: BarChart3 },
-    { id: "administration", name: "Administración de Usuarios", icon: Users },
+    { id: "administration", name: "Administración", icon: Shield },
   ];
 
   const visible = folders.filter(f => allowedKeys.includes(f.id));
