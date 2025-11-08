@@ -1,7 +1,5 @@
-
 // Read schemas
-
-export type UserRole = "admin" | "student" | "teacher"; //TODO: PARA QUE?
+export type UserRole = "admin" | "student" | "teacher"; 
 
 export type AdminDetail = {
   id: string;

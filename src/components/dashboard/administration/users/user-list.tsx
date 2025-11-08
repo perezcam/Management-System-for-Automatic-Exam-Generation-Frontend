@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
 } from "../../../ui/alert-dialog";
 import { Checkbox } from "../../../ui/checkbox";
-import { Users, Edit2, Trash2, Search } from "lucide-react";
+import { Users, Edit2, Trash2, Search, Plus, X } from "lucide-react";
 import type {
   UpdateAdminPayload,
   UpdateStudentPayload,
@@ -53,7 +53,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 const ROLE_BADGE_CLASSES: Record<UserRole, string> = {
   admin: "bg-red-100 text-red-700 border-transparent hover:bg-red-100",
   student: "bg-blue-100 text-blue-700 border-transparent hover:bg-blue-100",
-  teacher: "bg-emerald-100 text-emerald-700 border-transparent hover:bg-emerald-100",
+  teacher: "bg-green-100 text-emerald-700 border-transparent hover:bg-emerald-100",
 };
 
 export function UserList({
@@ -73,6 +73,7 @@ export function UserList({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   const [isDeletingUser, setIsDeletingUser] = useState(false);
+  const [subjectSelectKey, setSubjectSelectKey] = useState(0);
   const [editForm, setEditForm] = useState({
     name: "",
     email: "",
@@ -127,6 +128,7 @@ export function UserList({
         hasRoleSubjectLeader: user.hasRoleSubjectLeader,
         subjects: user.subjects_ids ?? [],
       });
+      setSubjectSelectKey((prev) => prev + 1);
     }
 
     setIsEditDialogOpen(true);
@@ -191,6 +193,44 @@ export function UserList({
     }
   };
 
+  const addSubjectToTeacher = (subjectId: string) => {
+    if (!subjectId || subjectId === "sin-opciones") return;
+    let didAdd = false;
+    setEditForm((prev) => {
+      if (prev.subjects.includes(subjectId)) {
+        return prev;
+      }
+      didAdd = true;
+      return {
+        ...prev,
+        hasRoleSubjectLeader: true,
+        subjects: [...prev.subjects, subjectId],
+      };
+    });
+    if (didAdd) {
+      setSubjectSelectKey((prev) => prev + 1);
+    }
+  };
+
+  const removeSubjectFromTeacher = (subjectId: string) => {
+    let didRemove = false;
+    setEditForm((prev) => {
+      if (!prev.subjects.includes(subjectId)) {
+        return prev;
+      }
+      didRemove = true;
+      const updatedSubjects = prev.subjects.filter((id) => id !== subjectId);
+      return {
+        ...prev,
+        subjects: updatedSubjects,
+        hasRoleSubjectLeader: updatedSubjects.length > 0 ? prev.hasRoleSubjectLeader : false,
+      };
+    });
+    if (didRemove) {
+      setSubjectSelectKey((prev) => prev + 1);
+    }
+  };
+
   const renderUserExtraInfo = (user: UserRecord) => {
     if (user.role === "student") {
       return (
@@ -207,10 +247,6 @@ export function UserList({
       return (
         <p className="text-xs text-muted-foreground mt-1">
           {user.specialty}
-          {roles.length > 0 && ` • ${roles.join(", ")}`}
-          {user.hasRoleSubjectLeader && user.subjects_names && user.subjects_names.length > 0 && (
-            <> • Asignaturas: {user.subjects_names.join(", ")}</>
-          )}
         </p>
       );
     }
@@ -219,6 +255,7 @@ export function UserList({
 
   const renderEditFields = () => {
     if (!selectedUser) return null;
+    const availableSubjects = subjects.filter((subject) => !editForm.subjects.includes(subject.id));
 
     return (
       <>
@@ -302,6 +339,7 @@ export function UserList({
                         hasRoleSubjectLeader: Boolean(checked),
                         subjects: checked ? prev.subjects : [],
                       }));
+                      setSubjectSelectKey((prev) => prev + 1);
                     }}
                   />
                   <label htmlFor="edit-role-leader" className="text-sm">
@@ -311,30 +349,62 @@ export function UserList({
               </div>
             </div>
             {editForm.hasRoleSubjectLeader && (
-              <div className="space-y-2">
-                <Label>Asignaturas</Label>
-                <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
-                  {subjects.map((subject) => (
-                    <div key={subject.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`edit-subject-${subject.id}`}
-                        checked={editForm.subjects.includes(subject.id)}
-                        onCheckedChange={() => {
-                          const exists = editForm.subjects.includes(subject.id);
-                          setEditForm((prev) => ({
-                            ...prev,
-                            subjects: exists
-                              ? prev.subjects.filter((id) => id !== subject.id)
-                              : [...prev.subjects, subject.id],
-                          }));
-                        }}
-                      />
-                      <label htmlFor={`edit-subject-${subject.id}`} className="text-sm flex-1 cursor-pointer">
-                        {subject.name}
-                      </label>
-                    </div>
-                  ))}
-                </div>
+              <div className="space-y-3">
+                <Label>Asignaturas a cargo</Label>
+                {editForm.subjects.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Este profesor aún no tiene asignaturas asignadas.</p>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {editForm.subjects.map((subjectId) => {
+                      const subject = subjects.find((subject) => subject.id === subjectId);
+                      return (
+                        <div
+                          key={subjectId}
+                          className="flex items-center justify-between rounded-md border px-3 py-2"
+                        >
+                          <span className="text-sm">{subject?.name ?? "Asignatura desconocida"}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeSubjectFromTeacher(subjectId)}
+                            aria-label={`Eliminar ${subject?.name ?? "asignatura"}`}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <Select
+                  key={subjectSelectKey}
+                  onValueChange={(value) => addSubjectToTeacher(value)}
+                >
+                  <SelectTrigger
+                    className="flex items-center gap-2"
+                    disabled={availableSubjects.length === 0}
+                  >
+                    <Plus className="h-4 w-4" />
+                    <SelectValue
+                      placeholder={
+                        availableSubjects.length === 0 ? "Sin asignaturas disponibles" : "Añadir asignatura"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSubjects.length === 0 ? (
+                      <SelectItem value="sin-opciones" disabled>
+                        No hay asignaturas disponibles
+                      </SelectItem>
+                    ) : (
+                      availableSubjects.map((subject) => (
+                        <SelectItem key={subject.id} value={subject.id}>
+                          {subject.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </>
@@ -427,7 +497,15 @@ export function UserList({
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleUpdateUser} disabled={isUpdatingUser}>
+            <Button
+              onClick={handleUpdateUser}
+              disabled={
+                isUpdatingUser ||
+                (selectedUser?.role === "teacher" &&
+                  editForm.hasRoleSubjectLeader &&
+                  editForm.subjects.length === 0)
+              }
+            >
               {isUpdatingUser ? "Guardando..." : "Guardar Cambios"}
             </Button>
           </div>

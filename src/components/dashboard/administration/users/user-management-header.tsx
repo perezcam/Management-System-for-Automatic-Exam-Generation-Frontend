@@ -18,7 +18,7 @@ export function UserManagementHeader({ onBack }: UserManagementHeaderProps) {
       <div className="mb-6">
         <h1 className="text-2xl mb-2">Gestión de Usuarios</h1>
         <p className="text-muted-foreground">
-          Administra administradores, estudiantes y profesores del sistema
+          Gestiona usuarios del sistema
         </p>
       </div>
     </>

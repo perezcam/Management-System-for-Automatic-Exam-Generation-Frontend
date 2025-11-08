@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       clockTolerance: 10,  
     });
     payload = verified.payload;
-  } catch (err) {
+  } catch (_) {
     return NextResponse.json({ error: "Token inválido" }, { status: 401 });
   }
 

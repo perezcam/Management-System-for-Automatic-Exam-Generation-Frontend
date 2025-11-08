@@ -12,11 +12,11 @@ import type {
   UpdateStudentPayload,
   UpdateTeacherPayload,
 } from "@/types/users";
+import { get_admin_url, get_student_url, get_teacher_url } from "@/config/backend";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
-const ADMIN_ENDPOINT = "/api/admins";
-const STUDENT_ENDPOINT = "/api/students";
-const TEACHER_ENDPOINT = "/api/teachers";
+const ADMIN_ENDPOINT = get_admin_url();
+const STUDENT_ENDPOINT = get_student_url();
+const TEACHER_ENDPOINT = get_teacher_url();
 
 const USE_MOCK_USERS = process.env.NEXT_PUBLIC_USE_MOCK_USERS === "true";
 
@@ -35,15 +35,8 @@ const toTeacherUser = (teacher: TeacherDetail): TeacherUser => ({
   role: "teacher",
 });
 
-const resolveUrl = (path: string) => {
-  if (!API_BASE_URL) {
-    throw new Error("NEXT_PUBLIC_BACKEND_URL no está configurada");
-  }
-  return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
-};
-
-const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(resolveUrl(path), {
+const request = async <T>(url: string, init?: RequestInit): Promise<T> => {
+  const response = await fetch(url, {
     ...init,
     headers: {
       "Content-Type": "application/json",
