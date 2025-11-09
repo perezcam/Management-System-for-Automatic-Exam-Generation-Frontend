@@ -7,7 +7,7 @@ import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useLogin } from '@/hooks/use-login';
+import { useLogin } from "@/hooks/login/use-login";
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);

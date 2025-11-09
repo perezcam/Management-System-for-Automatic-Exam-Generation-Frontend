@@ -18,13 +18,10 @@ import {
 } from "../../../ui/alert-dialog";
 import { Checkbox } from "../../../ui/checkbox";
 import { Users, Edit2, Trash2, Search, Plus, X } from "lucide-react";
-import type {
-  UpdateAdminPayload,
-  UpdateStudentPayload,
-  UpdateTeacherPayload,
-  UserRecord,
-  UserRole,
-} from "@/types/users";
+import type { UpdateAdminPayload } from "@/types/user/admin";
+import type { UpdateStudentPayload } from "@/types/user/student";
+import type { UpdateTeacherPayload } from "@/types/user/teacher";
+import type { UserRecord, UserRole } from "@/types/user/user";
 
 type RoleFilter = "all" | UserRole;
 

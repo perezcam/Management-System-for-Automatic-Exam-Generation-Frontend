@@ -8,12 +8,10 @@ import { Label } from "../../../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select";
 import { Checkbox } from "../../../ui/checkbox";
 import { Plus, AlertCircle } from "lucide-react";
-import type {
-  CreateAdminPayload,
-  CreateStudentPayload,
-  CreateTeacherPayload,
-  UserRole,
-} from "@/types/users";
+import type { CreateAdminPayload } from "@/types/user/admin";
+import type { CreateStudentPayload } from "@/types/user/student";
+import type { CreateTeacherPayload } from "@/types/user/teacher";
+import type { UserRole } from "@/types/user/user";
 
 interface UserRegistrationFormProps {
   subjects?: { id: string; name: string }[];

@@ -2,7 +2,7 @@ import { Card } from "../../../ui/card"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../../../ui/alert-dialog"
 import { Settings, Trash2 } from "lucide-react"
 import { useState } from "react"
-import type { QuestionTypeDetail } from "@/types/question_administration"
+import type { QuestionTypeDetail } from "@/types/question-bank/question_administration"
 
 interface QuestionTypeListProps {
   questionTypes: QuestionTypeDetail[]

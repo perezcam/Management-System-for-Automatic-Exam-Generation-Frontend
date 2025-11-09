@@ -1,4 +1,4 @@
-import { LoginCredentials } from "@/types/login";
+import { LoginCredentials } from "@/types/user/login";
 import { get_login_url } from "@/config/backend";
 
 async function requestBackendToken({ email, password }: LoginCredentials): Promise<string> {

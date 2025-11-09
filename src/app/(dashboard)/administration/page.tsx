@@ -3,7 +3,7 @@
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Users, FileText, Settings } from "lucide-react"
-import { useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 
 import { UserManagementHeader } from "@/components/dashboard/administration/users/user-management-header"
 import { UserRegistrationForm } from "@/components/dashboard/administration/users/user-registration-form"
@@ -15,28 +15,51 @@ import { QuestionTypeList } from "@/components/dashboard/administration/question
 import { SubjectsTopicsManagement } from "@/components/dashboard/administration/questions/subjects-topics-management"
 
 import { ReportsView } from "@/components/dashboard/administration/reports/reports-view"
-import { useUsers } from "@/hooks/use-users"
-import { useQuestionAdministration } from "@/hooks/use-question-administration"
+import { useAdminUsers } from "@/hooks/administration/users/admin"
+import { useStudentUsers } from "@/hooks/administration/users/student"
+import { useTeacherUsers } from "@/hooks/administration/users/teacher"
+import { useQuestionAdministration } from "@/hooks/administration/questions/use-question-administration"
 
 export default function AdministracionView() {
   const [activeSection, setActiveSection] = useState<string | null>(null)
 
   // Datos de usuarios desde el backend
   const {
-    users,
-    loading: usersLoading,
-    error: usersError,
-    refresh: refreshUsers,
+    admins,
+    loading: adminsLoading,
+    error: adminsError,
+    refresh: refreshAdmins,
     createAdmin,
-    createStudent,
-    createTeacher,
     updateAdmin,
-    updateStudent,
-    updateTeacher,
     deleteAdmin,
+  } = useAdminUsers()
+
+  const {
+    students,
+    loading: studentsLoading,
+    error: studentsError,
+    refresh: refreshStudents,
+    createStudent,
+    updateStudent,
     deleteStudent,
+  } = useStudentUsers()
+
+  const {
+    teachers,
+    loading: teachersLoading,
+    error: teachersError,
+    refresh: refreshTeachers,
+    createTeacher,
+    updateTeacher,
     deleteTeacher,
-  } = useUsers()
+  } = useTeacherUsers()
+
+  const users = useMemo(() => [...admins, ...students, ...teachers], [admins, students, teachers])
+  const usersLoading = adminsLoading || studentsLoading || teachersLoading
+  const usersError = adminsError ?? studentsError ?? teachersError
+  const refreshUsers = useCallback(async () => {
+    await Promise.all([refreshAdmins(), refreshStudents(), refreshTeachers()])
+  }, [refreshAdmins, refreshStudents, refreshTeachers])
 
   const {
     questionTypes,

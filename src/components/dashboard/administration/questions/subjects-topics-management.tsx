@@ -18,7 +18,7 @@ import type {
   TopicDetail,
   UpdateSubjectPayload,
   UpdateTopicPayload,
-} from "@/types/question_administration"
+} from "@/types/question-bank/question_administration"
 
 interface SubjectsTopicsManagementProps {
   subjects: SubjectDetail[]
