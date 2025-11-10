@@ -9,16 +9,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../../../ui/alert-dialog"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../../../ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select"
-import type {
-  CreateSubjectPayload,
-  CreateSubtopicPayload,
-  CreateTopicPayload,
-  SubjectDetail,
-  SubTopicDetail,
-  TopicDetail,
-  UpdateSubjectPayload,
-  UpdateTopicPayload,
-} from "@/types/question-bank/question_administration"
+import type { CreateSubjectPayload, SubjectDetail, UpdateSubjectPayload } from "@/types/question-bank/subject"
+import type { CreateTopicPayload, TopicDetail, UpdateTopicPayload } from "@/types/question-bank/topic"
+import type { CreateSubtopicPayload, SubTopicDetail } from "@/types/question-bank/subtopic"
 
 interface SubjectsTopicsManagementProps {
   subjects: SubjectDetail[]

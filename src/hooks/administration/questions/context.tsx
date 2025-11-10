@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type {
   CreateQuestionTypePayload,
   CreateSubjectPayload,
@@ -7,11 +7,10 @@ import type {
   QuestionTypeDetail,
   SubjectDetail,
   SubTopicDetail,
-  TotalsDetail,
   TopicDetail,
   UpdateSubjectPayload,
   UpdateTopicPayload,
-} from "@/types/question-bank/question_administration";
+} from "@/types/question-bank";
 import {
   createQuestionType,
   createSubject,
@@ -27,11 +26,10 @@ import {
   updateTopic,
 } from "@/services/question-administration";
 
-type UseQuestionAdministrationResult = {
+type QuestionBankContextValue = {
   questionTypes: QuestionTypeDetail[];
   subjects: SubjectDetail[];
   topics: TopicDetail[];
-  totals: TotalsDetail;
   loading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
@@ -47,33 +45,11 @@ type UseQuestionAdministrationResult = {
   deleteSubtopic: (subtopicId: string) => Promise<void>;
 };
 
-const emptyTotals: TotalsDetail = {
-  total_question_types: 0,
-  total_subjects: 0,
-  total_topics: 0,
-  total_subtopics: 0,
-};
+const QuestionBankContext = createContext<QuestionBankContextValue | undefined>(undefined);
 
-const computeTotalsFromState = (types: QuestionTypeDetail[], subjects: SubjectDetail[]): TotalsDetail => {
-  const totalTopics = subjects.reduce((acc, subject) => acc + subject.topics.length, 0);
-  const totalSubtopics = subjects.reduce(
-    (acc, subject) =>
-      acc + subject.topics.reduce((topicAcc, topic) => topicAcc + topic.subtopics.length, 0),
-    0,
-  );
-
-  return {
-    total_question_types: types.length,
-    total_subjects: subjects.length,
-    total_topics: totalTopics,
-    total_subtopics: totalSubtopics,
-  };
-};
-
-export const useQuestionAdministration = (): UseQuestionAdministrationResult => {
+export const QuestionBankProvider = ({ children }: { children: React.ReactNode }) => {
   const [questionTypes, setQuestionTypes] = useState<QuestionTypeDetail[]>([]);
   const [subjects, setSubjects] = useState<SubjectDetail[]>([]);
-  const [totals, setTotals] = useState<TotalsDetail>(emptyTotals);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -84,8 +60,6 @@ export const useQuestionAdministration = (): UseQuestionAdministrationResult => 
       const [typesData, subjectsData] = await Promise.all([fetchQuestionTypes(), fetchSubjects()]);
       setQuestionTypes(typesData);
       setSubjects(subjectsData);
-
-      setTotals(computeTotalsFromState(typesData, subjectsData));
     } catch (err) {
       setError(err as Error);
     } finally {
@@ -109,78 +83,61 @@ export const useQuestionAdministration = (): UseQuestionAdministrationResult => 
     [subjects],
   );
 
-  const recalcTotals = useCallback(
-    (typesOverride?: QuestionTypeDetail[], subjectsOverride?: SubjectDetail[]) => {
-      setTotals(computeTotalsFromState(typesOverride ?? questionTypes, subjectsOverride ?? subjects));
-    },
-    [questionTypes, subjects],
-  );
-
   const handleCreateQuestionType = useCallback(
     async (payload: CreateQuestionTypePayload) => {
       const created = await createQuestionType(payload);
       setQuestionTypes((prev) => {
-        const next = [...prev, created];
-        recalcTotals(next);
-        return next;
+        return [...prev, created];
       });
     },
-    [recalcTotals],
+    [],
   );
 
   const handleDeleteQuestionType = useCallback(
     async (questionTypeId: string) => {
       await deleteQuestionType(questionTypeId);
       setQuestionTypes((prev) => {
-        const next = prev.filter((type) => type.question_type_id !== questionTypeId);
-        recalcTotals(next);
-        return next;
+        return prev.filter((type) => type.question_type_id !== questionTypeId);
       });
     },
-    [recalcTotals],
+    [],
   );
 
   const handleCreateSubject = useCallback(
     async (payload: CreateSubjectPayload) => {
       const created = await createSubject(payload);
       setSubjects((prev) => {
-        const next = [...prev, created];
-        recalcTotals(undefined, next);
-        return next;
+        return [...prev, created];
       });
     },
-    [recalcTotals],
+    [],
   );
 
   const handleUpdateSubject = useCallback(
     async (subjectId: string, payload: UpdateSubjectPayload) => {
       const updated = await updateSubject(subjectId, payload);
       setSubjects((prev) => {
-        const next = prev.map((subject) => (subject.subject_id === subjectId ? updated : subject));
-        recalcTotals(undefined, next);
-        return next;
+        return prev.map((subject) => (subject.subject_id === subjectId ? updated : subject));
       });
     },
-    [recalcTotals],
+    [],
   );
 
   const handleDeleteSubject = useCallback(
     async (subjectId: string) => {
       await deleteSubject(subjectId);
       setSubjects((prev) => {
-        const next = prev.filter((subject) => subject.subject_id !== subjectId);
-        recalcTotals(undefined, next);
-        return next;
+        return prev.filter((subject) => subject.subject_id !== subjectId);
       });
     },
-    [recalcTotals],
+    [],
   );
 
   const handleCreateTopic = useCallback(
     async (payload: CreateTopicPayload) => {
       const created = await createTopic(payload);
       setSubjects((prev) => {
-        const next = prev.map((subject) =>
+        return prev.map((subject) =>
           subject.subject_id === created.subject_id
             ? {
                 ...subject,
@@ -189,18 +146,16 @@ export const useQuestionAdministration = (): UseQuestionAdministrationResult => 
               }
             : subject,
         );
-        recalcTotals(undefined, next);
-        return next;
       });
     },
-    [recalcTotals],
+    [],
   );
 
   const handleUpdateTopic = useCallback(
     async (topicId: string, payload: UpdateTopicPayload) => {
       const updated = await updateTopic(topicId, payload);
       setSubjects((prev) => {
-        const next = prev.map((subject) => {
+        return prev.map((subject) => {
           const topicBelongsToSubject = subject.topics.some((topic) => topic.topic_id === topicId);
           const shouldReceiveTopic = subject.subject_id === updated.subject_id;
 
@@ -223,36 +178,32 @@ export const useQuestionAdministration = (): UseQuestionAdministrationResult => 
             topics_amount: Math.max(0, subject.topics.length - 1),
           };
         });
-        recalcTotals(undefined, next);
-        return next;
       });
     },
-    [recalcTotals],
+    [],
   );
 
   const handleDeleteTopic = useCallback(
     async (topicId: string) => {
       await deleteTopic(topicId);
       setSubjects((prev) => {
-        const next = prev.map((subject) => ({
+        return prev.map((subject) => ({
           ...subject,
           topics: subject.topics.filter((topic) => topic.topic_id !== topicId),
           topics_amount: subject.topics.some((topic) => topic.topic_id === topicId)
             ? Math.max(0, subject.topics.length - 1)
             : subject.topics_amount,
         }));
-        recalcTotals(undefined, next);
-        return next;
       });
     },
-    [recalcTotals],
+    [],
   );
 
   const handleCreateSubtopic = useCallback(
     async (payload: CreateSubtopicPayload) => {
       const created = await createSubtopic(payload);
       setSubjects((prev) => {
-        const next = prev.map((subject) => ({
+        return prev.map((subject) => ({
           ...subject,
           topics: subject.topics.map((topic) =>
             topic.topic_id === payload.topic_associated_id
@@ -264,19 +215,17 @@ export const useQuestionAdministration = (): UseQuestionAdministrationResult => 
               : topic,
           ),
         }));
-        recalcTotals(undefined, next);
-        return next;
       });
       return created;
     },
-    [recalcTotals],
+    [],
   );
 
   const handleDeleteSubtopic = useCallback(
     async (subtopicId: string) => {
       await deleteSubtopic(subtopicId);
       setSubjects((prev) => {
-        const next = prev.map((subject) => ({
+        return prev.map((subject) => ({
           ...subject,
           topics: subject.topics.map((topic) => ({
             ...topic,
@@ -286,30 +235,57 @@ export const useQuestionAdministration = (): UseQuestionAdministrationResult => 
               : topic.subtopics_amount,
           })),
         }));
-        recalcTotals(undefined, next);
-        return next;
       });
     },
-    [recalcTotals],
+    [],
   );
 
-  return {
-    questionTypes,
-    subjects,
-    topics,
-    totals,
-    loading,
-    error,
-    refresh: loadConfiguration,
-    createQuestionType: handleCreateQuestionType,
-    deleteQuestionType: handleDeleteQuestionType,
-    createSubject: handleCreateSubject,
-    updateSubject: handleUpdateSubject,
-    deleteSubject: handleDeleteSubject,
-    createTopic: handleCreateTopic,
-    updateTopic: handleUpdateTopic,
-    deleteTopic: handleDeleteTopic,
-    createSubtopic: handleCreateSubtopic,
-    deleteSubtopic: handleDeleteSubtopic,
-  };
+  const value = useMemo<QuestionBankContextValue>(
+    () => ({
+      questionTypes,
+      subjects,
+      topics,
+      loading,
+      error,
+      refresh: loadConfiguration,
+      createQuestionType: handleCreateQuestionType,
+      deleteQuestionType: handleDeleteQuestionType,
+      createSubject: handleCreateSubject,
+      updateSubject: handleUpdateSubject,
+      deleteSubject: handleDeleteSubject,
+      createTopic: handleCreateTopic,
+      updateTopic: handleUpdateTopic,
+      deleteTopic: handleDeleteTopic,
+      createSubtopic: handleCreateSubtopic,
+      deleteSubtopic: handleDeleteSubtopic,
+    }),
+    [
+      questionTypes,
+      subjects,
+      topics,
+      loading,
+      error,
+      loadConfiguration,
+      handleCreateQuestionType,
+      handleDeleteQuestionType,
+      handleCreateSubject,
+      handleUpdateSubject,
+      handleDeleteSubject,
+      handleCreateTopic,
+      handleUpdateTopic,
+      handleDeleteTopic,
+      handleCreateSubtopic,
+      handleDeleteSubtopic,
+    ],
+  );
+
+  return <QuestionBankContext.Provider value={value}>{children}</QuestionBankContext.Provider>;
+};
+
+export const useQuestionBankContext = () => {
+  const context = useContext(QuestionBankContext);
+  if (!context) {
+    throw new Error("useQuestionBankContext debe usarse dentro de QuestionBankProvider");
+  }
+  return context;
 };

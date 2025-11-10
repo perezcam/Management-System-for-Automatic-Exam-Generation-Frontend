@@ -18,9 +18,23 @@ import { ReportsView } from "@/components/dashboard/administration/reports/repor
 import { useAdminUsers } from "@/hooks/administration/users/admin"
 import { useStudentUsers } from "@/hooks/administration/users/student"
 import { useTeacherUsers } from "@/hooks/administration/users/teacher"
-import { useQuestionAdministration } from "@/hooks/administration/questions/use-question-administration"
+import {
+  QuestionBankProvider,
+  useQuestionTypes,
+  useSubjects,
+  useTopics,
+  useSubtopics,
+} from "@/hooks/administration/questions"
 
 export default function AdministracionView() {
+  return (
+    <QuestionBankProvider>
+      <AdministrationContent />
+    </QuestionBankProvider>
+  )
+}
+
+function AdministrationContent() {
   const [activeSection, setActiveSection] = useState<string | null>(null)
 
   // Datos de usuarios desde el backend
@@ -63,23 +77,39 @@ export default function AdministracionView() {
 
   const {
     questionTypes,
-    subjects,
-    topics,
-    totals,
     loading: questionsLoading,
     error: questionsError,
     refresh: refreshQuestionConfig,
     createQuestionType,
     deleteQuestionType,
+  } = useQuestionTypes()
+  const {
+    subjects,
     createSubject,
     updateSubject,
     deleteSubject,
+  } = useSubjects()
+  const {
+    topics,
     createTopic,
     updateTopic,
     deleteTopic,
+  } = useTopics()
+  const {
     createSubtopic,
     deleteSubtopic,
-  } = useQuestionAdministration()
+  } = useSubtopics()
+
+  const stats = useMemo(() => {
+    const totalTopics = topics.length;
+    const totalSubtopics = topics.reduce((sum, topic) => sum + topic.subtopics.length, 0);
+    return {
+      totalTypes: questionTypes.length,
+      totalSubjects: subjects.length,
+      totalTopics,
+      totalSubtopics,
+    };
+  }, [questionTypes, subjects, topics])
 
   // Vista de Gestión de Usuarios
   if (activeSection === "users") {

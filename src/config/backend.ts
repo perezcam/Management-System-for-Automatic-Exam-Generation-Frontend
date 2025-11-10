@@ -1,6 +1,6 @@
 const BACKEND_PATHS = {
   auth: {
-    login: "/api/user/login",
+    login: "/login", //TODO: CAMBIAR ESTOS PATHS
   },
   users: {
     admins: "/api/user",
