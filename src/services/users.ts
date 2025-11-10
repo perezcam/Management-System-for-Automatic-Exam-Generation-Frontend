@@ -12,11 +12,11 @@ import type {
   UpdateStudentPayload,
   UpdateTeacherPayload,
 } from "@/types/users";
-import { get_admin_url, get_student_url, get_teacher_url } from "@/config/backend";
-
-const ADMIN_ENDPOINT = get_admin_url();
-const STUDENT_ENDPOINT = get_student_url();
-const TEACHER_ENDPOINT = get_teacher_url();
+// Para llamadas autenticadas desde el cliente, usamos un proxy server-side
+// que inyecta el encabezado Authorization desde la cookie httpOnly.
+const ADMIN_ENDPOINT = "/api/backend/users";
+const STUDENT_ENDPOINT = "/api/backend/student";
+const TEACHER_ENDPOINT = "/api/backend/teacher";
 
 const USE_MOCK_USERS = process.env.NEXT_PUBLIC_USE_MOCK_USERS === "true";
 
@@ -56,6 +56,10 @@ const request = async <T>(url: string, init?: RequestInit): Promise<T> => {
   return response.json() as Promise<T>;
 };
 
+
+// Si el backend responde { data: T }, extrae; si no, devuelve tal cual
+const unwrap = <T>(payload: any): T => (payload && typeof payload === "object" && "data" in payload ? payload.data as T : payload as T);
+
 const extractErrorMessage = async (response: Response) => {
   try {
     const data = await response.json();
@@ -78,7 +82,7 @@ let mockStudents: StudentUser[] = [
     name: "Carlos Estudiante",
     email: "carlos.student@example.com",
     age: 21,
-    course: "3er Año",
+    course: 3,
     role: "student",
   },
 ];
@@ -104,24 +108,28 @@ export const fetchAdmins = async (): Promise<AdminUser[]> => {
   if (USE_MOCK_USERS) {
     return mockAdmins;
   }
-  const data = await request<AdminDetail[]>(ADMIN_ENDPOINT);
-  return data.map(toAdminUser);
+  // Base Response: siempre en { data }
+  const resp = await request<{ data: AdminDetail[] }>(`${ADMIN_ENDPOINT}?role=admin`);
+  const list = resp.data;
+  return list.map(toAdminUser);
 };
 
 export const fetchStudents = async (): Promise<StudentUser[]> => {
   if (USE_MOCK_USERS) {
     return mockStudents;
   }
-  const data = await request<StudentDetail[]>(STUDENT_ENDPOINT);
-  return data.map(toStudentUser);
+  const resp = await request<{ data: StudentDetail[] }>(STUDENT_ENDPOINT);
+  const list = resp.data;
+  return list.map(toStudentUser);
 };
 
 export const fetchTeachers = async (): Promise<TeacherUser[]> => {
   if (USE_MOCK_USERS) {
     return mockTeachers;
   }
-  const data = await request<TeacherDetail[]>(TEACHER_ENDPOINT);
-  return data.map(toTeacherUser);
+  const resp = await request<{ data: TeacherDetail[] }>(TEACHER_ENDPOINT);
+  const list = resp.data;
+  return list.map(toTeacherUser);
 };
 
 // Creators
@@ -132,10 +140,12 @@ export const createAdmin = async (payload: CreateAdminPayload): Promise<AdminUse
     mockAdmins = [...mockAdmins, newAdmin];
     return newAdmin;
   }
-  const created = await request<AdminDetail>(ADMIN_ENDPOINT, {
+  // El backend usa arreglo de roles para /users
+  const createdResp = await request<AdminDetail | { data: AdminDetail }>(ADMIN_ENDPOINT, {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, roles: ["admin"] }),
   });
+  const created = unwrap<AdminDetail>(createdResp);
   return toAdminUser(created);
 };
 
@@ -153,10 +163,11 @@ export const createStudent = async (payload: CreateStudentPayload): Promise<Stud
     mockStudents = [...mockStudents, newStudent];
     return newStudent;
   }
-  const created = await request<StudentDetail>(STUDENT_ENDPOINT, {
+  const createdResp = await request<StudentDetail | { data: StudentDetail }>(STUDENT_ENDPOINT, {
     method: "POST",
     body: JSON.stringify(payload),
   });
+  const created = unwrap<StudentDetail>(createdResp);
   return toStudentUser(created);
 };
 
@@ -177,10 +188,12 @@ export const createTeacher = async (payload: CreateTeacherPayload): Promise<Teac
     mockTeachers = [...mockTeachers, newTeacher];
     return newTeacher;
   }
-  const created = await request<TeacherDetail>(TEACHER_ENDPOINT, {
+  // El backend puede requerir rol "teacher" en la creación
+  const createdResp = await request<TeacherDetail | { data: TeacherDetail }>(TEACHER_ENDPOINT, {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, role: "teacher" }),
   });
+  const created = unwrap<TeacherDetail>(createdResp);
   return toTeacherUser(created);
 };
 
@@ -195,10 +208,11 @@ export const updateAdmin = async (adminId: string, payload: UpdateAdminPayload):
     if (!updated) throw new Error("Administrador no encontrado");
     return updated;
   }
-  const updated = await request<AdminDetail>(`${ADMIN_ENDPOINT}/${adminId}`, {
+  const updatedResp = await request<AdminDetail | { data: AdminDetail }>(`${ADMIN_ENDPOINT}/${adminId}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+  const updated = unwrap<AdminDetail>(updatedResp);
   return toAdminUser(updated);
 };
 
@@ -211,10 +225,11 @@ export const updateStudent = async (studentId: string, payload: UpdateStudentPay
     if (!updated) throw new Error("Estudiante no encontrado");
     return updated;
   }
-  const updated = await request<StudentDetail>(`${STUDENT_ENDPOINT}/${studentId}`, {
+  const updatedResp = await request<StudentDetail | { data: StudentDetail }>(`${STUDENT_ENDPOINT}/${studentId}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+  const updated = unwrap<StudentDetail>(updatedResp);
   return toStudentUser(updated);
 };
 
@@ -227,10 +242,11 @@ export const updateTeacher = async (teacherId: string, payload: UpdateTeacherPay
     if (!updated) throw new Error("Profesor no encontrado");
     return updated;
   }
-  const updated = await request<TeacherDetail>(`${TEACHER_ENDPOINT}/${teacherId}`, {
+  const updatedResp = await request<TeacherDetail | { data: TeacherDetail }>(`${TEACHER_ENDPOINT}/${teacherId}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+  const updated = unwrap<TeacherDetail>(updatedResp);
   return toTeacherUser(updated);
 };
 

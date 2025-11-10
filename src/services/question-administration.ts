@@ -1,9 +1,3 @@
-import {
-  get_question_subjects_url,
-  get_question_subtopics_url,
-  get_question_topics_url,
-  get_question_types_url,
-} from "@/config/backend";
 import type {
   CreateQuestionTypePayload,
   CreateSubjectPayload,
@@ -17,10 +11,11 @@ import type {
   UpdateTopicPayload,
 } from "@/types/question_administration";
 
-const QUESTION_TYPES_ENDPOINT = get_question_types_url();
-const QUESTION_SUBJECTS_ENDPOINT = get_question_subjects_url();
-const QUESTION_TOPICS_ENDPOINT = get_question_topics_url();
-const QUESTION_SUBTOPICS_ENDPOINT = get_question_subtopics_url();
+// Usamos el proxy server-side para evitar CORS e inyectar Authorization
+const QUESTION_TYPES_ENDPOINT = "/api/backend/api/question-bank/question-types";
+const QUESTION_SUBJECTS_ENDPOINT = "/api/backend/api/question-bank/subjects";
+const QUESTION_TOPICS_ENDPOINT = "/api/backend/api/question-bank/topics";
+const QUESTION_SUBTOPICS_ENDPOINT = "/api/backend/api/question-bank/subtopics";
 
 const USE_MOCK_QUESTION_ADMIN = process.env.NEXT_PUBLIC_USE_MOCK_QUESTION_ADMIN === "true";
 
@@ -44,6 +39,10 @@ const request = async <T>(url: string, init?: RequestInit): Promise<T> => {
 
   return response.json() as Promise<T>;
 }; //TODO: SACAR ESTA REQUEST ?
+
+// Base Response helper: si la API devuelve { data: T }, extrae ese campo //TODO: CREAR EL BASE RESPONSE
+const unwrap = <T>(payload: any): T =>
+  payload && typeof payload === "object" && "data" in payload ? (payload.data as T) : (payload as T);
 
 const extractErrorMessage = async (response: Response) => {
   try {
@@ -154,14 +153,16 @@ export const fetchQuestionTypes = async (): Promise<QuestionTypeDetail[]> => {
   if (USE_MOCK_QUESTION_ADMIN) {
     return cloneQuestionTypes(mockQuestionTypes);
   }
-  return request<QuestionTypeDetail[]>(QUESTION_TYPES_ENDPOINT);
+  const resp = await request<any>(QUESTION_TYPES_ENDPOINT);
+  return unwrap<QuestionTypeDetail[]>(resp);
 };
 
 export const fetchSubjects = async (): Promise<SubjectDetail[]> => {
   if (USE_MOCK_QUESTION_ADMIN) {
     return normalizeSubjects(mockSubjects);
   }
-  const subjects = await request<SubjectDetail[]>(QUESTION_SUBJECTS_ENDPOINT);
+  const resp = await request<any>(QUESTION_SUBJECTS_ENDPOINT);
+  const subjects = unwrap<SubjectDetail[]>(resp);
   return normalizeSubjects(subjects);
 };
 
@@ -174,10 +175,11 @@ export const createQuestionType = async (payload: CreateQuestionTypePayload): Pr
     mockQuestionTypes = [...mockQuestionTypes, newType];
     return newType;
   }
-  return request<QuestionTypeDetail>(QUESTION_TYPES_ENDPOINT, {
+  const resp = await request<any>(QUESTION_TYPES_ENDPOINT, {
     method: "POST",
     body: JSON.stringify(payload),
   });
+  return unwrap<QuestionTypeDetail>(resp);
 };
 
 export const deleteQuestionType = async (questionTypeId: string): Promise<void> => {
@@ -201,10 +203,11 @@ export const createSubject = async (payload: CreateSubjectPayload): Promise<Subj
     mockSubjects = [...mockSubjects, newSubject];
     return newSubject;
   }
-  const created = await request<SubjectDetail>(QUESTION_SUBJECTS_ENDPOINT, {
+  const resp = await request<any>(QUESTION_SUBJECTS_ENDPOINT, {
     method: "POST",
     body: JSON.stringify(payload),
   });
+  const created = unwrap<SubjectDetail>(resp);
   return normalizeSubject(created);
 };
 
@@ -230,10 +233,11 @@ export const updateSubject = async (
     }
     return updatedSubject;
   }
-  const updated = await request<SubjectDetail>(`${QUESTION_SUBJECTS_ENDPOINT}/${subjectId}`, {
+  const resp = await request<any>(`${QUESTION_SUBJECTS_ENDPOINT}/${subjectId}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+  const updated = unwrap<SubjectDetail>(resp);
   return normalizeSubject(updated);
 };
 
@@ -261,10 +265,11 @@ export const createTopic = async (payload: CreateTopicPayload): Promise<TopicDet
     );
     return newTopic;
   }
-  const created = await request<TopicDetail>(QUESTION_TOPICS_ENDPOINT, {
+  const resp = await request<any>(QUESTION_TOPICS_ENDPOINT, {
     method: "POST",
     body: JSON.stringify(payload),
   });
+  const created = unwrap<TopicDetail>(resp);
   return {
     ...created,
     subtopics: created.subtopics.map((subtopic) => ({ ...subtopic })),
@@ -309,10 +314,11 @@ export const updateTopic = async (topicId: string, payload: UpdateTopicPayload):
     return updatedTopic;
   }
 
-  const updated = await request<TopicDetail>(`${QUESTION_TOPICS_ENDPOINT}/${topicId}`, {
+  const resp = await request<any>(`${QUESTION_TOPICS_ENDPOINT}/${topicId}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+  const updated = unwrap<TopicDetail>(resp);
   return {
     ...updated,
     subtopics: updated.subtopics.map((subtopic) => ({ ...subtopic })),
@@ -362,11 +368,11 @@ export const createSubtopic = async (payload: CreateSubtopicPayload): Promise<Su
 
     return newSubtopic;
   }
-  const created = await request<SubTopicDetail>(QUESTION_SUBTOPICS_ENDPOINT, {
+  const resp = await request<any>(QUESTION_SUBTOPICS_ENDPOINT, {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  return created;
+  return unwrap<SubTopicDetail>(resp);
 };
 
 export const deleteSubtopic = async (subtopicId: string): Promise<void> => {

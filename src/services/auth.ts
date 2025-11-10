@@ -1,24 +1,48 @@
 import { LoginCredentials } from "@/types/login";
 import { get_login_url } from "@/config/backend";
 
-async function requestBackendToken({ email, password }: LoginCredentials): Promise<string> {
-  const searchParams = new URLSearchParams({ email, password });
-  const url = `${get_login_url()}?${searchParams.toString()}`;
+type LoginResponse = {
+  success: boolean;
+  message: string;
+  data?: {
+    token?: string;
+    user?: { id?: string; name?: string; email?: string; role?: string };
+  };
+};
 
-  const response = await fetch(url, { method: "GET" });
-  if (!response.ok) throw new Error("Credenciales inválidas o backend no disponible");
+async function requestBackendToken({ email, password }: LoginCredentials): Promise<{ token: string; userName?: string }> {
+  // Usamos el proxy server-side para evitar CORS
+  const url = "/api/backend/login";
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
 
-  const data = (await response.json()) as { token?: string };
-  if (!data.token) throw new Error("El backend no devolvió un token válido");
+  let payload: LoginResponse | null = null;
+  try {
+    payload = (await response.json()) as LoginResponse;
+  } catch {
+    // No JSON válido
+  }
 
-  return data.token;
+  if (!response.ok) {
+    const message = payload?.message || "Credenciales inválidas o backend no disponible";
+    throw new Error(message);
+  }
+
+  const token = payload?.data?.token;
+  if (!token) throw new Error("El backend no devolvió un token válido");
+
+  const userName = payload?.data?.user?.name;
+  return { token, userName };
 }
 
-async function persistSessionCookie(token: string) {
+async function persistSessionCookie(token: string, userName?: string) {
   const response = await fetch("/api/session", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ token }),
+    body: JSON.stringify({ token, userName }),
     credentials: "include",
   });
 
@@ -26,6 +50,6 @@ async function persistSessionCookie(token: string) {
 }
 
 export async function login(credentials: LoginCredentials) {
-  const token = await requestBackendToken(credentials);
-  await persistSessionCookie(token);
+  const { token, userName } = await requestBackendToken(credentials);
+  await persistSessionCookie(token, userName);
 }

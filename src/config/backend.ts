@@ -1,11 +1,12 @@
 const BACKEND_PATHS = {
   auth: {
-    login: "/api/user/login",
+    login: "/login",
   },
   users: {
-    admins: "/api/user",
-    students: "/api/student",
-    teachers: "/api/teacher",
+    // Según OpenAPI: /users, /student, /teacher
+    admins: "/users",
+    students: "/student",
+    teachers: "/teacher",
   },
   questionAdministration: {
     questionTypes: "/api/question-bank/question-types",

@@ -13,7 +13,7 @@ export type StudentDetail = {
   name: string;
   email: string;
   age: number;
-  course: string;
+  course: number;
 };
 
 export type TeacherDetail = {
@@ -46,7 +46,7 @@ export type CreateStudentPayload = {
   email: string;
   password: string;
   age: number;
-  course: string;
+  course: number;
 };
 
 export type CreateTeacherPayload = {

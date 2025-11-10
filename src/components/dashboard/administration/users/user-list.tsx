@@ -111,7 +111,7 @@ export function UserList({
         name: user.name,
         email: user.email,
         age: String(user.age),
-        course: user.course,
+        course: String(user.course),
         specialty: "",
         hasRoleExaminer: false,
         hasRoleSubjectLeader: false,
@@ -155,18 +155,20 @@ export function UserList({
           name: editForm.name,
           email: editForm.email,
           age: editForm.age ? Number(editForm.age) : undefined,
-          course: editForm.course || undefined,
+          course: editForm.course ? Number(editForm.course) : undefined,
         };
         await onUpdateStudent(selectedUser.id, payload);
       } else {
-        const payload: UpdateTeacherPayload = {
+        let payload: UpdateTeacherPayload = {
           name: editForm.name,
           email: editForm.email,
           specialty: editForm.specialty,
           hasRoleExaminer: editForm.hasRoleExaminer,
           hasRoleSubjectLeader: editForm.hasRoleSubjectLeader,
-          subjects_ids: editForm.hasRoleSubjectLeader ? editForm.subjects : [],
         };
+        if (editForm.hasRoleSubjectLeader && editForm.subjects.length > 0) {
+          payload = { ...payload, subjects_ids: editForm.subjects };
+        }
         await onUpdateTeacher(selectedUser.id, payload);
       }
       setIsEditDialogOpen(false);
