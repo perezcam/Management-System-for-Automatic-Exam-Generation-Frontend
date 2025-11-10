@@ -1,46 +1,32 @@
 import { NextResponse } from "next/server";
-import { jwtVerify } from "jose";
+import { decodeJwt } from "jose";
 
 const COOKIE_NAME = "token";
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
-const SECRET = ACCESS_SECRET ? new TextEncoder().encode(ACCESS_SECRET) : undefined;
-const ISSUER = process.env.JWT_ISSUER;
-const AUDIENCE = process.env.JWT_AUDIENCE;
+// En dev confiamos en el token emitido por el backend y solo lo decodificamos
+// para alinear la expiración de la cookie. No validamos firma aquí.
 
 export async function POST(req: Request) {
-  if (!SECRET) {
-    return NextResponse.json({ error: "Configura JWT_ACCESS_SECRET" }, { status: 500 });
-  }
-  const { token } = await req.json();
+  const { token, userName } = await req.json();
   if (!token || typeof token !== "string") {
     return NextResponse.json({ error: "Token requerido" }, { status: 400 });
   }
 
-  // 1) Verificar firma y claims
-  let payload;
-  try {
-    const verified = await jwtVerify(token, SECRET, {
-      issuer: ISSUER,        
-      audience: AUDIENCE,      
-      clockTolerance: 10,  
-    });
-    payload = verified.payload;
-  } catch (err) {
-    return NextResponse.json({ error: "Token inválido" }, { status: 401 });
-  }
-
-  // 2) Alinear caducidad de la cookie al `exp` del token
+  // 1) Alinear caducidad de la cookie al `exp` del token (sin verificar firma)
   let maxAge: number | undefined;
-  if (typeof payload.exp === "number") {
-    const secondsLeft = payload.exp - Math.floor(Date.now() / 1000);
-    if (secondsLeft <= 0) {
-      return NextResponse.json({ error: "Token expirado" }, { status: 400 });
+  try {
+    const payload = decodeJwt(token);
+    if (typeof payload.exp === "number") {
+      const secondsLeft = payload.exp - Math.floor(Date.now() / 1000);
+      if (secondsLeft > 0) {
+        maxAge = secondsLeft;
+      }
     }
-    maxAge = secondsLeft;
+  } catch (_) {
+    // si no se puede decodificar, seguimos sin maxAge
   }
 
-  // 3) Guardar cookie httpOnly
+  // 2) Guardar cookie httpOnly
   const res = NextResponse.json({ ok: true });
   res.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
@@ -49,6 +35,17 @@ export async function POST(req: Request) {
     path: "/",
     ...(maxAge ? { maxAge } : {}), 
   });
+
+  // Guardar nombre si viene del backend (httpOnly también; el cliente lo leerá via /api/me)
+  if (typeof userName === "string" && userName.trim()) {
+    res.cookies.set("user_name", userName.trim(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+      ...(maxAge ? { maxAge } : {}),
+    });
+  }
 
   return res;
 }

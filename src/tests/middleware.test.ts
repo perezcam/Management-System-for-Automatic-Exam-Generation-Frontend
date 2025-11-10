@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import { signTestToken } from "./utils/jwt";
 import { describe, it, expect } from '@jest/globals';
+import middleware from "@/middlewares/middleware";
 
 // Ajusta el import a tu archivo real de middleware:
-import { middleware } from "@/middleware";
 
 function reqWithCookie(path: string, cookie?: string) {
   return new NextRequest(`http://localhost${path}`, {

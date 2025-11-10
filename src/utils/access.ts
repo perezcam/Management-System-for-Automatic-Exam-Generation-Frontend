@@ -20,15 +20,15 @@ export const FOLDER_TO_ROUTE = {
 
 export type FolderKey = keyof typeof FOLDER_TO_ROUTE;
 
-export const DASHBOARD_PREFIX = ""; 
+const DASHBOARD_PREFIX = ""; 
 
 const ROLE_VALUES = Object.values(Role) as Role[];
-
+//TODO: VERIFICAR ESTO DESPUES  
 export const ROLE_ALLOWED_KEYS: Record<Role, FolderKey[]> = {
-  admin: [
+  [Role.Admin]: [
     "messaging", "statistics", "administration",
   ],
-  teacher: [
+  [Role.Teacher]: [
     "messaging", "question-bank", "exam-bank","exam-generator","messaging",
   ],
   [Role.SubjectLeader]: [
@@ -50,7 +50,7 @@ function normalize(path: string) {
   return path;
 }
 
-export function folderHref(key: FolderKey) {
+function folderHref(key: FolderKey) {
   // Ensambla prefijo opcional + ruta
   return normalize(`${DASHBOARD_PREFIX}${FOLDER_TO_ROUTE[key]}`);
 }

@@ -13,8 +13,13 @@ describe("GET /api/me", () => {
     // Mock global fetch SOLO cuando apunte al BACKEND_URL (simula backend real)
     jest.spyOn(global, "fetch").mockImplementation((input, init?) => {
       const url = typeof input === "string" ? input : input?.toString?.();
-      if (url?.startsWith(`${process.env.BACKEND_URL}/api/user/`)) {
-        return Promise.resolve(new Response("Mauricio", { status: 200 }));
+      if (url?.startsWith(`${process.env.BACKEND_URL}/users/`)) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ name: "Mauricio" }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
       }
       // Si /api/me hiciera otra llamada, falla el test para detectarlo
       return Promise.reject(new Error("unexpected fetch: " + url));

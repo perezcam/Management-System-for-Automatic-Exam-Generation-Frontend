@@ -1,143 +1,142 @@
 'use client';
 
-import { Card } from "../../../ui/card"
-import { Button } from "../../../ui/button"
-import { Input } from "../../../ui/input"
-import { Label } from "../../../ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select"
-import { Checkbox } from "../../../ui/checkbox"
-import { Plus, AlertCircle } from "lucide-react"
-import { useState } from "react"
-
-export type User = {
-  id: string
-  username: string
-  email: string
-  role: string
-  nombre?: string
-  edad?: number
-  curso?: string
-  especialidad?: string
-  rolesProfesor?: string[]
-  asignaturas?: string[]
-}
+import { useState } from "react";
+import { Card } from "../../../ui/card";
+import { Button } from "../../../ui/button";
+import { Input } from "../../../ui/input";
+import { Label } from "../../../ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select";
+import { Checkbox } from "../../../ui/checkbox";
+import { Plus, AlertCircle } from "lucide-react";
+import type {
+  CreateAdminPayload,
+  CreateStudentPayload,
+  CreateTeacherPayload,
+  UserRole,
+} from "@/types/users";
 
 interface UserRegistrationFormProps {
-  onCreateUser: (user: User) => void
-  subjects?: { id: string; name: string }[]
+  subjects?: { id: string; name: string }[];
+  onCreateAdmin: (payload: CreateAdminPayload) => Promise<void> | void;
+  onCreateStudent: (payload: CreateStudentPayload) => Promise<void> | void;
+  onCreateTeacher: (payload: CreateTeacherPayload) => Promise<void> | void;
 }
 
-export function UserRegistrationForm({ onCreateUser, subjects = [] }: UserRegistrationFormProps) {
-  const [userType, setUserType] = useState<"Administrador" | "Estudiante" | "Profesor">("Administrador")
-  const [newUser, setNewUser] = useState({ 
-    username: "", 
-    email: "", 
-    password: "", 
-    nombre: "",
-    edad: "",
-    curso: "",
-    especialidad: "",
-    rolesProfesor: [] as string[],
-    asignaturas: [] as string[]
-  })
+const ROLE_LABELS: Record<UserRole, string> = {
+  admin: "Administrador",
+  student: "Estudiante",
+  teacher: "Profesor",
+};
 
-  const toggleRolProfesor = (rol: string) => {
-    setNewUser(prev => {
-      const newRoles = prev.rolesProfesor.includes(rol)
-        ? prev.rolesProfesor.filter(r => r !== rol)
-        : [...prev.rolesProfesor, rol]
-      
-      // Si se deselecciona "Jefe de Asignatura", limpiar las asignaturas
-      if (rol === "Jefe de Asignatura" && !newRoles.includes("Jefe de Asignatura")) {
-        return {
-          ...prev,
-          rolesProfesor: newRoles,
-          asignaturas: []
-        }
-      }
-      
+export function UserRegistrationForm({
+  subjects = [],
+  onCreateAdmin,
+  onCreateStudent,
+  onCreateTeacher,
+}: UserRegistrationFormProps) {
+  const [userType, setUserType] = useState<UserRole>("admin");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    age: "",
+    course: "",
+    specialty: "",
+    hasRoleExaminer: false,
+    hasRoleSubjectLeader: false,
+    subjects: [] as string[],
+  });
+
+  const updateForm = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const toggleSubject = (subjectId: string) => {
+    setForm((prev) => {
+      const exists = prev.subjects.includes(subjectId);
       return {
         ...prev,
-        rolesProfesor: newRoles
-      }
-    })
-  }
+        subjects: exists ? prev.subjects.filter((id) => id !== subjectId) : [...prev.subjects, subjectId],
+      };
+    });
+  };
 
-  const toggleAsignatura = (asignaturaId: string) => {
-    setNewUser(prev => ({
-      ...prev,
-      asignaturas: prev.asignaturas.includes(asignaturaId)
-        ? prev.asignaturas.filter(a => a !== asignaturaId)
-        : [...prev.asignaturas, asignaturaId]
-    }))
-  }
+  const resetForm = () => {
+    setForm({
+      name: "",
+      email: "",
+      password: "",
+      age: "",
+      course: "",
+      specialty: "",
+      hasRoleExaminer: false,
+      hasRoleSubjectLeader: false,
+      subjects: [],
+    });
+    setUserType("admin");
+  };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (newUser.username && newUser.email && newUser.password) {
-      const user: User = {
-        id: String(Date.now()),
-        username: newUser.username,
-        email: newUser.email,
-        role: userType
-      }
-
-      // Agregar campos específicos según el tipo de usuario
-      if (userType === "Estudiante") {
-        user.nombre = newUser.nombre
-        user.edad = Number(newUser.edad)
-        user.curso = newUser.curso
-      } else if (userType === "Profesor") {
-        user.nombre = newUser.nombre
-        user.especialidad = newUser.especialidad
-        user.rolesProfesor = newUser.rolesProfesor
-        if (newUser.rolesProfesor.includes("Jefe de Asignatura")) {
-          user.asignaturas = newUser.asignaturas
-        }
-      }
-
-      onCreateUser(user)
-      
-      // Reset form
-      setNewUser({ 
-        username: "", 
-        email: "", 
-        password: "", 
-        nombre: "",
-        edad: "",
-        curso: "",
-        especialidad: "",
-        rolesProfesor: [],
-        asignaturas: []
-      })
-      setUserType("Administrador")
-    }
-  }
-
-  // Verificar si el formulario es válido para enviar
   const isFormValid = () => {
-    // Validación básica
-    if (!newUser.username || !newUser.email || !newUser.password) {
-      return false
+    if (!form.name || !form.email || !form.password) {
+      return false;
     }
-
-    // Validaciones específicas por tipo de usuario
-    if (userType === "Estudiante" && (!newUser.nombre || !newUser.edad || !newUser.curso)) {
-      return false
+    if (userType === "student" && (!form.age || !form.course)) {
+      return false;
     }
+    if (userType === "student") {
+      const age = Number(form.age);
+      const course = Number(form.course);
+      if (Number.isNaN(age) || Number.isNaN(course)) return false;
+    }
+    if (userType === "teacher") {
+      if (!form.specialty) return false;
+      if (form.hasRoleSubjectLeader && form.subjects.length === 0) return false;
+    }
+    return true;
+  };
 
-    if (userType === "Profesor") {
-      if (!newUser.nombre || !newUser.especialidad) {
-        return false
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!isFormValid()) return;
+
+    try {
+      setIsSubmitting(true);
+
+      if (userType === "admin") {
+        const payload: CreateAdminPayload = {
+          name: form.name,
+          email: form.email,
+          password: form.password,
+        };
+        await onCreateAdmin(payload);
+      } else if (userType === "student") {
+        const payload: CreateStudentPayload = {
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          age: Number(form.age),
+          course: Number(form.course),
+        };
+        await onCreateStudent(payload);
+      } else {
+        const payload: CreateTeacherPayload = {
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          specialty: form.specialty,
+          hasRoleExaminer: form.hasRoleExaminer,
+          hasRoleSubjectLeader: form.hasRoleSubjectLeader,
+          subjects_ids: form.hasRoleSubjectLeader ? form.subjects : undefined,
+        };
+        await onCreateTeacher(payload);
       }
-      // Si es Jefe de Asignatura, debe tener al menos una asignatura seleccionada
-      if (newUser.rolesProfesor.includes("Jefe de Asignatura") && newUser.asignaturas.length === 0) {
-        return false
-      }
-    }
 
-    return true
-  }
+      resetForm();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <Card className="p-6">
@@ -148,131 +147,127 @@ export function UserRegistrationForm({ onCreateUser, subjects = [] }: UserRegist
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="userType">Tipo de Usuario</Label>
-          <Select value={userType} onValueChange={(value: "Administrador" | "Estudiante" | "Profesor") => setUserType(value)}>
+          <Select value={userType} onValueChange={(value) => setUserType(value as UserRole)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Administrador">Administrador</SelectItem>
-              <SelectItem value="Estudiante">Estudiante</SelectItem>
-              <SelectItem value="Profesor">Profesor</SelectItem>
+              <SelectItem value="admin">Administrador</SelectItem>
+              <SelectItem value="student">Estudiante</SelectItem>
+              <SelectItem value="teacher">Profesor</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {/* Campos específicos para Estudiante y Profesor */}
-        {(userType === "Estudiante" || userType === "Profesor") && (
-          <div className="space-y-2">
-            <Label htmlFor="nombre">Nombre Completo</Label>
-            <Input
-              id="nombre"
-              value={newUser.nombre}
-              onChange={(e) => setNewUser({ ...newUser, nombre: e.target.value })}
-              placeholder="Ingrese nombre completo"
-              required
-            />
-          </div>
-        )}
+        <div className="space-y-2">
+          <Label htmlFor="name">Nombre Completo</Label>
+          <Input
+            id="name"
+            value={form.name}
+            onChange={(e) => updateForm("name", e.target.value)}
+            placeholder="Ingrese nombre completo"
+            required
+          />
+        </div>
 
-        {/* Campos específicos para Estudiante */}
-        {userType === "Estudiante" && (
+        {userType === "student" && (
           <>
             <div className="space-y-2">
-              <Label htmlFor="edad">Edad</Label>
+              <Label htmlFor="age">Edad</Label>
               <Input
-                id="edad"
+                id="age"
                 type="number"
-                value={newUser.edad}
-                onChange={(e) => setNewUser({ ...newUser, edad: e.target.value })}
+                value={form.age}
+                onChange={(e) => updateForm("age", e.target.value)}
                 placeholder="Ingrese edad"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="curso">Curso</Label>
+              <Label htmlFor="course">Curso (número)</Label>
               <Input
-                id="curso"
-                value={newUser.curso}
-                onChange={(e) => setNewUser({ ...newUser, curso: e.target.value })}
-                placeholder="Ej: 3er Año"
+                id="course"
+                type="number"
+                value={form.course}
+                onChange={(e) => updateForm("course", e.target.value)}
+                placeholder="Ej: 3"
                 required
               />
             </div>
           </>
         )}
 
-        {/* Campos específicos para Profesor */}
-        {userType === "Profesor" && (
+        {userType === "teacher" && (
           <>
             <div className="space-y-2">
-              <Label htmlFor="especialidad">Especialidad</Label>
+              <Label htmlFor="specialty">Especialidad</Label>
               <Input
-                id="especialidad"
-                value={newUser.especialidad}
-                onChange={(e) => setNewUser({ ...newUser, especialidad: e.target.value })}
+                id="specialty"
+                value={form.specialty}
+                onChange={(e) => updateForm("specialty", e.target.value)}
                 placeholder="Ingrese especialidad"
                 required
               />
             </div>
+
             <div className="space-y-2">
-              <Label>Roles de Profesor</Label>
+              <Label>Roles disponibles</Label>
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="examinador"
-                    checked={newUser.rolesProfesor.includes("Examinador")}
-                    onCheckedChange={() => toggleRolProfesor("Examinador")}
+                  <Checkbox
+                    id="role-examiner"
+                    checked={form.hasRoleExaminer}
+                    onCheckedChange={(checked) => updateForm("hasRoleExaminer", Boolean(checked))}
                   />
-                  <label
-                    htmlFor="examinador"
-                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
+                  <label htmlFor="role-examiner" className="text-sm">
                     Examinador
                   </label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="jefe"
-                    checked={newUser.rolesProfesor.includes("Jefe de Asignatura")}
-                    onCheckedChange={() => toggleRolProfesor("Jefe de Asignatura")}
+                  <Checkbox
+                    id="role-leader"
+                    checked={form.hasRoleSubjectLeader}
+                    onCheckedChange={(checked) => {
+                      updateForm("hasRoleSubjectLeader", Boolean(checked));
+                      if (!checked) {
+                        updateForm("subjects", []);
+                      }
+                    }}
                   />
-                  <label
-                    htmlFor="jefe"
-                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
+                  <label htmlFor="role-leader" className="text-sm">
                     Jefe de Asignatura
                   </label>
                 </div>
               </div>
             </div>
-            {/* Asignaturas para Jefe de Asignatura */}
-            {newUser.rolesProfesor.includes("Jefe de Asignatura") && (
+
+            {form.hasRoleSubjectLeader && (
               <div className="space-y-2">
-                <Label>Asignaturas {newUser.asignaturas.length > 0 && `(${newUser.asignaturas.length} seleccionada${newUser.asignaturas.length > 1 ? 's' : ''})`}</Label>
+                <Label>
+                  Asignaturas
+                  {form.subjects.length > 0 && ` (${form.subjects.length} seleccionada${form.subjects.length > 1 ? "s" : ""})`}
+                </Label>
                 {subjects.length > 0 ? (
                   <>
                     <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
-                      {subjects.map(subject => (
+                      {subjects.map((subject) => (
                         <div key={subject.id} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={subject.id}
-                            checked={newUser.asignaturas.includes(subject.id)}
-                            onCheckedChange={() => toggleAsignatura(subject.id)}
+                          <Checkbox
+                            id={`subject-${subject.id}`}
+                            checked={form.subjects.includes(subject.id)}
+                            onCheckedChange={() => toggleSubject(subject.id)}
                           />
-                          <label
-                            htmlFor={subject.id}
-                            className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
-                          >
+                          <label htmlFor={`subject-${subject.id}`} className="text-sm flex-1 cursor-pointer">
                             {subject.name}
                           </label>
                         </div>
                       ))}
                     </div>
-                    {newUser.asignaturas.length === 0 && (
+                    {form.subjects.length === 0 && (
                       <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
                         <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
                         <p className="text-xs text-amber-800">
-                          Debe seleccionar al menos una asignatura para el rol de Jefe de Asignatura
+                          Debe seleccionar al menos una asignatura para los profesores con rol de Jefe de Asignatura.
                         </p>
                       </div>
                     )}
@@ -287,44 +282,35 @@ export function UserRegistrationForm({ onCreateUser, subjects = [] }: UserRegist
           </>
         )}
 
-        {/* Campos comunes para todos */}
         <div className="space-y-2">
-          <Label htmlFor="username">Username</Label>
-          <Input
-            id="username"
-            value={newUser.username}
-            onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-            placeholder="Ingrese username"
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">Correo electrónico</Label>
           <Input
             id="email"
             type="email"
-            value={newUser.email}
-            onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+            value={form.email}
+            onChange={(e) => updateForm("email", e.target.value)}
             placeholder="usuario@universidad.edu"
             required
           />
         </div>
+
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">Contraseña</Label>
           <Input
             id="password"
             type="password"
-            value={newUser.password}
-            onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+            value={form.password}
+            onChange={(e) => updateForm("password", e.target.value)}
             placeholder="••••••••"
             required
           />
         </div>
-        <Button type="submit" className="w-full" disabled={!isFormValid()}>
+
+        <Button type="submit" className="w-full" disabled={!isFormValid() || isSubmitting}>
           <Plus className="h-4 w-4 mr-2" />
-          Crear {userType}
+          Crear {ROLE_LABELS[userType]}
         </Button>
       </form>
     </Card>
-  )
+  );
 }

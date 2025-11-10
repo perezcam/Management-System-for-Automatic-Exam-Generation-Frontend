@@ -4,24 +4,26 @@ import { Input } from "../../../ui/input"
 import { Label } from "../../../ui/label"
 import { Plus } from "lucide-react"
 import { useState } from "react"
-
-export type QuestionType = {
-  id: string
-  name: string
-}
+import type { CreateQuestionTypePayload } from "@/types/question_administration"
 
 interface QuestionTypeFormProps {
-  onCreateType: (type: QuestionType) => void
+  onCreateType: (payload: CreateQuestionTypePayload) => Promise<void> | void
 }
 
 export function QuestionTypeForm({ onCreateType }: QuestionTypeFormProps) {
   const [newTypeName, setNewTypeName] = useState("")
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (newTypeName.trim()) {
-      onCreateType({ id: String(Date.now()), name: newTypeName })
+    if (!newTypeName.trim() || submitting) return
+
+    try {
+      setSubmitting(true)
+      await onCreateType({ question_type_name: newTypeName.trim() })
       setNewTypeName("")
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -42,9 +44,9 @@ export function QuestionTypeForm({ onCreateType }: QuestionTypeFormProps) {
             required
           />
         </div>
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full" disabled={submitting}>
           <Plus className="h-4 w-4 mr-2" />
-          Crear Tipo
+          {submitting ? "Creando..." : "Crear Tipo"}
         </Button>
       </form>
     </Card>
