@@ -40,7 +40,7 @@ export const config = {
     "/pending_exams","/pending_exams/:path*",
     "/messaging","/messaging/:path*",
     "/statistics","/statistics/:path*",
-    //"/administration","/administration/:path*",
+    "/administration","/administration/:path*",
     "/exam_bank","/exam_bank/:path*",
     "/exam_generator","/exam_generator/:path*",
     "/question_bank","/question_bank/:path*",
