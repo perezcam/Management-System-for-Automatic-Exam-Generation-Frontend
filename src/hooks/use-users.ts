@@ -1,143 +1,68 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type {
-  AdminUser,
-  CreateAdminPayload,
-  CreateStudentPayload,
-  CreateTeacherPayload,
-  StudentUser,
-  TeacherUser,
-  UpdateAdminPayload,
-  UpdateStudentPayload,
-  UpdateTeacherPayload,
-  UserRecord,
-} from "@/types/users";
-import {
-  createAdmin,
-  createStudent,
-  createTeacher,
-  deleteAdmin,
-  deleteStudent,
-  deleteTeacher,
-  fetchAdmins,
-  fetchStudents,
-  fetchTeachers,
-  updateAdmin,
-  updateStudent,
-  updateTeacher,
-} from "@/services/users";
+"use client";
 
-type UseUsersResult = {
+import { useMemo } from "react";
+import type {
+  AdminUser, StudentUser, TeacherUser, UserRecord,
+  CreateAdminPayload, CreateStudentPayload, CreateTeacherPayload,
+  UpdateAdminPayload, UpdateStudentPayload, UpdateTeacherPayload,
+} from "@/types/users";
+import { useAdmins } from "./use-admins";
+import { useStudents } from "./use-students";
+import { useTeachers } from "./use-teachers";
+
+export type UseUsersResult = {
   admins: AdminUser[];
   students: StudentUser[];
   teachers: TeacherUser[];
-  users: UserRecord[];
-  loading: boolean;
-  error: Error | null;
-  refresh: () => Promise<void>;
+  users: UserRecord[];                // unión de los tres
+  loading: boolean;                   // OR de los tres
+  error: Error | null;                // primera no-nula
+  refresh: () => Promise<void>;       // refresca todo
   createAdmin: (payload: CreateAdminPayload) => Promise<void>;
   createStudent: (payload: CreateStudentPayload) => Promise<void>;
   createTeacher: (payload: CreateTeacherPayload) => Promise<void>;
-  updateAdmin: (adminId: string, payload: UpdateAdminPayload) => Promise<void>;
-  updateStudent: (studentId: string, payload: UpdateStudentPayload) => Promise<void>;
-  updateTeacher: (teacherId: string, payload: UpdateTeacherPayload) => Promise<void>;
-  deleteAdmin: (adminId: string) => Promise<void>;
-  deleteStudent: (studentId: string) => Promise<void>;
-  deleteTeacher: (teacherId: string) => Promise<void>;
+  updateAdmin: (id: string, payload: UpdateAdminPayload) => Promise<void>;
+  updateStudent: (id: string, payload: UpdateStudentPayload) => Promise<void>;
+  updateTeacher: (id: string, payload: UpdateTeacherPayload) => Promise<void>;
+  deleteAdmin: (id: string) => Promise<void>;
+  deleteStudent: (id: string) => Promise<void>;
+  deleteTeacher: (id: string) => Promise<void>;
 };
 
-export const useUsers = (): UseUsersResult => {
-  const [admins, setAdmins] = useState<AdminUser[]>([]);
-  const [students, setStudents] = useState<StudentUser[]>([]);
-  const [teachers, setTeachers] = useState<TeacherUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+export function useUsers(): UseUsersResult {
+  const A = useAdmins();
+  const S = useStudents();
+  const T = useTeachers();
 
-  const loadUsers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [adminsData, studentsData, teachersData] = await Promise.all([
-        fetchAdmins(),
-        fetchStudents(),
-        fetchTeachers(),
-      ]);
-      setAdmins(adminsData);
-      setStudents(studentsData);
-      setTeachers(teachersData);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const users = useMemo<UserRecord[]>(
+    () => [...A.admins, ...S.students, ...T.teachers],
+    [A.admins, S.students, T.teachers]
+  );
 
-  useEffect(() => {
-    void loadUsers();
-  }, [loadUsers]);
+  const loading = A.loading || S.loading || T.loading;
+  const error = A.error ?? S.error ?? T.error;
 
-  const users = useMemo<UserRecord[]>(() => [...admins, ...students, ...teachers], [admins, students, teachers]);
-
-  const handleCreateAdmin = useCallback(async (payload: CreateAdminPayload) => {
-    const created = await createAdmin(payload);
-    setAdmins((prev) => [...prev, created]);
-  }, []);
-
-  const handleCreateStudent = useCallback(async (payload: CreateStudentPayload) => {
-    const created = await createStudent(payload);
-    setStudents((prev) => [...prev, created]);
-  }, []);
-
-  const handleCreateTeacher = useCallback(async (payload: CreateTeacherPayload) => {
-    const created = await createTeacher(payload);
-    setTeachers((prev) => [...prev, created]);
-  }, []);
-
-  const handleUpdateAdmin = useCallback(async (adminId: string, payload: UpdateAdminPayload) => {
-    const updated = await updateAdmin(adminId, payload);
-    setAdmins((prev) => prev.map((admin) => (admin.id === adminId ? updated : admin)));
-  }, []);
-
-  const handleUpdateStudent = useCallback(async (studentId: string, payload: UpdateStudentPayload) => {
-    const updated = await updateStudent(studentId, payload);
-    setStudents((prev) => prev.map((student) => (student.id === studentId ? updated : student)));
-  }, []);
-
-  const handleUpdateTeacher = useCallback(async (teacherId: string, payload: UpdateTeacherPayload) => {
-    const updated = await updateTeacher(teacherId, payload);
-    setTeachers((prev) => prev.map((teacher) => (teacher.id === teacherId ? updated : teacher)));
-  }, []);
-
-  const handleDeleteAdmin = useCallback(async (adminId: string) => {
-    await deleteAdmin(adminId);
-    setAdmins((prev) => prev.filter((admin) => admin.id !== adminId));
-  }, []);
-
-  const handleDeleteStudent = useCallback(async (studentId: string) => {
-    await deleteStudent(studentId);
-    setStudents((prev) => prev.filter((student) => student.id !== studentId));
-  }, []);
-
-  const handleDeleteTeacher = useCallback(async (teacherId: string) => {
-    await deleteTeacher(teacherId);
-    setTeachers((prev) => prev.filter((teacher) => teacher.id !== teacherId));
-  }, []);
+  const refresh = async () => {
+    await Promise.all([A.refresh(), S.refresh(), T.refresh()]);
+  };
 
   return {
-    admins,
-    students,
-    teachers,
+    admins: A.admins,
+    students: S.students,
+    teachers: T.teachers,
     users,
     loading,
     error,
-    refresh: loadUsers,
-    createAdmin: handleCreateAdmin,
-    createStudent: handleCreateStudent,
-    createTeacher: handleCreateTeacher,
-    updateAdmin: handleUpdateAdmin,
-    updateStudent: handleUpdateStudent,
-    updateTeacher: handleUpdateTeacher,
-    deleteAdmin: handleDeleteAdmin,
-    deleteStudent: handleDeleteStudent,
-    deleteTeacher: handleDeleteTeacher,
+    refresh,
+    // Passthrough de acciones por rol
+    createAdmin: A.createAdmin,
+    createStudent: S.createStudent,
+    createTeacher: T.createTeacher,
+    updateAdmin: A.updateAdmin,
+    updateStudent: S.updateStudent,
+    updateTeacher: T.updateTeacher,
+    deleteAdmin: A.deleteAdmin,
+    deleteStudent: S.deleteStudent,
+    deleteTeacher: T.deleteTeacher,
   };
-};
+}

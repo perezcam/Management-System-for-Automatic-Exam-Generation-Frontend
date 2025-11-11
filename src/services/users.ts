@@ -69,6 +69,8 @@ const extractErrorMessage = async (response: Response) => {
   }
 };
 
+
+// Mock Data
 const randomId = () => Math.random().toString(36).slice(2);
 
 let mockAdmins: AdminUser[] = [
