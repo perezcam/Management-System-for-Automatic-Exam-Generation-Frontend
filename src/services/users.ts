@@ -58,7 +58,7 @@ const request = async <T>(url: string, init?: RequestInit): Promise<T> => {
 
 
 // Si el backend responde { data: T }, extrae; si no, devuelve tal cual
-const unwrap = <T>(payload: any): T => (payload && typeof payload === "object" && "data" in payload ? payload.data as T : payload as T);
+const unwrap = <T>(payload: unknown): T => (payload && typeof payload === "object" && "data" in payload ? payload.data as T : payload as T);
 
 const extractErrorMessage = async (response: Response) => {
   try {
@@ -69,6 +69,8 @@ const extractErrorMessage = async (response: Response) => {
   }
 };
 
+
+// Mock Data
 const randomId = () => Math.random().toString(36).slice(2);
 
 let mockAdmins: AdminUser[] = [
