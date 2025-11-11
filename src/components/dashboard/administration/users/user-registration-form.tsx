@@ -81,6 +81,9 @@ export function UserRegistrationForm({
     if (!form.name || !form.email || !form.password) {
       return false;
     }
+    if (form.password.length < 8) {
+      return false;
+    }
     if (userType === "student" && (!form.age || !form.course)) {
       return false;
     }
@@ -302,6 +305,7 @@ export function UserRegistrationForm({
             value={form.password}
             onChange={(e) => updateForm("password", e.target.value)}
             placeholder="••••••••"
+            minLength={8}
             required
           />
         </div>
