@@ -6,10 +6,11 @@ import { QuestionsConfigHeader } from "@/components/dashboard/administration/que
 import { QuestionTypeForm } from "@/components/dashboard/administration/questions/question-type-form";
 import { QuestionTypeList } from "@/components/dashboard/administration/questions/question-type-list";
 import { SubjectsTopicsManagement } from "@/components/dashboard/administration/questions/subjects-topics-management";
-import { useQuestionAdministration } from "@/hooks/use-question-administration";
+import { UseQuestionAdministration } from "@/hooks/questions/use-question-administration";
 
 export default function QuestionsAdminPage() {
   const router = useRouter();
+
   const {
     questionTypes, subjects, topics, totals,
     loading, error, refresh,
@@ -17,7 +18,7 @@ export default function QuestionsAdminPage() {
     createSubject, updateSubject, deleteSubject,
     createTopic, updateTopic, deleteTopic,
     createSubtopic, deleteSubtopic,
-  } = useQuestionAdministration();
+  } = UseQuestionAdministration(); 
 
   return (
     <div className="flex-1 p-6 overflow-auto">

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { UserList } from "@/components/dashboard/administration/users/user-list";
 import { UserRegistrationForm } from "@/components/dashboard/administration/users/user-registration-form";
 import { useUsers } from "@/hooks/users/use-users";
-import { useQuestionAdministration } from "@/hooks/use-question-administration";
+import { useQuestionAdministration } from "@/hooks/questions/use-question-administration";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
