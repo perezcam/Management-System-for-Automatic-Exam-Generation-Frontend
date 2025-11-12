@@ -15,7 +15,7 @@ export default function ReportsAdminPage() {
             Volver
           </Button>
         </div>
-        <ReportsView onBack={() => void router.push("/administration")} />
+        <ReportsView />
       </div>
     </div>
   );

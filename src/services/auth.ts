@@ -1,5 +1,4 @@
 import { LoginCredentials } from "@/types/login";
-import { get_login_url } from "@/config/backend";
 
 type LoginResponse = {
   success: boolean;
@@ -11,8 +10,7 @@ type LoginResponse = {
 };
 
 async function requestBackendToken({ email, password }: LoginCredentials): Promise<{ token: string; userName?: string }> {
-  // Usamos el proxy server-side para evitar CORS
-  const url = "/api/backend/login";
+  const url = "/api/proxy/login";
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

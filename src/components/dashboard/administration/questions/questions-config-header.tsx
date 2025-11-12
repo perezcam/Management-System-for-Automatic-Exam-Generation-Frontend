@@ -1,9 +1,7 @@
-import { ArrowLeft, BookOpen, GraduationCap, FolderTree, Database } from "lucide-react"
-import { Button } from "../../../ui/button"
+import { BookOpen, GraduationCap, FolderTree, Database } from "lucide-react"
 import { Card } from "../../../ui/card"
 
 interface QuestionsConfigHeaderProps {
-  onBack: () => void
   stats: {
     totalTypes: number
     totalSubjects: number
@@ -12,22 +10,9 @@ interface QuestionsConfigHeaderProps {
   }
 }
 
-export function QuestionsConfigHeader({ onBack, stats }: QuestionsConfigHeaderProps) {
+export function QuestionsConfigHeader({stats }: QuestionsConfigHeaderProps) {
   return (
     <>
-      <div className="mb-6 flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Volver
-        </Button>
-      </div>
-
-      <div className="mb-6">
-        <h1 className="text-2xl mb-2">Configuración de Preguntas</h1>
-        <p className="text-muted-foreground">
-          Gestiona tipos de preguntas, tópicos y subtópicos
-        </p>
-      </div>
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

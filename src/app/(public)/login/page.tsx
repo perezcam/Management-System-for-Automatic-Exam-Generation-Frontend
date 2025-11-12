@@ -13,7 +13,7 @@ export default function Login() {
             </div>
             <div>
               <h1 className="text-4xl text-gray-900">
-                ExamPro
+                MSFAEG
               </h1>
               <p className="text-gray-600">
                 Sistema de Exámenes Automatizado
