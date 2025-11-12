@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { UserList } from "@/components/dashboard/administration/users/user-list";
 import { UserRegistrationForm } from "@/components/dashboard/administration/users/user-registration-form";
 import { useUsers } from "@/hooks/users/use-users";
-import { useQuestionAdministration } from "@/hooks/questions/use-question-administration";
+import { UseQuestionAdministration} from "@/hooks/questions/use-question-administration";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -20,7 +20,7 @@ export default function UsersAdminPage() {
     deleteAdmin, deleteStudent, deleteTeacher,
   } = useUsers();
 
-  const { subjects } = useQuestionAdministration();
+  const { subjects } = UseQuestionAdministration();
 
   return (
     <div className="flex-1 p-6 overflow-auto">

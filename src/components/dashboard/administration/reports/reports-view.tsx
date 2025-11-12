@@ -1,27 +1,12 @@
-import { ArrowLeft, FileText } from "lucide-react"
-import { Button } from "../../../ui/button"
+import { FileText } from "lucide-react"
 import { Card } from "../../../ui/card"
 
-interface ReportsViewProps {
-  onBack: () => void
-}
 
-export function ReportsView({ onBack }: ReportsViewProps) {
+export function ReportsView( ) {
   return (
     <div className="flex-1 p-6 overflow-auto">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
-          </Button>
-        </div>
-
-        <div className="mb-6">
-          <h1 className="text-2xl mb-2">Reportes</h1>
-          <p className="text-muted-foreground">
-            Genera y visualiza reportes del sistema
-          </p>
         </div>
 
         <Card className="p-12">

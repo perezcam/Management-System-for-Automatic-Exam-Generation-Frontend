@@ -31,7 +31,6 @@ export default function QuestionsAdminPage() {
         </div>
 
         <QuestionsConfigHeader
-          onBack={() => router.push("/administration")}
           stats={{
             totalTypes: totals.total_question_types,
             totalSubjects: totals.total_subjects,

@@ -34,7 +34,7 @@ export function MailHeader() {
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
           <h2 className="text-lg font-semibold">{name}</h2>
-          <p className="text-sm text-muted-foreground">ExamPro</p>
+          <p className="text-sm text-muted-foreground">MSFAEG</p>
         </div>
         <div className="flex items-center space-x-2">
           <Button
