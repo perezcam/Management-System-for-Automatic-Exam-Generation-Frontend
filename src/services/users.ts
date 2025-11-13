@@ -14,9 +14,9 @@ import type {
 } from "@/types/users";
 // Para llamadas autenticadas desde el cliente, usamos un proxy server-side
 // que inyecta el encabezado Authorization desde la cookie httpOnly.
-const ADMIN_ENDPOINT = "/api/backend/users";
-const STUDENT_ENDPOINT = "/api/backend/student";
-const TEACHER_ENDPOINT = "/api/backend/teacher";
+const ADMIN_ENDPOINT = "/api/proxy/users";
+const STUDENT_ENDPOINT = "/api/proxy/student";
+const TEACHER_ENDPOINT = "/api/proxy/teacher";
 
 const USE_MOCK_USERS = process.env.NEXT_PUBLIC_USE_MOCK_USERS === "true";
 

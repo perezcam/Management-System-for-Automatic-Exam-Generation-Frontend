@@ -12,10 +12,10 @@ import type {
 } from "@/types/question_administration";
 
 // Usamos el proxy server-side para evitar CORS e inyectar Authorization
-const QUESTION_TYPES_ENDPOINT = "/api/backend/api/question-bank/question-types";
-const QUESTION_SUBJECTS_ENDPOINT = "/api/backend/api/question-bank/subjects";
-const QUESTION_TOPICS_ENDPOINT = "/api/backend/api/question-bank/topics";
-const QUESTION_SUBTOPICS_ENDPOINT = "/api/backend/api/question-bank/subtopics";
+const QUESTION_TYPES_ENDPOINT = "/api/proxy/question-bank/question-types";
+const QUESTION_SUBJECTS_ENDPOINT = "/api/proxy/subjects";
+const QUESTION_TOPICS_ENDPOINT = "/api/proxy/topics";
+const QUESTION_SUBTOPICS_ENDPOINT = "/api/proxy/subtopics";
 
 const USE_MOCK_QUESTION_ADMIN = process.env.NEXT_PUBLIC_USE_MOCK_QUESTION_ADMIN === "true";
 
@@ -55,15 +55,23 @@ const extractErrorMessage = async (response: Response) => {
 
 const randomId = () => Math.random().toString(36).slice(2);
 
-const normalizeSubject = (subject: SubjectDetail): SubjectDetail => ({
-  ...subject,
-  topics_amount: subject.topics.length,
-  topics: subject.topics.map((topic) => ({
-    ...topic,
-    subtopics_amount: topic.subtopics.length,
-    subtopics: topic.subtopics.map((subtopic) => ({ ...subtopic })),
-  })),
-});
+const normalizeSubject = (subject: SubjectDetail): SubjectDetail => {
+  const topics = subject.topics ?? [];
+
+  return {
+    ...subject,
+    topics_amount: topics.length,
+    topics: topics.map((topic) => {
+      const subtopics = topic.subtopics ?? [];
+      return {
+        ...topic,
+        subtopics,
+        subtopics_amount: subtopics.length,
+      };
+    }),
+  };
+};
+
 
 const normalizeSubjects = (subjects: SubjectDetail[]) => subjects.map(normalizeSubject);
 
