@@ -12,6 +12,8 @@ import type {
   UpdateStudentPayload,
   UpdateTeacherPayload,
 } from "@/types/users";
+import type { BaseResponse, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
+import { backendRequest } from "@/services/api-client";
 // Para llamadas autenticadas desde el cliente, usamos un proxy server-side
 // que inyecta el encabezado Authorization desde la cookie httpOnly.
 const ADMIN_ENDPOINT = "/api/proxy/users";
@@ -34,41 +36,6 @@ const toTeacherUser = (teacher: TeacherDetail): TeacherUser => ({
   ...teacher,
   role: "teacher",
 });
-
-const request = async <T>(url: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json() as Promise<T>;
-};
-
-
-// Si el backend responde { data: T }, extrae; si no, devuelve tal cual
-const unwrap = <T>(payload: unknown): T => (payload && typeof payload === "object" && "data" in payload ? payload.data as T : payload as T);
-
-const extractErrorMessage = async (response: Response) => {
-  try {
-    const data = await response.json();
-    return data?.message ?? `Error ${response.status}`;
-  } catch {
-    return response.statusText || "Error de red";
-  }
-};
-
 
 // Mock Data
 const randomId = () => Math.random().toString(36).slice(2);
@@ -110,8 +77,8 @@ export const fetchAdmins = async (): Promise<AdminUser[]> => {
   if (USE_MOCK_USERS) {
     return mockAdmins;
   }
-  // Base Response: siempre en { data }
-  const resp = await request<{ data: AdminDetail[] }>(`${ADMIN_ENDPOINT}?role=admin`);
+  //TODO: CAMBIAR LOS RETRIEVE MANY SCHEMA POR PAGINATION SCHEMA
+  const resp = await backendRequest<RetrieveManySchema<AdminDetail>>(`${ADMIN_ENDPOINT}?role=admin`);
   const list = resp.data;
   return list.map(toAdminUser);
 };
@@ -120,7 +87,7 @@ export const fetchStudents = async (): Promise<StudentUser[]> => {
   if (USE_MOCK_USERS) {
     return mockStudents;
   }
-  const resp = await request<{ data: StudentDetail[] }>(STUDENT_ENDPOINT);
+  const resp = await backendRequest<RetrieveManySchema<StudentDetail>>(STUDENT_ENDPOINT);
   const list = resp.data;
   return list.map(toStudentUser);
 };
@@ -129,7 +96,7 @@ export const fetchTeachers = async (): Promise<TeacherUser[]> => {
   if (USE_MOCK_USERS) {
     return mockTeachers;
   }
-  const resp = await request<{ data: TeacherDetail[] }>(TEACHER_ENDPOINT);
+  const resp = await backendRequest<RetrieveManySchema<TeacherDetail>>(TEACHER_ENDPOINT);
   const list = resp.data;
   return list.map(toTeacherUser);
 };
@@ -142,12 +109,15 @@ export const createAdmin = async (payload: CreateAdminPayload): Promise<AdminUse
     mockAdmins = [...mockAdmins, newAdmin];
     return newAdmin;
   }
-  // El backend usa arreglo de roles para /users
-  const createdResp = await request<AdminDetail | { data: AdminDetail }>(ADMIN_ENDPOINT, {
+  // El backend espera un campo role para asignar permisos
+  const createdResp = await backendRequest<RetrieveOneSchema<AdminDetail>>(ADMIN_ENDPOINT, {
     method: "POST",
-    body: JSON.stringify({ ...payload, roles: ["admin"] }),
+    body: JSON.stringify({ ...payload, role: "admin" }),
   });
-  const created = unwrap<AdminDetail>(createdResp);
+  const created = createdResp.data;
+  if (!created) {
+    throw new Error("El backend no devolvió el administrador creado");
+  }
   return toAdminUser(created);
 };
 
@@ -165,11 +135,14 @@ export const createStudent = async (payload: CreateStudentPayload): Promise<Stud
     mockStudents = [...mockStudents, newStudent];
     return newStudent;
   }
-  const createdResp = await request<StudentDetail | { data: StudentDetail }>(STUDENT_ENDPOINT, {
+  const createdResp = await backendRequest<RetrieveOneSchema<StudentDetail>>(STUDENT_ENDPOINT, {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  const created = unwrap<StudentDetail>(createdResp);
+  const created = createdResp.data;
+  if (!created) {
+    throw new Error("El backend no devolvió el estudiante creado");
+  }
   return toStudentUser(created);
 };
 
@@ -191,11 +164,14 @@ export const createTeacher = async (payload: CreateTeacherPayload): Promise<Teac
     return newTeacher;
   }
   // El backend puede requerir rol "teacher" en la creación
-  const createdResp = await request<TeacherDetail | { data: TeacherDetail }>(TEACHER_ENDPOINT, {
+  const createdResp = await backendRequest<RetrieveOneSchema<TeacherDetail>>(TEACHER_ENDPOINT, {
     method: "POST",
     body: JSON.stringify({ ...payload, role: "teacher" }),
   });
-  const created = unwrap<TeacherDetail>(createdResp);
+  const created = createdResp.data;
+  if (!created) {
+    throw new Error("El backend no devolvió el profesor creado");
+  }
   return toTeacherUser(created);
 };
 
@@ -210,11 +186,14 @@ export const updateAdmin = async (adminId: string, payload: UpdateAdminPayload):
     if (!updated) throw new Error("Administrador no encontrado");
     return updated;
   }
-  const updatedResp = await request<AdminDetail | { data: AdminDetail }>(`${ADMIN_ENDPOINT}/${adminId}`, {
+  const updatedResp = await backendRequest<RetrieveOneSchema<AdminDetail>>(`${ADMIN_ENDPOINT}/${adminId}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
-  const updated = unwrap<AdminDetail>(updatedResp);
+  const updated = updatedResp.data;
+  if (!updated) {
+    throw new Error("El backend no devolvió el administrador actualizado");
+  }
   return toAdminUser(updated);
 };
 
@@ -227,11 +206,14 @@ export const updateStudent = async (studentId: string, payload: UpdateStudentPay
     if (!updated) throw new Error("Estudiante no encontrado");
     return updated;
   }
-  const updatedResp = await request<StudentDetail | { data: StudentDetail }>(`${STUDENT_ENDPOINT}/${studentId}`, {
+  const updatedResp = await backendRequest<RetrieveOneSchema<StudentDetail>>(`${STUDENT_ENDPOINT}/${studentId}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
-  const updated = unwrap<StudentDetail>(updatedResp);
+  const updated = updatedResp.data;
+  if (!updated) {
+    throw new Error("El backend no devolvió el estudiante actualizado");
+  }
   return toStudentUser(updated);
 };
 
@@ -244,11 +226,14 @@ export const updateTeacher = async (teacherId: string, payload: UpdateTeacherPay
     if (!updated) throw new Error("Profesor no encontrado");
     return updated;
   }
-  const updatedResp = await request<TeacherDetail | { data: TeacherDetail }>(`${TEACHER_ENDPOINT}/${teacherId}`, {
+  const updatedResp = await backendRequest<RetrieveOneSchema<TeacherDetail>>(`${TEACHER_ENDPOINT}/${teacherId}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
-  const updated = unwrap<TeacherDetail>(updatedResp);
+  const updated = updatedResp.data;
+  if (!updated) {
+    throw new Error("El backend no devolvió el profesor actualizado");
+  }
   return toTeacherUser(updated);
 };
 
@@ -259,7 +244,7 @@ export const deleteAdmin = async (adminId: string): Promise<void> => {
     mockAdmins = mockAdmins.filter((admin) => admin.id !== adminId);
     return;
   }
-  await request<void>(`${ADMIN_ENDPOINT}/${adminId}`, { method: "DELETE" });
+  await backendRequest<BaseResponse>(`${ADMIN_ENDPOINT}/${adminId}`, { method: "DELETE" });
 };
 
 export const deleteStudent = async (studentId: string): Promise<void> => {
@@ -267,7 +252,7 @@ export const deleteStudent = async (studentId: string): Promise<void> => {
     mockStudents = mockStudents.filter((student) => student.id !== studentId);
     return;
   }
-  await request<void>(`${STUDENT_ENDPOINT}/${studentId}`, { method: "DELETE" });
+  await backendRequest<BaseResponse>(`${STUDENT_ENDPOINT}/${studentId}`, { method: "DELETE" });
 };
 
 export const deleteTeacher = async (teacherId: string): Promise<void> => {
@@ -275,5 +260,5 @@ export const deleteTeacher = async (teacherId: string): Promise<void> => {
     mockTeachers = mockTeachers.filter((teacher) => teacher.id !== teacherId);
     return;
   }
-  await request<void>(`${TEACHER_ENDPOINT}/${teacherId}`, { method: "DELETE" });
+  await backendRequest<BaseResponse>(`${TEACHER_ENDPOINT}/${teacherId}`, { method: "DELETE" });
 };
