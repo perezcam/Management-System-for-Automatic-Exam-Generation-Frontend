@@ -61,7 +61,7 @@ export const createAdmin = async (
     ADMIN_ENDPOINT,
     {
       method: "POST",
-      body: JSON.stringify({ ...payload, roles: ["admin"] }),
+      body: JSON.stringify({ ...payload, role: "admin" }),
     }
   );
   const created = unwrap<AdminDetail>(createdResp);
