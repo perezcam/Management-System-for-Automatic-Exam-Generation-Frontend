@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import type { StudentUser, CreateStudentPayload, UpdateStudentPayload } from "@/types/users";
-import { fetchStudents, createStudent, updateStudent, deleteStudent } from "@/services/users";
+import { fetchStudents, createStudent, updateStudent, deleteStudent } from "@/services/users/student-service";
 
 export type UseStudentsResult = {
   students: StudentUser[];

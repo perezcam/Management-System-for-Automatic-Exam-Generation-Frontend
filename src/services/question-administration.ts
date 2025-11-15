@@ -12,10 +12,10 @@ import type {
 } from "@/types/question_administration";
 
 // Usamos el proxy server-side para evitar CORS e inyectar Authorization
-const QUESTION_TYPES_ENDPOINT = "/api/backend/api/question-bank/question-types";
-const QUESTION_SUBJECTS_ENDPOINT = "/api/backend/api/question-bank/subjects";
-const QUESTION_TOPICS_ENDPOINT = "/api/backend/api/question-bank/topics";
-const QUESTION_SUBTOPICS_ENDPOINT = "/api/backend/api/question-bank/subtopics";
+const QUESTION_TYPES_ENDPOINT = "/api/proxy/api/question-bank/question-types";
+const QUESTION_SUBJECTS_ENDPOINT = "/api/proxy/api/question-bank/subjects";
+const QUESTION_TOPICS_ENDPOINT = "/api/proxy/api/question-bank/topics";
+const QUESTION_SUBTOPICS_ENDPOINT = "/api/proxy/api/question-bank/subtopics";
 
 const USE_MOCK_QUESTION_ADMIN = process.env.NEXT_PUBLIC_USE_MOCK_QUESTION_ADMIN === "true";
 

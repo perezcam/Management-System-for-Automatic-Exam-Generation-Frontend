@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import type { AdminUser, CreateAdminPayload, UpdateAdminPayload } from "@/types/users";
-import { fetchAdmins, createAdmin, updateAdmin, deleteAdmin } from "@/services/users";
+import { fetchAdmins, createAdmin, updateAdmin, deleteAdmin } from "@/services/users/admin-service";
 
 export type UseAdminsResult = {
   admins: AdminUser[];
