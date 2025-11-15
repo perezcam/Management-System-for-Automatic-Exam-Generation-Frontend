@@ -1,0 +1,52 @@
+import type { BaseResponse } from "@/types/backend-responses";
+import { decodeBackendSchema, extractBackendMessage } from "@/utils/backend-response";
+import { showErrorToast } from "@/utils/toast";
+
+const DEFAULT_SUCCESS: BaseResponse = {
+  success: true,
+  message: "Operación exitosa",
+};
+
+export async function backendRequest<TSchema extends BaseResponse>(
+  url: string,
+  init?: RequestInit,
+): Promise<TSchema> {
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+      credentials: "include",
+    });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "No fue posible contactar al backend";
+    showErrorToast(message);
+    throw err;
+  }
+
+  if (response.status === 204) {
+    return DEFAULT_SUCCESS as TSchema;
+  }
+
+  const payload = await parseResponseJson(response);
+
+  if (!response.ok) {
+    const message = extractBackendMessage(payload) ?? response.statusText || `Error ${response.status}`;
+    showErrorToast(message);
+    throw new Error(message);
+  }
+
+  return decodeBackendSchema<TSchema>(payload);
+}
+
+const parseResponseJson = async (response: Response) => {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+};

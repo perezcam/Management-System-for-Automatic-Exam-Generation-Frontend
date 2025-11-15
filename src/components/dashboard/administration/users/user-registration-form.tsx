@@ -14,6 +14,7 @@ import type {
   CreateTeacherPayload,
   UserRole,
 } from "@/types/users";
+import { showSuccessToast } from "@/utils/toast";
 
 interface UserRegistrationFormProps {
   subjects?: { id: string; name: string }[];
@@ -103,8 +104,9 @@ export function UserRegistrationForm({
     event.preventDefault();
     if (!isFormValid()) return;
 
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
+      let successMessage = "Usuario creado correctamente";
 
       if (userType === "admin") {
         const payload: CreateAdminPayload = {
@@ -113,6 +115,7 @@ export function UserRegistrationForm({
           password: form.password,
         };
         await onCreateAdmin(payload);
+        successMessage = "Administrador creado correctamente";
       } else if (userType === "student") {
         const payload: CreateStudentPayload = {
           name: form.name,
@@ -122,6 +125,7 @@ export function UserRegistrationForm({
           course: Number(form.course),
         };
         await onCreateStudent(payload);
+        successMessage = "Estudiante creado correctamente";
       } else {
         const payload: CreateTeacherPayload = {
           name: form.name,
@@ -133,9 +137,13 @@ export function UserRegistrationForm({
           subjects_ids: form.hasRoleSubjectLeader ? form.subjects : undefined,
         };
         await onCreateTeacher(payload);
+        successMessage = "Profesor creado correctamente";
       }
-
+      
+      showSuccessToast(successMessage);
       resetForm();
+    } catch (err) {
+      console.error(err);
     } finally {
       setIsSubmitting(false);
     }

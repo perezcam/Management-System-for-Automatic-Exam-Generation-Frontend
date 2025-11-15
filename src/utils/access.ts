@@ -11,8 +11,7 @@ export const FOLDER_TO_ROUTE = {
   "pending-exams": "/pending_exams",
   "statistics": "/statistics",
   "administration": "/administration",
-  "exam-bank": "/exam_bank",
-  "exam-generator": "/exam_generator",
+  "exam-bank": "/exam_bank","exam-generator": "/exam_generator",
   "question-bank": "/question_bank",
   "subjects": "/subjects",
   "exams": "/exams",
@@ -21,15 +20,13 @@ export const FOLDER_TO_ROUTE = {
 export type FolderKey = keyof typeof FOLDER_TO_ROUTE;
 
 const DASHBOARD_PREFIX = ""; 
-
 const ROLE_VALUES = Object.values(Role) as Role[];
-//TODO: VERIFICAR ESTO DESPUES  
 export const ROLE_ALLOWED_KEYS: Record<Role, FolderKey[]> = {
   [Role.Admin]: [
     "messaging", "statistics", "administration",
   ],
   [Role.Teacher]: [
-    "messaging", "question-bank", "exam-bank","exam-generator","messaging",
+    "messaging", "question-bank", "exam-bank","exam-generator",
   ],
   [Role.SubjectLeader]: [
     "administration", "statistics", "pending-exams", "messaging", "subjects",
@@ -45,11 +42,13 @@ export function isRole(value: unknown): value is Role {
   return typeof value === "string" && ROLE_VALUES.includes(value as Role);
 }
 
+// Normaliza la ruta eliminando el slash final cuando no es necesario
 function normalize(path: string) {
   if (path.length > 1 && path.endsWith("/")) return path.slice(0, -1);
   return path;
 }
 
+// Construye la URL de una carpeta aplicando el prefijo y normalizando el resultado
 function folderHref(key: FolderKey) {
   // Ensambla prefijo opcional + ruta
   return normalize(`${DASHBOARD_PREFIX}${FOLDER_TO_ROUTE[key]}`);
@@ -73,5 +72,3 @@ export function canAccess(pathname: string, roles: Role[]) {
   const allowed = allowedRoutesFor(roles);
   return allowed.some((p) => path === p || path.startsWith(p + "/"));
 }
-
-export const PROTECTED_PATHS = Object.values(FOLDER_TO_ROUTE).map((p) => normalize(`${DASHBOARD_PREFIX}${p}`));

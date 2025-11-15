@@ -10,6 +10,8 @@ import type {
   UpdateSubjectPayload,
   UpdateTopicPayload,
 } from "@/types/question_administration";
+import type { BaseResponse, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
+import { backendRequest } from "@/services/api-client";
 
 // Usamos el proxy server-side para evitar CORS e inyectar Authorization
 const QUESTION_TYPES_ENDPOINT = "/api/proxy/question-bank/question-types";
@@ -18,40 +20,6 @@ const QUESTION_TOPICS_ENDPOINT = "/api/proxy/topics";
 const QUESTION_SUBTOPICS_ENDPOINT = "/api/proxy/subtopics";
 
 const USE_MOCK_QUESTION_ADMIN = process.env.NEXT_PUBLIC_USE_MOCK_QUESTION_ADMIN === "true";
-
-const request = async <T>(url: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json() as Promise<T>;
-}; //TODO: SACAR ESTA REQUEST ?
-
-// Base Response helper: si la API devuelve { data: T }, extrae ese campo //TODO: CREAR EL BASE RESPONSE
-const unwrap = <T>(payload: unknown): T =>
-  payload && typeof payload === "object" && "data" in payload ? (payload.data as T) : (payload as T);
-
-const extractErrorMessage = async (response: Response) => {
-  try {
-    const data = await response.json();
-    return data?.message ?? `Error ${response.status}`;
-  } catch {
-    return response.statusText || "Error de red";
-  }
-};
 
 const randomId = () => Math.random().toString(36).slice(2);
 
@@ -161,16 +129,16 @@ export const fetchQuestionTypes = async (): Promise<QuestionTypeDetail[]> => {
   if (USE_MOCK_QUESTION_ADMIN) {
     return cloneQuestionTypes(mockQuestionTypes);
   }
-  const resp = await request<unknown>(QUESTION_TYPES_ENDPOINT);
-  return unwrap<QuestionTypeDetail[]>(resp);
+  const resp = await backendRequest<RetrieveManySchema<QuestionTypeDetail>>(QUESTION_TYPES_ENDPOINT);
+  return resp.data;
 };
 
 export const fetchSubjects = async (): Promise<SubjectDetail[]> => {
   if (USE_MOCK_QUESTION_ADMIN) {
     return normalizeSubjects(mockSubjects);
   }
-  const resp = await request<unknown>(QUESTION_SUBJECTS_ENDPOINT);
-  const subjects = unwrap<SubjectDetail[]>(resp);
+  const resp = await backendRequest<RetrieveManySchema<SubjectDetail>>(QUESTION_SUBJECTS_ENDPOINT);
+  const subjects = resp.data;
   return normalizeSubjects(subjects);
 };
 
@@ -183,11 +151,14 @@ export const createQuestionType = async (payload: CreateQuestionTypePayload): Pr
     mockQuestionTypes = [...mockQuestionTypes, newType];
     return newType;
   }
-  const resp = await request<unknown>(QUESTION_TYPES_ENDPOINT, {
+  const resp = await backendRequest<RetrieveOneSchema<QuestionTypeDetail>>(QUESTION_TYPES_ENDPOINT, {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  return unwrap<QuestionTypeDetail>(resp);
+  if (!resp.data) {
+    throw new Error("El backend no devolvió el tipo de pregunta creado");
+  }
+  return resp.data;
 };
 
 export const deleteQuestionType = async (questionTypeId: string): Promise<void> => {
@@ -195,7 +166,7 @@ export const deleteQuestionType = async (questionTypeId: string): Promise<void> 
     mockQuestionTypes = mockQuestionTypes.filter((type) => type.question_type_id !== questionTypeId);
     return;
   }
-  await request<void>(`${QUESTION_TYPES_ENDPOINT}/${questionTypeId}`, { method: "DELETE" });
+  await backendRequest<BaseResponse>(`${QUESTION_TYPES_ENDPOINT}/${questionTypeId}`, { method: "DELETE" });
 };
 
 export const createSubject = async (payload: CreateSubjectPayload): Promise<SubjectDetail> => {
@@ -211,11 +182,14 @@ export const createSubject = async (payload: CreateSubjectPayload): Promise<Subj
     mockSubjects = [...mockSubjects, newSubject];
     return newSubject;
   }
-  const resp = await request<unknown>(QUESTION_SUBJECTS_ENDPOINT, {
+  const resp = await backendRequest<RetrieveOneSchema<SubjectDetail>>(QUESTION_SUBJECTS_ENDPOINT, {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  const created = unwrap<SubjectDetail>(resp);
+  const created = resp.data;
+  if (!created) {
+    throw new Error("El backend no devolvió la materia creada");
+  }
   return normalizeSubject(created);
 };
 
@@ -241,11 +215,14 @@ export const updateSubject = async (
     }
     return updatedSubject;
   }
-  const resp = await request<unknown>(`${QUESTION_SUBJECTS_ENDPOINT}/${subjectId}`, {
+  const resp = await backendRequest<RetrieveOneSchema<SubjectDetail>>(`${QUESTION_SUBJECTS_ENDPOINT}/${subjectId}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
-  const updated = unwrap<SubjectDetail>(resp);
+  const updated = resp.data;
+  if (!updated) {
+    throw new Error("El backend no devolvió la materia actualizada");
+  }
   return normalizeSubject(updated);
 };
 
@@ -254,7 +231,7 @@ export const deleteSubject = async (subjectId: string): Promise<void> => {
     mockSubjects = mockSubjects.filter((subject) => subject.subject_id !== subjectId);
     return;
   }
-  await request<void>(`${QUESTION_SUBJECTS_ENDPOINT}/${subjectId}`, { method: "DELETE" });
+  await backendRequest<BaseResponse>(`${QUESTION_SUBJECTS_ENDPOINT}/${subjectId}`, { method: "DELETE" });
 };
 
 export const createTopic = async (payload: CreateTopicPayload): Promise<TopicDetail> => {
@@ -273,11 +250,14 @@ export const createTopic = async (payload: CreateTopicPayload): Promise<TopicDet
     );
     return newTopic;
   }
-  const resp = await request<unknown>(QUESTION_TOPICS_ENDPOINT, {
+  const resp = await backendRequest<RetrieveOneSchema<TopicDetail>>(QUESTION_TOPICS_ENDPOINT, {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  const created = unwrap<TopicDetail>(resp);
+  const created = resp.data;
+  if (!created) {
+    throw new Error("El backend no devolvió el tópico creado");
+  }
   return {
     ...created,
     subtopics: created.subtopics.map((subtopic) => ({ ...subtopic })),
@@ -322,11 +302,14 @@ export const updateTopic = async (topicId: string, payload: UpdateTopicPayload):
     return updatedTopic;
   }
 
-  const resp = await request<unknown>(`${QUESTION_TOPICS_ENDPOINT}/${topicId}`, {
+  const resp = await backendRequest<RetrieveOneSchema<TopicDetail>>(`${QUESTION_TOPICS_ENDPOINT}/${topicId}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
-  const updated = unwrap<TopicDetail>(resp);
+  const updated = resp.data;
+  if (!updated) {
+    throw new Error("El backend no devolvió el tópico actualizado");
+  }
   return {
     ...updated,
     subtopics: updated.subtopics.map((subtopic) => ({ ...subtopic })),
@@ -346,7 +329,7 @@ export const deleteTopic = async (topicId: string): Promise<void> => {
     );
     return;
   }
-  await request<void>(`${QUESTION_TOPICS_ENDPOINT}/${topicId}`, { method: "DELETE" });
+  await backendRequest<BaseResponse>(`${QUESTION_TOPICS_ENDPOINT}/${topicId}`, { method: "DELETE" });
 };
 
 export const createSubtopic = async (payload: CreateSubtopicPayload): Promise<SubTopicDetail> => {
@@ -376,11 +359,14 @@ export const createSubtopic = async (payload: CreateSubtopicPayload): Promise<Su
 
     return newSubtopic;
   }
-  const resp = await request<unknown>(QUESTION_SUBTOPICS_ENDPOINT, {
+  const resp = await backendRequest<RetrieveOneSchema<SubTopicDetail>>(QUESTION_SUBTOPICS_ENDPOINT, {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  return unwrap<SubTopicDetail>(resp);
+  if (!resp.data) {
+    throw new Error("El backend no devolvió el subtema creado");
+  }
+  return resp.data;
 };
 
 export const deleteSubtopic = async (subtopicId: string): Promise<void> => {
@@ -396,5 +382,5 @@ export const deleteSubtopic = async (subtopicId: string): Promise<void> => {
     );
     return;
   }
-  await request<void>(`${QUESTION_SUBTOPICS_ENDPOINT}/${subtopicId}`, { method: "DELETE" });
+  await backendRequest<BaseResponse>(`${QUESTION_SUBTOPICS_ENDPOINT}/${subtopicId}`, { method: "DELETE" });
 };
