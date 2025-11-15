@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { CreateQuestionTypePayload, QuestionTypeDetail } from "@/types/question_administration";
-import { fetchQuestionTypes, createQuestionType, deleteQuestionType } from "@/services/question-administration";
+import { fetchQuestionTypes, createQuestionType, deleteQuestionType } from "@/services/question-adm/question-types-service";
 
 export type UseQuestionTypesResult = {
   questionTypes: QuestionTypeDetail[];
