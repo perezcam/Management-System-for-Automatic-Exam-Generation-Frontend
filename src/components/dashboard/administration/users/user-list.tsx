@@ -42,6 +42,11 @@ interface UserListProps {
   onDeleteAdmin: (adminId: string) => Promise<void> | void;
   onDeleteStudent: (studentId: string) => Promise<void> | void;
   onDeleteTeacher: (teacherId: string) => Promise<void> | void;
+
+  page?: number;          // índice de página actual (0-based)
+  totalPages?: number;    // total de páginas
+  onNextPage?: () => void;
+  onPrevPage?: () => void;
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -65,6 +70,10 @@ export function UserList({
   onDeleteAdmin,
   onDeleteStudent,
   onDeleteTeacher,
+  page,
+  totalPages,
+  onNextPage,
+  onPrevPage,
 }: UserListProps) {
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<RoleFilter>("all");
@@ -470,6 +479,34 @@ export function UserList({
             </div>
           ))}
         </div>
+
+        {typeof page === "number" &&
+          typeof totalPages === "number" &&
+          totalPages > 1 && (
+            <div className="mt-4 flex items-center justify-between text-sm">
+              <span className="text-xs text-muted-foreground">
+                Página {page + 1} de {totalPages}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onPrevPage}
+                  disabled={!onPrevPage || page <= 0}
+                >
+                  Anteriores 20
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onNextPage}
+                  disabled={!onNextPage || page >= totalPages - 1}
+                >
+                  Siguientes 20
+                </Button>
+              </div>
+            </div>
+          )}
       </Card>
 
       <Dialog

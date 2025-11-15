@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { UserList } from "@/components/dashboard/administration/users/user-list";
 import { UserRegistrationForm } from "@/components/dashboard/administration/users/user-registration-form";
 import { useUsers } from "@/hooks/users/use-users";
-import { UseQuestionAdministration} from "@/hooks/questions/use-question-administration";
+import { UseQuestionAdministration } from "@/hooks/questions/use-question-administration";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -15,12 +15,34 @@ export default function UsersAdminPage() {
     loading: usersLoading,
     error: usersError,
     refresh: refreshUsers,
-    createAdmin, createStudent, createTeacher,
-    updateAdmin, updateStudent, updateTeacher,
-    deleteAdmin, deleteStudent, deleteTeacher,
+    createAdmin,
+    createStudent,
+    createTeacher,
+    updateAdmin,
+    updateStudent,
+    updateTeacher,
+    deleteAdmin,
+    deleteStudent,
+    deleteTeacher,
+
+    page,
+    totalPages,
+    setPage,
   } = useUsers();
 
   const { subjects } = UseQuestionAdministration();
+
+  const handleNextPage = () => {
+    if (page < totalPages - 1) {
+      setPage(page + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (page > 0) {
+      setPage(page - 1);
+    }
+  };
 
   return (
     <div className="flex-1 p-6 overflow-auto">
@@ -59,8 +81,8 @@ export default function UsersAdminPage() {
                 Cargando usuarios...
               </Card>
             ) : (
-              <UserList
-                users={users}
+               <UserList
+                users={users} 
                 subjects={subjects.map((s) => ({ id: s.subject_id, name: s.subject_name }))}
                 onUpdateAdmin={updateAdmin}
                 onUpdateStudent={updateStudent}
@@ -68,6 +90,10 @@ export default function UsersAdminPage() {
                 onDeleteAdmin={deleteAdmin}
                 onDeleteStudent={deleteStudent}
                 onDeleteTeacher={deleteTeacher}
+                page={page}
+                totalPages={totalPages}
+                onNextPage={handleNextPage}
+                onPrevPage={handlePrevPage}
               />
             )}
           </div>

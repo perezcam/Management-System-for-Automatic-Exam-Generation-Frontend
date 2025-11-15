@@ -3,10 +3,13 @@ import type {
   TeacherUser,
   CreateTeacherPayload,
   UpdateTeacherPayload,
+  PaginatedResult,
+  PaginationParams
 } from "@/types/users";
 import {
   TEACHER_ENDPOINT,
   USE_MOCK_USERS,
+  DEFAULT_PAGE_SIZE,
   randomId,
   request,
   unwrap,
@@ -33,17 +36,34 @@ const toTeacherUser = (teacher: TeacherDetail): TeacherUser => ({
   role: "teacher",
 });
 
-// -------- Fetchers --------
+// ---- Fetchers paginados ----
 
-export const fetchTeachers = async (): Promise<TeacherUser[]> => {
+export const fetchTeachers = async (
+  params?: PaginationParams
+): Promise<PaginatedResult<TeacherUser>> => {
+  const { limit = DEFAULT_PAGE_SIZE, offset = 0 } = params ?? {};
+
   if (USE_MOCK_USERS) {
-    return mockTeachers;
+    const total = mockTeachers.length;
+    const data = mockTeachers.slice(offset, offset + limit);
+    return { data, meta: { limit, offset, total } };
   }
 
-  const resp = await request<{ data: TeacherDetail[] }>(TEACHER_ENDPOINT);
-  const list = resp.data;
-  return list.map(toTeacherUser);
+  const searchParams = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+
+  const resp = await request<PaginatedResult<TeacherDetail>>(
+    `${TEACHER_ENDPOINT}?${searchParams.toString()}`
+  );
+
+  return {
+    data: resp.data.map(toTeacherUser),
+    meta: resp.meta,
+  };
 };
+
 
 // -------- Creators --------
 

@@ -1,5 +1,23 @@
-// Read schemas
 export type UserRole = "admin" | "student" | "teacher"; 
+
+//Pagination
+export type PaginationParams = {
+  limit?: number;
+  offset?: number;
+};
+
+export type PaginationMeta = {
+  limit: number;
+  offset: number;
+  total: number;
+};
+
+export type PaginatedResult<T> = {
+  data: T[];
+  meta: PaginationMeta;
+};
+
+
 
 export type AdminDetail = {
   id: string;

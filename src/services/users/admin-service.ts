@@ -3,10 +3,13 @@ import type {
   AdminUser,
   CreateAdminPayload,
   UpdateAdminPayload,
+  PaginationParams,
+  PaginatedResult,
 } from "@/types/users";
 import {
   ADMIN_ENDPOINT,
   USE_MOCK_USERS,
+  DEFAULT_PAGE_SIZE,
   randomId,
   request,
   unwrap,
@@ -27,18 +30,33 @@ const toAdminUser = (admin: AdminDetail): AdminUser => ({
   role: "admin",
 });
 
-// -------- Fetchers --------
+// ---- Fetchers ----
 
-export const fetchAdmins = async (): Promise<AdminUser[]> => {
+export const fetchAdmins = async (
+  params?: PaginationParams
+): Promise<PaginatedResult<AdminUser>> => {
+  const { limit = DEFAULT_PAGE_SIZE, offset = 0 } = params ?? {};
+
   if (USE_MOCK_USERS) {
-    return mockAdmins;
+    const total = mockAdmins.length;
+    const data = mockAdmins.slice(offset, offset + limit);
+    return { data, meta: { limit, offset, total } };
   }
 
-  const resp = await request<{ data: AdminDetail[] }>(
-    `${ADMIN_ENDPOINT}?role=admin`
+  const searchParams = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+    role: "admin",
+  });
+
+  const resp = await request<PaginatedResult<AdminDetail>>(
+    `${ADMIN_ENDPOINT}?${searchParams.toString()}`
   );
-  const list = resp.data;
-  return list.map(toAdminUser);
+
+  return {
+    data: resp.data.map(toAdminUser),
+    meta: resp.meta,
+  };
 };
 
 // -------- Creators --------
