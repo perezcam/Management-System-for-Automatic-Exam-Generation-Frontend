@@ -6,6 +6,7 @@ import { UserRegistrationForm } from "@/components/dashboard/administration/user
 import { useUsers } from "@/hooks/users/use-users";
 import { UseQuestionAdministration} from "@/hooks/questions/use-question-administration";
 import { Card } from "@/components/ui/card";
+import { UserManagementHeader } from "@/components/dashboard/administration/users/user-management-header";
 import { Button } from "@/components/ui/button";
 
 export default function UsersAdminPage() {
@@ -53,12 +54,7 @@ export default function UsersAdminPage() {
   return (
     <div className="flex-1 p-6 overflow-auto">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl">Gestión de Usuarios</h2>
-          <Button variant="ghost" onClick={() => router.push("/administration")}>
-            Volver
-          </Button>
-        </div>
+        <UserManagementHeader onBack={() => router.push("/administration")} />
 
         {usersError && (
           <div className="mb-6 rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
