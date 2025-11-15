@@ -11,12 +11,20 @@ import type {
   UpdateAdminPayload,
   UpdateStudentPayload,
   UpdateTeacherPayload,
+  UserSummary,
+  UserRecord,
+  UserRole,
 } from "@/types/users";
-import type { BaseResponse, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
+import type {
+  BaseResponse,
+  PaginatedSchema,
+  PaginationMeta,
+  RetrieveOneSchema,
+} from "@/types/backend-responses";
 import { backendRequest } from "@/services/api-client";
 // Para llamadas autenticadas desde el cliente, usamos un proxy server-side
 // que inyecta el encabezado Authorization desde la cookie httpOnly.
-const ADMIN_ENDPOINT = "/api/proxy/users";
+const USERS_ENDPOINT = "/api/proxy/users";
 const STUDENT_ENDPOINT = "/api/proxy/student";
 const TEACHER_ENDPOINT = "/api/proxy/teacher";
 
@@ -36,6 +44,50 @@ const toTeacherUser = (teacher: TeacherDetail): TeacherUser => ({
   ...teacher,
   role: "teacher",
 });
+
+const toUserSummary = (user: UserRecord): UserSummary => ({
+  id: user.id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+});
+
+type PaginationParams = {
+  limit?: number;
+  offset?: number;
+};
+
+type PaginatedResult<T> = {
+  data: T[];
+  meta: PaginationMeta;
+};
+
+const mapMockPagination = <T>(items: T[], params: PaginationParams = {}): PaginatedResult<T> => {
+  const total = items.length;
+  const limit = params.limit ?? total || 1;
+  const offset = params.offset ?? 0;
+  const start = Math.max(0, offset);
+  const end = Math.min(total, start + limit);
+  return {
+    data: items.slice(start, end),
+    meta: {
+      limit,
+      offset: start,
+      total,
+    },
+  };
+};
+
+const buildQueryString = (params: Record<string, string | number | undefined>) => {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      searchParams.set(key, String(value));
+    }
+  });
+  const query = searchParams.toString();
+  return query ? `?${query}` : "";
+};
 
 // Mock Data
 const randomId = () => Math.random().toString(36).slice(2);
@@ -73,32 +125,99 @@ let mockTeachers: TeacherUser[] = [
 
 // Fetchers
 
-export const fetchAdmins = async (): Promise<AdminUser[]> => {
+export const fetchUsers = async (
+  params: PaginationParams & { role?: UserRole } = {},
+): Promise<PaginatedResult<UserSummary>> => {
   if (USE_MOCK_USERS) {
-    return mockAdmins;
+    const combined = [...mockAdmins, ...mockStudents, ...mockTeachers].map(toUserSummary);
+    return mapMockPagination(combined, params);
   }
-  //TODO: CAMBIAR LOS RETRIEVE MANY SCHEMA POR PAGINATION SCHEMA
-  const resp = await backendRequest<RetrieveManySchema<AdminDetail>>(`${ADMIN_ENDPOINT}?role=admin`);
-  const list = resp.data;
-  return list.map(toAdminUser);
+  const query = buildQueryString({
+    limit: params.limit,
+    offset: params.offset,
+    role: params.role,
+  });
+  const resp = await backendRequest<PaginatedSchema<UserSummary>>(`${USERS_ENDPOINT}${query}`);
+  return { data: resp.data, meta: resp.meta };
 };
 
-export const fetchStudents = async (): Promise<StudentUser[]> => {
+export const fetchAdmins = async (
+  params: PaginationParams = {},
+): Promise<PaginatedResult<AdminUser>> => {
   if (USE_MOCK_USERS) {
-    return mockStudents;
+    return mapMockPagination(mockAdmins, params);
   }
-  const resp = await backendRequest<RetrieveManySchema<StudentDetail>>(STUDENT_ENDPOINT);
-  const list = resp.data;
-  return list.map(toStudentUser);
+  const query = buildQueryString({
+    limit: params.limit,
+    offset: params.offset,
+    role: "admin",
+  });
+  const resp = await backendRequest<PaginatedSchema<AdminDetail>>(`${USERS_ENDPOINT}${query}`);
+  return { data: resp.data.map(toAdminUser), meta: resp.meta };
 };
 
-export const fetchTeachers = async (): Promise<TeacherUser[]> => {
+export const fetchStudents = async (
+  params: PaginationParams = {},
+): Promise<PaginatedResult<StudentUser>> => {
   if (USE_MOCK_USERS) {
-    return mockTeachers;
+    return mapMockPagination(mockStudents, params);
   }
-  const resp = await backendRequest<RetrieveManySchema<TeacherDetail>>(TEACHER_ENDPOINT);
-  const list = resp.data;
-  return list.map(toTeacherUser);
+  const query = buildQueryString({ limit: params.limit, offset: params.offset });
+  const resp = await backendRequest<PaginatedSchema<StudentDetail>>(`${STUDENT_ENDPOINT}${query}`);
+  return { data: resp.data.map(toStudentUser), meta: resp.meta };
+};
+
+export const fetchTeachers = async (
+  params: PaginationParams = {},
+): Promise<PaginatedResult<TeacherUser>> => {
+  if (USE_MOCK_USERS) {
+    return mapMockPagination(mockTeachers, params);
+  }
+  const query = buildQueryString({ limit: params.limit, offset: params.offset });
+  const resp = await backendRequest<PaginatedSchema<TeacherDetail>>(`${TEACHER_ENDPOINT}${query}`);
+  return { data: resp.data.map(toTeacherUser), meta: resp.meta };
+};
+
+export const fetchAdminDetail = async (adminId: string): Promise<AdminUser> => {
+  if (USE_MOCK_USERS) {
+    const admin = mockAdmins.find((item) => item.id === adminId);
+    if (!admin) throw new Error("Administrador no encontrado");
+    return admin;
+  }
+  const resp = await backendRequest<RetrieveOneSchema<AdminDetail>>(`${USERS_ENDPOINT}/${adminId}`);
+  const data = resp.data;
+  if (!data) {
+    throw new Error("El backend no devolvió el administrador solicitado");
+  }
+  return toAdminUser(data);
+};
+
+export const fetchStudentDetail = async (studentId: string): Promise<StudentUser> => {
+  if (USE_MOCK_USERS) {
+    const student = mockStudents.find((item) => item.id === studentId);
+    if (!student) throw new Error("Estudiante no encontrado");
+    return student;
+  }
+  const resp = await backendRequest<RetrieveOneSchema<StudentDetail>>(`${STUDENT_ENDPOINT}/${studentId}`);
+  const data = resp.data;
+  if (!data) {
+    throw new Error("El backend no devolvió el estudiante solicitado");
+  }
+  return toStudentUser(data);
+};
+
+export const fetchTeacherDetail = async (teacherId: string): Promise<TeacherUser> => {
+  if (USE_MOCK_USERS) {
+    const teacher = mockTeachers.find((item) => item.id === teacherId);
+    if (!teacher) throw new Error("Profesor no encontrado");
+    return teacher;
+  }
+  const resp = await backendRequest<RetrieveOneSchema<TeacherDetail>>(`${TEACHER_ENDPOINT}/${teacherId}`);
+  const data = resp.data;
+  if (!data) {
+    throw new Error("El backend no devolvió el profesor solicitado");
+  }
+  return toTeacherUser(data);
 };
 
 // Creators
@@ -110,7 +229,7 @@ export const createAdmin = async (payload: CreateAdminPayload): Promise<AdminUse
     return newAdmin;
   }
   // El backend espera un campo role para asignar permisos
-  const createdResp = await backendRequest<RetrieveOneSchema<AdminDetail>>(ADMIN_ENDPOINT, {
+  const createdResp = await backendRequest<RetrieveOneSchema<AdminDetail>>(USERS_ENDPOINT, {
     method: "POST",
     body: JSON.stringify({ ...payload, role: "admin" }),
   });
@@ -186,7 +305,7 @@ export const updateAdmin = async (adminId: string, payload: UpdateAdminPayload):
     if (!updated) throw new Error("Administrador no encontrado");
     return updated;
   }
-  const updatedResp = await backendRequest<RetrieveOneSchema<AdminDetail>>(`${ADMIN_ENDPOINT}/${adminId}`, {
+  const updatedResp = await backendRequest<RetrieveOneSchema<AdminDetail>>(`${USERS_ENDPOINT}/${adminId}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
@@ -244,7 +363,7 @@ export const deleteAdmin = async (adminId: string): Promise<void> => {
     mockAdmins = mockAdmins.filter((admin) => admin.id !== adminId);
     return;
   }
-  await backendRequest<BaseResponse>(`${ADMIN_ENDPOINT}/${adminId}`, { method: "DELETE" });
+  await backendRequest<BaseResponse>(`${USERS_ENDPOINT}/${adminId}`, { method: "DELETE" });
 };
 
 export const deleteStudent = async (studentId: string): Promise<void> => {

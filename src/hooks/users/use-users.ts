@@ -1,23 +1,59 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type {
-  AdminUser, StudentUser, TeacherUser, UserRecord,
-  CreateAdminPayload, CreateStudentPayload, CreateTeacherPayload,
-  UpdateAdminPayload, UpdateStudentPayload, UpdateTeacherPayload,
+  AdminUser,
+  CreateAdminPayload,
+  CreateStudentPayload,
+  CreateTeacherPayload,
+  StudentUser,
+  TeacherUser,
+  UpdateAdminPayload,
+  UpdateStudentPayload,
+  UpdateTeacherPayload,
+  UserSummary,
 } from "@/types/users";
+import type { PaginationMeta } from "@/types/backend-responses";
+import { fetchUsers } from "@/services/users";
 import { useAdmins } from "./use-admins";
 import { useStudents } from "./use-students";
 import { useTeachers } from "./use-teachers";
 
+const SUMMARY_PAGE_SIZE = 10;
+
 export type UseUsersResult = {
+  users: UserSummary[];
+  usersMeta: PaginationMeta | null;
+  usersPage: number;
+  usersPageSize: number;
+  loading: boolean;
+  error: Error | null;
+  refresh: () => Promise<void>;
+  setUsersPage: (page: number) => void;
   admins: AdminUser[];
+  adminsMeta: PaginationMeta | null;
+  adminsPage: number;
+  adminsPageSize: number;
+  adminsLoading: boolean;
+  adminsError: Error | null;
+  refreshAdmins: () => Promise<void>;
+  setAdminsPage: (page: number) => void;
   students: StudentUser[];
+  studentsMeta: PaginationMeta | null;
+  studentsPage: number;
+  studentsPageSize: number;
+  studentsLoading: boolean;
+  studentsError: Error | null;
+  refreshStudents: () => Promise<void>;
+  setStudentsPage: (page: number) => void;
   teachers: TeacherUser[];
-  users: UserRecord[];                // unión de los tres
-  loading: boolean;                   // OR de los tres
-  error: Error | null;                // primera no-nula
-  refresh: () => Promise<void>;       // refresca todo
+  teachersMeta: PaginationMeta | null;
+  teachersPage: number;
+  teachersPageSize: number;
+  teachersLoading: boolean;
+  teachersError: Error | null;
+  refreshTeachers: () => Promise<void>;
+  setTeachersPage: (page: number) => void;
   createAdmin: (payload: CreateAdminPayload) => Promise<void>;
   createStudent: (payload: CreateStudentPayload) => Promise<void>;
   createTeacher: (payload: CreateTeacherPayload) => Promise<void>;
@@ -30,39 +66,175 @@ export type UseUsersResult = {
 };
 
 export function useUsers(): UseUsersResult {
-  const A = useAdmins();
-  const S = useStudents();
-  const T = useTeachers();
+  const [users, setUsers] = useState<UserSummary[]>([]);
+  const [usersMeta, setUsersMeta] = useState<PaginationMeta | null>(null);
+  const [usersPage, setUsersPageState] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  const users = useMemo<UserRecord[]>(
-    () => [...A.admins, ...S.students, ...T.teachers],
-    [A.admins, S.students, T.teachers]
-  );
+  const loadUsersPage = useCallback(async (targetPage: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, meta } = await fetchUsers({
+        limit: SUMMARY_PAGE_SIZE,
+        offset: (targetPage - 1) * SUMMARY_PAGE_SIZE,
+      });
+      const total = meta.total;
+      const totalPages = total > 0 ? Math.ceil(total / SUMMARY_PAGE_SIZE) : 1;
+      if (targetPage > totalPages && totalPages > 0) {
+        setUsersPageState(totalPages);
+        return;
+      }
+      setUsers(data);
+      setUsersMeta(meta);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const loading = A.loading || S.loading || T.loading;
-  const error = A.error ?? S.error ?? T.error;
+  useEffect(() => {
+    void loadUsersPage(usersPage);
+  }, [loadUsersPage, usersPage]);
 
-  const refresh = async () => {
-    await Promise.all([A.refresh(), S.refresh(), T.refresh()]);
-  };
+  const refreshAll = useCallback(async () => {
+    await loadUsersPage(usersPage);
+  }, [loadUsersPage, usersPage]);
+
+  const setUsersPage = useCallback((page: number) => {
+    setUsersPageState(page < 1 ? 1 : page);
+  }, []);
+
+  const {
+    admins,
+    meta: adminsMeta,
+    page: adminsPage,
+    pageSize: adminsPageSize,
+    loading: adminsLoading,
+    error: adminsError,
+    refresh: refreshAdmins,
+    setPage: setAdminsPage,
+    createAdmin: createAdminHook,
+    updateAdmin: updateAdminHook,
+    deleteAdmin: deleteAdminHook,
+  } = useAdmins();
+
+  const {
+    students,
+    meta: studentsMeta,
+    page: studentsPage,
+    pageSize: studentsPageSize,
+    loading: studentsLoading,
+    error: studentsError,
+    refresh: refreshStudents,
+    setPage: setStudentsPage,
+    createStudent: createStudentHook,
+    updateStudent: updateStudentHook,
+    deleteStudent: deleteStudentHook,
+  } = useStudents();
+
+  const {
+    teachers,
+    meta: teachersMeta,
+    page: teachersPage,
+    pageSize: teachersPageSize,
+    loading: teachersLoading,
+    error: teachersError,
+    refresh: refreshTeachers,
+    setPage: setTeachersPage,
+    createTeacher: createTeacherHook,
+    updateTeacher: updateTeacherHook,
+    deleteTeacher: deleteTeacherHook,
+  } = useTeachers();
+
+  const handleCreateAdmin = useCallback(async (payload: CreateAdminPayload) => {
+    await createAdminHook(payload);
+    await refreshAll();
+  }, [createAdminHook, refreshAll]);
+
+  const handleCreateStudent = useCallback(async (payload: CreateStudentPayload) => {
+    await createStudentHook(payload);
+    await refreshAll();
+  }, [createStudentHook, refreshAll]);
+
+  const handleCreateTeacher = useCallback(async (payload: CreateTeacherPayload) => {
+    await createTeacherHook(payload);
+    await refreshAll();
+  }, [createTeacherHook, refreshAll]);
+
+  const handleUpdateAdmin = useCallback(async (adminId: string, payload: UpdateAdminPayload) => {
+    await updateAdminHook(adminId, payload);
+    await refreshAll();
+  }, [refreshAll, updateAdminHook]);
+
+  const handleUpdateStudent = useCallback(async (studentId: string, payload: UpdateStudentPayload) => {
+    await updateStudentHook(studentId, payload);
+    await refreshAll();
+  }, [refreshAll, updateStudentHook]);
+
+  const handleUpdateTeacher = useCallback(async (teacherId: string, payload: UpdateTeacherPayload) => {
+    await updateTeacherHook(teacherId, payload);
+    await refreshAll();
+  }, [refreshAll, updateTeacherHook]);
+
+  const handleDeleteAdmin = useCallback(async (adminId: string) => {
+    await deleteAdminHook(adminId);
+    await refreshAll();
+  }, [deleteAdminHook, refreshAll]);
+
+  const handleDeleteStudent = useCallback(async (studentId: string) => {
+    await deleteStudentHook(studentId);
+    await refreshAll();
+  }, [deleteStudentHook, refreshAll]);
+
+  const handleDeleteTeacher = useCallback(async (teacherId: string) => {
+    await deleteTeacherHook(teacherId);
+    await refreshAll();
+  }, [deleteTeacherHook, refreshAll]);
 
   return {
-    admins: A.admins,
-    students: S.students,
-    teachers: T.teachers,
     users,
+    usersMeta,
+    usersPage,
+    usersPageSize: SUMMARY_PAGE_SIZE,
     loading,
     error,
-    refresh,
-    // Passthrough de acciones por rol
-    createAdmin: A.createAdmin,
-    createStudent: S.createStudent,
-    createTeacher: T.createTeacher,
-    updateAdmin: A.updateAdmin,
-    updateStudent: S.updateStudent,
-    updateTeacher: T.updateTeacher,
-    deleteAdmin: A.deleteAdmin,
-    deleteStudent: S.deleteStudent,
-    deleteTeacher: T.deleteTeacher,
+    refresh: refreshAll,
+    setUsersPage,
+    admins,
+    adminsMeta,
+    adminsPage,
+    adminsPageSize,
+    adminsLoading,
+    adminsError,
+    refreshAdmins,
+    setAdminsPage,
+    students,
+    studentsMeta,
+    studentsPage,
+    studentsPageSize,
+    studentsLoading,
+    studentsError,
+    refreshStudents,
+    setStudentsPage,
+    teachers,
+    teachersMeta,
+    teachersPage,
+    teachersPageSize,
+    teachersLoading,
+    teachersError,
+    refreshTeachers,
+    setTeachersPage,
+    createAdmin: handleCreateAdmin,
+    createStudent: handleCreateStudent,
+    createTeacher: handleCreateTeacher,
+    updateAdmin: handleUpdateAdmin,
+    updateStudent: handleUpdateStudent,
+    updateTeacher: handleUpdateTeacher,
+    deleteAdmin: handleDeleteAdmin,
+    deleteStudent: handleDeleteStudent,
+    deleteTeacher: handleDeleteTeacher,
   };
 }

@@ -34,6 +34,13 @@ export type TeacherUser = TeacherDetail & { role: "teacher" };
 
 export type UserRecord = AdminUser | StudentUser | TeacherUser;
 
+export type UserSummary = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+};
+
 // Create schemas
 export type CreateAdminPayload = {
   name: string;

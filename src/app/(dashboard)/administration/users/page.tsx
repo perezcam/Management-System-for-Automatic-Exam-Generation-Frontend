@@ -12,9 +12,37 @@ export default function UsersAdminPage() {
   const router = useRouter();
   const {
     users,
+    usersMeta,
+    usersPage,
+    usersPageSize,
     loading: usersLoading,
     error: usersError,
     refresh: refreshUsers,
+    setUsersPage,
+    admins,
+    adminsMeta,
+    adminsPage,
+    adminsPageSize,
+    adminsLoading,
+    adminsError,
+    refreshAdmins,
+    setAdminsPage,
+    students,
+    studentsMeta,
+    studentsPage,
+    studentsPageSize,
+    studentsLoading,
+    studentsError,
+    refreshStudents,
+    setStudentsPage,
+    teachers,
+    teachersMeta,
+    teachersPage,
+    teachersPageSize,
+    teachersLoading,
+    teachersError,
+    refreshTeachers,
+    setTeachersPage,
     createAdmin, createStudent, createTeacher,
     updateAdmin, updateStudent, updateTeacher,
     deleteAdmin, deleteStudent, deleteTeacher,
@@ -60,7 +88,46 @@ export default function UsersAdminPage() {
               </Card>
             ) : (
               <UserList
-                users={users}
+                all={{
+                  data: users,
+                  meta: usersMeta,
+                  page: usersPage,
+                  pageSize: usersPageSize,
+                  loading: usersLoading,
+                  error: usersError,
+                  setPage: setUsersPage,
+                  refresh: refreshUsers,
+                }}
+                admins={{
+                  data: admins,
+                  meta: adminsMeta,
+                  page: adminsPage,
+                  pageSize: adminsPageSize,
+                  loading: adminsLoading,
+                  error: adminsError,
+                  setPage: setAdminsPage,
+                  refresh: refreshAdmins,
+                }}
+                students={{
+                  data: students,
+                  meta: studentsMeta,
+                  page: studentsPage,
+                  pageSize: studentsPageSize,
+                  loading: studentsLoading,
+                  error: studentsError,
+                  setPage: setStudentsPage,
+                  refresh: refreshStudents,
+                }}
+                teachers={{
+                  data: teachers,
+                  meta: teachersMeta,
+                  page: teachersPage,
+                  pageSize: teachersPageSize,
+                  loading: teachersLoading,
+                  error: teachersError,
+                  setPage: setTeachersPage,
+                  refresh: refreshTeachers,
+                }}
                 subjects={subjects.map((s) => ({ id: s.subject_id, name: s.subject_name }))}
                 onUpdateAdmin={updateAdmin}
                 onUpdateStudent={updateStudent}
