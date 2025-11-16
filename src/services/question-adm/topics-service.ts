@@ -13,26 +13,70 @@ import {
   unwrap,
   randomId,
 } from "./common";
+import  { DEFAULT_PAGE_SIZE, type PaginationParams, type PaginatedResult } from "@/types/question_administration";
+
 
 const cloneTopic = (topic: TopicDetail): TopicDetail => ({
   ...topic,
   subtopics: topic.subtopics.map((s) => ({ ...s })),
 });
 
-export const fetchTopics = async (): Promise<TopicDetail[]> => {
-  if (USE_MOCK_QUESTION_ADMIN) {
-    const topics: TopicDetail[] = [];
-    for (const subject of mockSubjects) {
-      for (const topic of subject.topics) {
-        topics.push(cloneTopic(topic));
-      }
+const allMockTopics = (): TopicDetail[] => {
+  const topics: TopicDetail[] = [];
+  for (const subject of mockSubjects) {
+    for (const topic of subject.topics) {
+      topics.push(cloneTopic(topic));
     }
-    return topics;
+  }
+  return topics;
+};
+
+export type TopicsPaginationParams = PaginationParams & {
+  subjectId?: string; 
+};
+
+export const fetchTopicsPaginated = async (
+  params: TopicsPaginationParams = {}
+): Promise<PaginatedResult<TopicDetail>> => {
+  const { limit = DEFAULT_PAGE_SIZE, offset = 0, subjectId } = params;
+
+  if (USE_MOCK_QUESTION_ADMIN) {
+    let topics = allMockTopics();
+    if (subjectId) {
+      topics = topics.filter((t) => t.subject_id === subjectId);
+    }
+
+    const total = topics.length;
+    const data = topics.slice(offset, offset + limit);
+
+    return {
+      data,
+      meta: { limit, offset, total },
+    };
   }
 
-  const resp = await request<unknown>(QUESTION_TOPICS_ENDPOINT);
-  const topics = unwrap<TopicDetail[]>(resp);
-  return topics.map(cloneTopic);
+  const searchParams = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+
+  if (subjectId) {
+    searchParams.set("subject_id", subjectId);
+  }
+
+  const resp = await request<PaginatedResult<TopicDetail>>(
+    `${QUESTION_TOPICS_ENDPOINT}?${searchParams.toString()}`
+  );
+
+  return {
+    data: resp.data.map(cloneTopic),
+    meta: resp.meta,
+  };
+};
+
+export const fetchTopics = async (): Promise<TopicDetail[]> => {
+  const { data } = await fetchTopicsPaginated();
+  return data;
 };
 
 export const createTopic = async (

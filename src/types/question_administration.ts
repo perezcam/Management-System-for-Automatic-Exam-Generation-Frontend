@@ -54,7 +54,24 @@ export type CreateSubtopicPayload = {
     subtopic_name: string;
 }
 
+export type PaginationMeta = {
+  limit: number;
+  offset: number;
+  total: number;
+};
+
+export type PaginationParams = {
+  limit?: number;
+  offset?: number;
+};
+
+export type PaginatedResult<T> = {
+  data: T[];
+  meta: PaginationMeta;
+};
+
 //Update schemas
 export type UpdateSubjectPayload = Partial<CreateSubjectPayload>
 export type UpdateTopicPayload = Partial<CreateTopicPayload>
+export const DEFAULT_PAGE_SIZE = 20;
 

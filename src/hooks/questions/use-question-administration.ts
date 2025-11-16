@@ -2,27 +2,53 @@
 
 import { useMemo } from "react";
 import type {
-  CreateQuestionTypePayload, CreateSubjectPayload, CreateSubtopicPayload, CreateTopicPayload,
-  QuestionTypeDetail, SubjectDetail, SubTopicDetail, TopicDetail, TotalsDetail,
-  UpdateSubjectPayload, UpdateTopicPayload
+  CreateQuestionTypePayload,
+  CreateSubjectPayload,
+  CreateSubtopicPayload,
+  CreateTopicPayload,
+  QuestionTypeDetail,
+  SubjectDetail,
+  SubTopicDetail,
+  TopicDetail,
+  TotalsDetail,
+  UpdateSubjectPayload,
+  UpdateTopicPayload,
 } from "@/types/question_administration";
 import { useQuestionTypes } from "./use-question-type";
 import { useSubject } from "./use-subject";
 import { useTopics } from "./use-topic";
 
-export type UseQuestionAdministrationResult
- = {
+export type UseQuestionAdministrationResult = {
   questionTypes: QuestionTypeDetail[];
   subjects: SubjectDetail[];
   topics: TopicDetail[];
   totals: TotalsDetail;
+
   loading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
+
+  subjectsPage: number;
+  subjectsPageSize: number;
+  subjectsTotal: number;
+  subjectsTotalPages: number;
+  nextSubjectsPage: () => Promise<void>;
+  prevSubjectsPage: () => Promise<void>;
+
+  topicsPage: number;
+  topicsPageSize: number;
+  topicsTotal: number;
+  topicsTotalPages: number;
+  nextTopicsPage: () => Promise<void>;
+  prevTopicsPage: () => Promise<void>;
+
   createQuestionType: (payload: CreateQuestionTypePayload) => Promise<void>;
   deleteQuestionType: (questionTypeId: string) => Promise<void>;
   createSubject: (payload: CreateSubjectPayload) => Promise<void>;
-  updateSubject: (subjectId: string, payload: UpdateSubjectPayload) => Promise<void>;
+  updateSubject: (
+    subjectId: string,
+    payload: UpdateSubjectPayload
+  ) => Promise<void>;
   deleteSubject: (subjectId: string) => Promise<void>;
   createTopic: (payload: CreateTopicPayload) => Promise<void>;
   updateTopic: (topicId: string, payload: UpdateTopicPayload) => Promise<void>;
@@ -31,10 +57,15 @@ export type UseQuestionAdministrationResult
   deleteSubtopic: (subtopicId: string) => Promise<void>;
 };
 
-const computeTotals = (types: QuestionTypeDetail[], subjects: SubjectDetail[]): TotalsDetail => {
+const computeTotals = (
+  types: QuestionTypeDetail[],
+  subjects: SubjectDetail[]
+): TotalsDetail => {
   const totalTopics = subjects.reduce((acc, s) => acc + s.topics.length, 0);
   const totalSubtopics = subjects.reduce(
-    (acc, s) => acc + s.topics.reduce((acc2, t) => acc2 + t.subtopics.length, 0),
+    (acc, s) =>
+      acc +
+      s.topics.reduce((acc2, t) => acc2 + t.subtopics.length, 0),
     0
   );
   return {
@@ -45,18 +76,21 @@ const computeTotals = (types: QuestionTypeDetail[], subjects: SubjectDetail[]): 
   };
 };
 
-export function UseQuestionAdministration(): UseQuestionAdministrationResult
- {
+export function UseQuestionAdministration(): UseQuestionAdministrationResult {
   const TYP = useQuestionTypes();
   const SUB = useSubject();
   const TOP = useTopics(SUB.subjects, SUB.__setSubjects);
 
-  const totals = useMemo(() => computeTotals(TYP.questionTypes, SUB.subjects), [TYP.questionTypes, SUB.subjects]);
-  const loading = TYP.loading || SUB.loading; // useTopics no carga nada por sí mismo
-  const error = TYP.error ?? SUB.error;
+  const totals = useMemo(
+    () => computeTotals(TYP.questionTypes, SUB.subjects),
+    [TYP.questionTypes, SUB.subjects]
+  );
+
+  const loading = TYP.loading || SUB.loading || TOP.loading;
+  const error = TYP.error ?? SUB.error ?? TOP.error;
 
   const refresh = async () => {
-    await Promise.all([TYP.refresh(), SUB.refresh()]);
+    await Promise.all([TYP.refresh(), SUB.refresh(), TOP.refresh()]);
   };
 
   return {
@@ -67,7 +101,21 @@ export function UseQuestionAdministration(): UseQuestionAdministrationResult
     loading,
     error,
     refresh,
-    // actions mapeadas
+
+    subjectsPage: SUB.page,
+    subjectsPageSize: SUB.pageSize,
+    subjectsTotal: SUB.total,
+    subjectsTotalPages: SUB.totalPages,
+    nextSubjectsPage: SUB.nextPage,
+    prevSubjectsPage: SUB.prevPage,
+
+    topicsPage: TOP.page,
+    topicsPageSize: TOP.pageSize,
+    topicsTotal: TOP.total,
+    topicsTotalPages: TOP.totalPages,
+    nextTopicsPage: TOP.nextPage,
+    prevTopicsPage: TOP.prevPage,
+
     createQuestionType: TYP.createQuestionType,
     deleteQuestionType: TYP.deleteQuestionType,
     createSubject: SUB.createSubject,

@@ -12,13 +12,38 @@ export default function QuestionsAdminPage() {
   const router = useRouter();
 
   const {
-    questionTypes, subjects, topics, totals,
-    loading, error, refresh,
-    createQuestionType, deleteQuestionType,
-    createSubject, updateSubject, deleteSubject,
-    createTopic, updateTopic, deleteTopic,
-    createSubtopic, deleteSubtopic,
-  } = UseQuestionAdministration(); 
+    questionTypes,
+    subjects,
+    topics,
+    totals,
+    loading,
+    error,
+    refresh,
+
+    // paginación de materias
+    subjectsPage,
+    subjectsTotalPages,
+    nextSubjectsPage,
+    prevSubjectsPage,
+
+    // paginación de tópicos
+    topicsPage,
+    topicsTotalPages,
+    nextTopicsPage,
+    prevTopicsPage,
+
+    // acciones
+    createQuestionType,
+    deleteQuestionType,
+    createSubject,
+    updateSubject,
+    deleteSubject,
+    createTopic,
+    updateTopic,
+    deleteTopic,
+    createSubtopic,
+    deleteSubtopic,
+  } = UseQuestionAdministration();
 
   return (
     <div className="flex-1 p-6 overflow-auto">
@@ -67,6 +92,17 @@ export default function QuestionsAdminPage() {
           subjects={subjects}
           topics={topics}
           loading={loading}
+          // paginación materias
+          subjectsPage={subjectsPage}
+          subjectsTotalPages={subjectsTotalPages}
+          onSubjectsPrevPage={() => { void prevSubjectsPage(); }}
+          onSubjectsNextPage={() => { void nextSubjectsPage(); }}
+          // paginación tópicos
+          topicsPage={topicsPage}
+          topicsTotalPages={topicsTotalPages}
+          onTopicsPrevPage={() => { void prevTopicsPage(); }}
+          onTopicsNextPage={() => { void nextTopicsPage(); }}
+          // acciones
           onCreateSubject={createSubject}
           onUpdateSubject={updateSubject}
           onDeleteSubject={deleteSubject}

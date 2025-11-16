@@ -5,8 +5,23 @@ import { Card } from "../../../ui/card"
 import { Button } from "../../../ui/button"
 import { Input } from "../../../ui/input"
 import { Label } from "../../../ui/label"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../../ui/dialog"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../../../ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../../../ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../../ui/alert-dialog"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../../../ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select"
 import type {
@@ -24,6 +39,19 @@ interface SubjectsTopicsManagementProps {
   subjects: SubjectDetail[]
   topics: TopicDetail[]
   loading?: boolean
+
+  // Paginación de materias
+  subjectsPage: number
+  subjectsTotalPages: number
+  onSubjectsPrevPage: () => void
+  onSubjectsNextPage: () => void
+
+  // Paginación de tópicos
+  topicsPage: number
+  topicsTotalPages: number
+  onTopicsPrevPage: () => void
+  onTopicsNextPage: () => void
+
   onCreateSubject: (payload: CreateSubjectPayload) => Promise<void>
   onUpdateSubject: (subjectId: string, payload: UpdateSubjectPayload) => Promise<void>
   onDeleteSubject: (subjectId: string) => Promise<void>
@@ -48,6 +76,14 @@ export function SubjectsTopicsManagement({
   subjects,
   topics,
   loading,
+  subjectsPage,
+  subjectsTotalPages,
+  onSubjectsPrevPage,
+  onSubjectsNextPage,
+  topicsPage,
+  topicsTotalPages,
+  onTopicsPrevPage,
+  onTopicsNextPage,
   onCreateSubject,
   onUpdateSubject,
   onDeleteSubject,
@@ -103,7 +139,9 @@ export function SubjectsTopicsManagement({
 
   const filteredTopics = useMemo(
     () =>
-      topics.filter((topic) => topic.topic_name.toLowerCase().includes(topicSearchQuery.toLowerCase())),
+      topics.filter((topic) =>
+        topic.topic_name.toLowerCase().includes(topicSearchQuery.toLowerCase()),
+      ),
     [topicSearchQuery, topics],
   )
 
@@ -252,6 +290,7 @@ export function SubjectsTopicsManagement({
 
   return (
     <>
+      {/* MATERIAS */}
       <div className="grid grid-cols-1 gap-6">
         <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
@@ -358,6 +397,32 @@ export function SubjectsTopicsManagement({
             ))}
           </Accordion>
 
+          {subjects.length > 0 && subjectsTotalPages > 1 && (
+            <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+              <span>
+                Página {subjectsPage + 1} de {subjectsTotalPages}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onSubjectsPrevPage}
+                  disabled={subjectsPage <= 0}
+                >
+                  Anteriores 20
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onSubjectsNextPage}
+                  disabled={subjectsPage >= subjectsTotalPages - 1}
+                >
+                  Siguientes 20
+                </Button>
+              </div>
+            </div>
+          )}
+
           {subjects.length === 0 && (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">No hay materias registradas</p>
@@ -370,6 +435,7 @@ export function SubjectsTopicsManagement({
         </Card>
       </div>
 
+      {/* TÓPICOS Y SUBTÓPICOS */}
       <div className="grid grid-cols-1 gap-6 mt-6">
         <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
@@ -503,7 +569,9 @@ export function SubjectsTopicsManagement({
                           ))}
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground py-2">No hay subtópicos en este tópico</p>
+                        <p className="text-sm text-muted-foreground py-2">
+                          No hay subtópicos en este tópico
+                        </p>
                       )}
                     </div>
                   </AccordionContent>
@@ -511,6 +579,32 @@ export function SubjectsTopicsManagement({
               )
             })}
           </Accordion>
+
+          {topics.length > 0 && topicsTotalPages > 1 && (
+            <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+              <span>
+                Página {topicsPage + 1} de {topicsTotalPages}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onTopicsPrevPage}
+                  disabled={topicsPage <= 0}
+                >
+                  Anteriores 20
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onTopicsNextPage}
+                  disabled={topicsPage >= topicsTotalPages - 1}
+                >
+                  Siguientes 20
+                </Button>
+              </div>
+            </div>
+          )}
 
           {topics.length === 0 && (
             <div className="text-center py-8">
@@ -524,6 +618,7 @@ export function SubjectsTopicsManagement({
         </Card>
       </div>
 
+      {/* DIÁLOGOS Y ALERTS */}
       <Dialog open={showNewSubjectDialog} onOpenChange={setShowNewSubjectDialog}>
         <DialogContent>
           <DialogHeader>
@@ -536,7 +631,9 @@ export function SubjectsTopicsManagement({
               <Input
                 id="new-subject-name"
                 value={newSubjectForm.subject_name}
-                onChange={(e) => setNewSubjectForm({ ...newSubjectForm, subject_name: e.target.value })}
+                onChange={(e) =>
+                  setNewSubjectForm({ ...newSubjectForm, subject_name: e.target.value })
+                }
                 placeholder="Ej: Ciencia de la Computación"
               />
             </div>
@@ -545,7 +642,9 @@ export function SubjectsTopicsManagement({
               <Input
                 id="new-subject-program"
                 value={newSubjectForm.subject_program}
-                onChange={(e) => setNewSubjectForm({ ...newSubjectForm, subject_program: e.target.value })}
+                onChange={(e) =>
+                  setNewSubjectForm({ ...newSubjectForm, subject_program: e.target.value })
+                }
                 placeholder="Ej: Licenciatura en Computación"
               />
             </div>
@@ -573,7 +672,9 @@ export function SubjectsTopicsManagement({
               <Input
                 id="edit-subject-name"
                 value={editSubjectForm.subject_name}
-                onChange={(e) => setEditSubjectForm({ ...editSubjectForm, subject_name: e.target.value })}
+                onChange={(e) =>
+                  setEditSubjectForm({ ...editSubjectForm, subject_name: e.target.value })
+                }
                 placeholder="Ej: Ciencia de la Computación"
               />
             </div>
@@ -582,7 +683,9 @@ export function SubjectsTopicsManagement({
               <Input
                 id="edit-subject-program"
                 value={editSubjectForm.subject_program}
-                onChange={(e) => setEditSubjectForm({ ...editSubjectForm, subject_program: e.target.value })}
+                onChange={(e) =>
+                  setEditSubjectForm({ ...editSubjectForm, subject_program: e.target.value })
+                }
                 placeholder="Ej: Licenciatura en Computación"
               />
             </div>
@@ -603,8 +706,8 @@ export function SubjectsTopicsManagement({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar materia?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará la materia {selectedSubject?.subject_name} y sus
-              tópicos asociados.
+              Esta acción no se puede deshacer. Se eliminará la materia{" "}
+              {selectedSubject?.subject_name} y sus tópicos asociados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -628,7 +731,9 @@ export function SubjectsTopicsManagement({
               <Input
                 id="new-topic-name"
                 value={newTopicForm.topic_name}
-                onChange={(e) => setNewTopicForm({ ...newTopicForm, topic_name: e.target.value })}
+                onChange={(e) =>
+                  setNewTopicForm({ ...newTopicForm, topic_name: e.target.value })
+                }
                 placeholder="Ej: Algoritmos"
               />
             </div>
@@ -636,7 +741,9 @@ export function SubjectsTopicsManagement({
               <Label>Materia asociada</Label>
               <Select
                 value={newTopicForm.subject_associated_id}
-                onValueChange={(value) => setNewTopicForm({ ...newTopicForm, subject_associated_id: value })}
+                onValueChange={(value) =>
+                  setNewTopicForm({ ...newTopicForm, subject_associated_id: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione una materia" />
@@ -662,7 +769,7 @@ export function SubjectsTopicsManagement({
         </DialogContent>
       </Dialog>
 
-  <Dialog open={showEditTopicDialog} onOpenChange={setShowEditTopicDialog}>
+      <Dialog open={showEditTopicDialog} onOpenChange={setShowEditTopicDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Tópico</DialogTitle>
@@ -674,7 +781,9 @@ export function SubjectsTopicsManagement({
               <Input
                 id="edit-topic-name"
                 value={editTopicForm.topic_name ?? ""}
-                onChange={(e) => setEditTopicForm({ ...editTopicForm, topic_name: e.target.value })}
+                onChange={(e) =>
+                  setEditTopicForm({ ...editTopicForm, topic_name: e.target.value })
+                }
                 placeholder="Ej: Algoritmos"
               />
             </div>
@@ -682,7 +791,9 @@ export function SubjectsTopicsManagement({
               <Label>Materia asociada</Label>
               <Select
                 value={editTopicForm.subject_associated_id}
-                onValueChange={(value) => setEditTopicForm({ ...editTopicForm, subject_associated_id: value })}
+                onValueChange={(value) =>
+                  setEditTopicForm({ ...editTopicForm, subject_associated_id: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione una materia" />

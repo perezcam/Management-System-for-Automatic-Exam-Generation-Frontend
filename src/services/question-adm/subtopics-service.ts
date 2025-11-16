@@ -13,6 +13,44 @@ import {
   unwrap,
   randomId,
 } from "./common";
+import  { DEFAULT_PAGE_SIZE, type PaginationParams, type PaginatedResult } from "@/types/question_administration";
+
+export const fetchSubtopicsByTopic = async (
+  topicId: string,
+  params: PaginationParams = {}
+): Promise<PaginatedResult<SubTopicDetail>> => {
+  const { limit = DEFAULT_PAGE_SIZE, offset = 0 } = params;
+
+  if (USE_MOCK_QUESTION_ADMIN) {
+    const subject = mockSubjects.find((s) =>
+      s.topics.some((t) => t.topic_id === topicId)
+    );
+    if (!subject) {
+      throw new Error("Tópico no encontrado");
+    }
+
+    const topic = subject.topics.find((t) => t.topic_id === topicId)!;
+    const total = topic.subtopics.length;
+    const data = topic.subtopics
+      .slice(offset, offset + limit)
+      .map((s) => ({ ...s }));
+
+    return {
+      data,
+      meta: { limit, offset, total },
+    };
+  }
+
+  const searchParams = new URLSearchParams({
+    topic_id: topicId,
+    limit: String(limit),
+    offset: String(offset),
+  });
+
+  return request<PaginatedResult<SubTopicDetail>>(
+    `${QUESTION_SUBTOPICS_ENDPOINT}?${searchParams.toString()}`
+  );
+};
 
 export const createSubtopic = async (
   payload: CreateSubtopicPayload

@@ -13,15 +13,42 @@ import {
   request,
   unwrap,
 } from "./common";
+import  { DEFAULT_PAGE_SIZE, type PaginationParams, type PaginatedResult } from "@/types/question_administration";
 
-export const fetchSubjects = async (): Promise<SubjectDetail[]> => {
+export const fetchSubjectsPaginated = async (
+  params: PaginationParams = {}
+): Promise<PaginatedResult<SubjectDetail>> => {
+  const { limit = DEFAULT_PAGE_SIZE, offset = 0 } = params;
+
   if (USE_MOCK_QUESTION_ADMIN) {
-    return normalizeSubjects(mockSubjects);
+    const normalized = normalizeSubjects(mockSubjects);
+    const total = normalized.length;
+    const data = normalized.slice(offset, offset + limit);
+
+    return {
+      data,
+      meta: { limit, offset, total },
+    };
   }
 
-  const resp = await request<unknown>(QUESTION_SUBJECTS_ENDPOINT);
-  const subjects = unwrap<SubjectDetail[]>(resp);
-  return normalizeSubjects(subjects);
+  const searchParams = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+
+  const resp = await request<PaginatedResult<SubjectDetail>>(
+    `${QUESTION_SUBJECTS_ENDPOINT}?${searchParams.toString()}`
+  );
+
+  return {
+    data: normalizeSubjects(resp.data),
+    meta: resp.meta,
+  };
+};
+
+export const fetchSubjects = async (): Promise<SubjectDetail[]> => {
+  const { data } = await fetchSubjectsPaginated();
+  return data;
 };
 
 export const createSubject = async (
