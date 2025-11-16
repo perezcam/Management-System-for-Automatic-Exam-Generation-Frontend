@@ -14,12 +14,12 @@ import type {
   UserSummary,
 } from "@/types/users";
 import type { PaginationMeta } from "@/types/backend-responses";
-import { fetchUsers } from "@/services/users";
+import { fetchUsers } from "@/services/users/users";
 import { useAdmins } from "./use-admins";
 import { useStudents } from "./use-students";
 import { useTeachers } from "./use-teachers";
 
-const SUMMARY_PAGE_SIZE = 10;
+const SUMMARY_PAGE_SIZE = 4;
 
 export type UseUsersResult = {
   users: UserSummary[];

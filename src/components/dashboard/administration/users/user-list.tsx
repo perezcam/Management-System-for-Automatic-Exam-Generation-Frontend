@@ -29,7 +29,9 @@ import type {
   UserRole,
 } from "@/types/users";
 import type { PaginationMeta } from "@/types/backend-responses";
-import { fetchAdminDetail, fetchStudentDetail, fetchTeacherDetail } from "@/services/users";
+import { fetchAdminDetail } from "@/services/users/admins";
+import { fetchStudentDetail } from "@/services/users/student";
+import { fetchTeacherDetail } from "@/services/users/teachers";
 
 type RoleFilter = "all" | UserRole;
 

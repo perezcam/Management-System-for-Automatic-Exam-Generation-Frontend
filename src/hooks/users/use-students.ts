@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { StudentUser, CreateStudentPayload, UpdateStudentPayload } from "@/types/users";
 import type { PaginationMeta } from "@/types/backend-responses";
-import { fetchStudents, createStudent, updateStudent, deleteStudent } from "@/services/users";
+import { fetchStudents, createStudent, updateStudent, deleteStudent } from "@/services/users/student";
 
 const PAGE_SIZE = 10;
 
