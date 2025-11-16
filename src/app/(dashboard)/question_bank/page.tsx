@@ -1,93 +1,213 @@
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Database, Search, Plus, Filter, BookOpen } from "lucide-react"
+"use client"
+
+import { useState } from "react"
+import { QuestionBankHeader } from "@/components/dashboard/question-bank/question-bank-header"
+import { QuestionFilters, type Filters } from "@/components/dashboard/question-bank/question-filters"
+import { EmptyState } from "@/components/dashboard/question-bank/empty-state"
+import { QuestionList } from "@/components/dashboard/question-bank/question-list"
+import { QuestionFormDialog } from "@/components/dashboard/question-bank/question-form-dialog"
+import { DeleteQuestionDialog } from "@/components/dashboard/question-bank/delete-question-dialog"
+import { Question, QuestionType, Topic } from "@/components/dashboard/question-bank/types"
 
 export default function BancoPreguntasView() {
+  const [questionTypes] = useState<QuestionType[]>([
+    { id: "1", name: "Ensayo" },
+    { id: "2", name: "Opción Múltiple" },
+    { id: "3", name: "Verdadero/Falso" }
+  ])
+  const [topics] = useState<Topic[]>([
+    { id: "1", name: "Algoritmos", subtopics: ["Ordenamiento", "Búsqueda", "Recursión"] },
+    { id: "2", name: "Estructuras de Datos", subtopics: ["Listas", "Árboles", "Grafos"] }
+  ])
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [showNewQuestionDialog, setShowNewQuestionDialog] = useState(false)
+  const [showEditQuestionDialog, setShowEditQuestionDialog] = useState(false)
+  const [showDeleteQuestionDialog, setShowDeleteQuestionDialog] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null)
+  const [newQuestion, setNewQuestion] = useState<Partial<Question>>({
+    subtopic: "",
+    difficulty: "Regular",
+    body: "",
+    type: "",
+    expectedAnswer: "",
+    options: []
+  })
+  const [editQuestion, setEditQuestion] = useState<Partial<Question>>({
+    subtopic: "",
+    difficulty: "Regular",
+    body: "",
+    type: "",
+    expectedAnswer: "",
+    options: []
+  })
+  const [newQuestionOptions, setNewQuestionOptions] = useState<string[]>([])
+  const [editQuestionOptions, setEditQuestionOptions] = useState<string[]>([])
+  const [filters, setFilters] = useState<Filters>({
+    subtopic: "all",
+    type: "all",
+    difficulty: "all"
+  })
+  
+  // Obtener todos los subtópicos de todos los tópicos
+  const allSubtopics = topics.flatMap(topic => topic.subtopics)
+
+  const handleCreateQuestion = () => {
+    if (newQuestion.subtopic && newQuestion.body && newQuestion.type && newQuestion.expectedAnswer) {
+      const question: Question = {
+        id: String(Date.now()),
+        subtopic: newQuestion.subtopic,
+        difficulty: newQuestion.difficulty as "Fácil" | "Regular" | "Difícil",
+        body: newQuestion.body,
+        type: newQuestion.type,
+        expectedAnswer: newQuestion.expectedAnswer,
+        author: "Mauricio Medina Hernández",
+        options: newQuestion.options
+      }
+      setQuestions([...questions, question])
+      setNewQuestion({
+        subtopic: "",
+        difficulty: "Regular",
+        body: "",
+        type: "",
+        expectedAnswer: "",
+        options: []
+      })
+      setNewQuestionOptions([])
+      setShowNewQuestionDialog(false)
+    }
+  }
+
+  const openEditDialog = (question: Question) => {
+    setSelectedQuestion(question)
+    setEditQuestion({
+      subtopic: question.subtopic,
+      difficulty: question.difficulty,
+      body: question.body,
+      type: question.type,
+      expectedAnswer: question.expectedAnswer,
+      options: question.options
+    })
+    setEditQuestionOptions(question.options || [])
+    setShowEditQuestionDialog(true)
+  }
+
+  const handleEditQuestion = () => {
+    if (selectedQuestion && editQuestion.subtopic && editQuestion.body && editQuestion.type && editQuestion.expectedAnswer) {
+      setQuestions(questions.map(q => 
+        q.id === selectedQuestion.id 
+          ? { 
+              ...q, 
+              subtopic: editQuestion.subtopic!,
+              difficulty: editQuestion.difficulty as "Fácil" | "Regular" | "Difícil",
+              body: editQuestion.body!,
+              type: editQuestion.type!,
+              expectedAnswer: editQuestion.expectedAnswer!,
+              options: editQuestion.options
+            }
+          : q
+      ))
+      setShowEditQuestionDialog(false)
+      setSelectedQuestion(null)
+      setEditQuestion({
+        subtopic: "",
+        difficulty: "Regular",
+        body: "",
+        type: "",
+        expectedAnswer: "",
+        options: []
+      })
+      setEditQuestionOptions([])
+    }
+  }
+
+  const openDeleteDialog = (question: Question) => {
+    setSelectedQuestion(question)
+    setShowDeleteQuestionDialog(true)
+  }
+
+  const handleDeleteQuestion = () => {
+    if (selectedQuestion) {
+      setQuestions(questions.filter(q => q.id !== selectedQuestion.id))
+      setShowDeleteQuestionDialog(false)
+      setSelectedQuestion(null)
+    }
+  }
+
+  // Filtrar preguntas
+  const filteredQuestions = questions.filter((question) => {
+    if (filters.subtopic && filters.subtopic !== "all" && question.subtopic !== filters.subtopic) {
+      return false
+    }
+    if (filters.type && filters.type !== "all" && question.type !== filters.type) {
+      return false
+    }
+    if (filters.difficulty && filters.difficulty !== "all" && question.difficulty !== filters.difficulty) {
+      return false
+    }
+    return true
+  })
+
+  // Obtener valores únicos para los filtros
+  const uniqueSubtopics = Array.from(new Set(questions.map(q => q.subtopic)))
+  const uniqueTypes = Array.from(new Set(questions.map(q => q.type)))
+
   return (
     <div className="flex-1 p-6 overflow-auto">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl mb-2">Banco de Preguntas</h1>
-            <p className="text-muted-foreground">
-              Gestiona y organiza preguntas para tus exámenes
-            </p>
-          </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva Pregunta
-          </Button>
-        </div>
+        <QuestionBankHeader onNewQuestion={() => setShowNewQuestionDialog(true)} />
 
-        <div className="mb-6 flex items-center space-x-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar preguntas..."
-              className="pl-10"
-            />
-          </div>
-          <Button variant="outline">
-            <Filter className="mr-2 h-4 w-4" />
-            Filtros
-          </Button>
-        </div>
+        <QuestionFilters
+          filters={filters}
+          onFiltersChange={setFilters}
+          showFilters={showFilters}
+          onToggleFilters={() => setShowFilters(!showFilters)}
+          uniqueSubtopics={uniqueSubtopics}
+          uniqueTypes={uniqueTypes}
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Database className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Preguntas</p>
-                <p className="text-2xl">0</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <BookOpen className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Por Materia</p>
-                <p className="text-2xl">0</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <Filter className="h-6 w-6 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Categorías</p>
-                <p className="text-2xl">0</p>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        <Card className="p-8 text-center">
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="p-4 bg-muted rounded-full mb-4">
-              <Database className="h-12 w-12 text-muted-foreground" />
-            </div>
-            <h2 className="text-xl mb-2">No hay preguntas en el banco</h2>
-            <p className="text-muted-foreground mb-6">
-              Comienza creando tu primera pregunta o importa preguntas existentes
-            </p>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Crear Primera Pregunta
-            </Button>
-          </div>
-        </Card>
+        {questions.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <QuestionList
+            questions={filteredQuestions}
+            onEdit={openEditDialog}
+            onDelete={openDeleteDialog}
+          />
+        )}
       </div>
+
+      <QuestionFormDialog
+        open={showNewQuestionDialog}
+        onOpenChange={setShowNewQuestionDialog}
+        mode="create"
+        question={newQuestion}
+        onQuestionChange={setNewQuestion}
+        options={newQuestionOptions}
+        onOptionsChange={setNewQuestionOptions}
+        questionTypes={questionTypes}
+        allSubtopics={allSubtopics}
+        onSubmit={handleCreateQuestion}
+      />
+
+      <QuestionFormDialog
+        open={showEditQuestionDialog}
+        onOpenChange={setShowEditQuestionDialog}
+        mode="edit"
+        question={editQuestion}
+        onQuestionChange={setEditQuestion}
+        options={editQuestionOptions}
+        onOptionsChange={setEditQuestionOptions}
+        questionTypes={questionTypes}
+        allSubtopics={allSubtopics}
+        onSubmit={handleEditQuestion}
+      />
+
+      <DeleteQuestionDialog
+        open={showDeleteQuestionDialog}
+        onOpenChange={setShowDeleteQuestionDialog}
+        onConfirm={handleDeleteQuestion}
+      />
     </div>
   )
 }
