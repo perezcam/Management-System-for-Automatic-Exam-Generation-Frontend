@@ -4,6 +4,10 @@ export const API_ENDPOINTS = {
   users: "/api/proxy/users",
   student: "/api/proxy/student",
   teacher: "/api/proxy/teacher",
+  questionTypes: "/api/proxy/question-bank/question-types",
+  questionSubjects: "/api/proxy/subjects",
+  questionTopics: "/api/proxy/topics",
+  questionSubtopics: "/api/proxy/subtopics",
 } as const;
 
 export type ApiEndpointKey = keyof typeof API_ENDPOINTS;
@@ -12,6 +16,10 @@ export const getEndpoint = (key: ApiEndpointKey): string => API_ENDPOINTS[key];
 export const USERS_ENDPOINT = API_ENDPOINTS.users;
 export const STUDENT_ENDPOINT = API_ENDPOINTS.student;
 export const TEACHER_ENDPOINT = API_ENDPOINTS.teacher;
+export const QUESTION_TYPES_ENDPOINT = API_ENDPOINTS.questionTypes;
+export const QUESTION_SUBJECTS_ENDPOINT = API_ENDPOINTS.questionSubjects;
+export const QUESTION_TOPICS_ENDPOINT = API_ENDPOINTS.questionTopics;
+export const QUESTION_SUBTOPICS_ENDPOINT = API_ENDPOINTS.questionSubtopics;
 
 
 export type QueryParams = Record<string, string | number | boolean | undefined | null>;

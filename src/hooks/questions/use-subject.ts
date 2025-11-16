@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import type {
   CreateSubjectPayload, SubjectDetail, UpdateSubjectPayload
 } from "@/types/question_administration";
-import { fetchSubjects, createSubject, updateSubject, deleteSubject } from "@/services/question-administration";
+import { createSubject, deleteSubject, fetchSubjects, updateSubject } from "@/services/question-administration/subjects";
+
 
 export type UseSubjectResult = {
   subjects: SubjectDetail[];

@@ -4,7 +4,9 @@ import { useCallback, useMemo } from "react";
 import type {
   CreateSubtopicPayload, CreateTopicPayload, SubTopicDetail, TopicDetail, UpdateTopicPayload, SubjectDetail
 } from "@/types/question_administration";
-import { createSubtopic, createTopic, deleteSubtopic, deleteTopic, updateTopic } from "@/services/question-administration";
+import { createTopic, deleteTopic, updateTopic } from "@/services/question-administration/topics";
+import { createSubtopic, deleteSubtopic } from "@/services/question-administration/subtopics";
+
 
 export type UseTopicsResult = {
   topics: TopicDetail[]; 
