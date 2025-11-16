@@ -129,6 +129,26 @@ export const mockSubjects: SubjectDetail[] = normalizeSubjects([
       },
     ],
   },
+  {
+    subject_id: "subject-3",
+    subject_name: "Ingenieria de Software",
+    subject_program: "Ingenieria en Sistemas",
+    subject_leader_name: "Laura Gomez",
+    topics_amount: 0,
+    topics: [
+      {
+        topic_id: "subject-3-topic-1",
+        topic_name: "Procesos de Desarrollo",
+        subject_id: "subject-3",
+        subject_name: "Ingenieria de Software",
+        subtopics_amount: 0,
+        subtopics: Array.from({ length: 21 }, (_, index) => ({
+          subtopic_id: `subject-3-topic-1-subtopic-${index + 1}`,
+          subtopic_name: `Subtema ${index + 1}`,
+        })),
+      },
+    ],
+  },
 ]);
 
 
