@@ -35,7 +35,8 @@ export async function backendRequest<TSchema extends BaseResponse>(
   const payload = await parseResponseJson(response);
 
   if (!response.ok) {
-    const message = extractBackendMessage(payload) ?? response.statusText || `Error ${response.status}`;
+    const fallbackMessage = response.statusText || `Error ${response.status}`;
+    const message = extractBackendMessage(payload) ?? fallbackMessage;
     showErrorToast(message);
     throw new Error(message);
   }

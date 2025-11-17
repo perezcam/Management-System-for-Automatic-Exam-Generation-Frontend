@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type {
   CreateSubtopicPayload, CreateTopicPayload, SubTopicDetail, TopicDetail, UpdateTopicPayload, SubjectDetail
-} from "@/types/question_administration";
-import { createTopic, deleteTopic, updateTopic } from "@/services/question-administration/topics";
+} from "@/types/question-administration/question_administration";
+import { createTopic, deleteTopic, fetchTopics, updateTopic } from "@/services/question-administration/topics";
 import { createSubtopic, deleteSubtopic } from "@/services/question-administration/subtopics";
 
 
@@ -22,49 +22,33 @@ export function useTopics(
   setSubjects: React.Dispatch<React.SetStateAction<SubjectDetail[]>>
 ): UseTopicsResult {
 
-  const topics = useMemo<TopicDetail[]>(
-    () =>
-      subjects.flatMap(subject =>
-        subject.topics.map(topic => ({
-          ...topic,
-          subject_id: subject.subject_id,
-          subject_name: subject.subject_name,
-        }))
-      ),
-    [subjects]
-  );
+  const [topics, setTopics] = useState<TopicDetail[]>([]);
+
+  useEffect(() => {
+    const loadTopics = async () => {
+      try {
+        const data = await fetchTopics();
+        setTopics(data);
+      } catch {
+      }
+    };
+    void loadTopics();
+  }, []);
 
   const handleCreateTopic = useCallback(async (payload: CreateTopicPayload) => {
     const created = await createTopic(payload);
-    setSubjects(prev =>
-      prev.map(s =>
-        s.subject_id === created.subject_id
-          ? { ...s, topics: [...s.topics, created], topics_amount: s.topics.length + 1 }
-          : s
-      )
-    );
-  }, [setSubjects]);
+    setTopics(prev => [...prev, created]);
+  }, []);
 
   const handleUpdateTopic = useCallback(async (topicId: string, payload: UpdateTopicPayload) => {
     const updated = await updateTopic(topicId, payload);
-    setSubjects(prev => {
-      return prev.map(subject => {
-        const hadTopic = subject.topics.some(t => t.topic_id === topicId);
-        const isNewOwner = subject.subject_id === updated.subject_id;
-
-        if (!hadTopic && !isNewOwner) return subject;
-
-        if (isNewOwner) {
-          const filtered = subject.topics.filter(t => t.topic_id !== topicId);
-          return { ...subject, topics: [...filtered, updated], topics_amount: filtered.length + 1 };
-        }
-        return {
-          ...subject,
-          topics: subject.topics.filter(t => t.topic_id !== topicId),
-          topics_amount: Math.max(0, subject.topics.length - 1),
-        };
-      });
-    });
+    setTopics(prev => prev.map(t => (t.topic_id === topicId ? updated : t)));
+    setSubjects(prev =>
+      prev.map(subject => ({
+        ...subject,
+        topics: subject.topics.map(topic => (topic.topic_id === topicId ? updated : topic)),
+      })),
+    );
   }, [setSubjects]);
 
   const handleDeleteTopic = useCallback(async (topicId: string) => {
@@ -76,10 +60,18 @@ export function useTopics(
         topics_amount: s.topics.some(t => t.topic_id === topicId) ? Math.max(0, s.topics.length - 1) : s.topics_amount,
       }))
     );
+    setTopics(prev => prev.filter(t => t.topic_id !== topicId));
   }, [setSubjects]);
 
   const handleCreateSubtopic = useCallback(async (payload: CreateSubtopicPayload) => {
     const created = await createSubtopic(payload);
+    setTopics(prev =>
+      prev.map(t =>
+        t.topic_id === payload.topic_associated_id
+          ? { ...t, subtopics: [...t.subtopics, created], subtopics_amount: t.subtopics.length + 1 }
+          : t,
+      ),
+    );
     setSubjects(prev =>
       prev.map(s => ({
         ...s,
@@ -106,6 +98,15 @@ export function useTopics(
             : t.subtopics_amount,
         })),
       }))
+    );
+    setTopics(prev =>
+      prev.map(t => ({
+        ...t,
+        subtopics: t.subtopics.filter(st => st.subtopic_id !== subtopicId),
+        subtopics_amount: t.subtopics.some(st => st.subtopic_id === subtopicId)
+          ? Math.max(0, t.subtopics.length - 1)
+          : t.subtopics_amount,
+      })),
     );
   }, [setSubjects]);
 

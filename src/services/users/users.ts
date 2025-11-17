@@ -1,4 +1,4 @@
-import type { UserSummary, UserRole } from "@/types/users";
+import type { UserSummary, UserRole } from "@/types/users/users";
 import type { PaginatedSchema } from "@/types/backend-responses";
 import { backendRequest } from "@/services/api-client";
 import {

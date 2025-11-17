@@ -27,7 +27,7 @@ import type {
   UpdateTeacherPayload,
   UserSummary,
   UserRole,
-} from "@/types/users";
+} from "@/types/users/users";
 import type { PaginationMeta } from "@/types/backend-responses";
 import { fetchAdminDetail } from "@/services/users/admins";
 import { fetchStudentDetail } from "@/services/users/student";

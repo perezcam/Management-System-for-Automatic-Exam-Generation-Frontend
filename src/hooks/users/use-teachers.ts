@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import type { TeacherUser, CreateTeacherPayload, UpdateTeacherPayload } from "@/types/users";
+import type { TeacherUser, CreateTeacherPayload, UpdateTeacherPayload } from "@/types/users/users";
 import type { PaginationMeta } from "@/types/backend-responses";
 import { fetchTeachers, createTeacher, updateTeacher, deleteTeacher } from "@/services/users/teachers";
 

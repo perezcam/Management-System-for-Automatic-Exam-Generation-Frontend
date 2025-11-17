@@ -18,7 +18,7 @@ import type {
   TopicDetail,
   UpdateSubjectPayload,
   UpdateTopicPayload,
-} from "@/types/question_administration"
+} from "@/types/question-administration/question_administration"
 
 interface SubjectsTopicsManagementProps {
   subjects: SubjectDetail[]
@@ -32,6 +32,8 @@ interface SubjectsTopicsManagementProps {
   onDeleteTopic: (topicId: string) => Promise<void>
   onCreateSubtopic: (payload: CreateSubtopicPayload) => Promise<SubTopicDetail>
   onDeleteSubtopic: (subtopicId: string) => Promise<void>
+  onAttachTopicToSubject: (subjectId: string, topicId: string) => Promise<void>
+  onDetachTopicFromSubject: (subjectId: string, topicId: string) => Promise<void>
 }
 
 const emptyCreateSubject: CreateSubjectPayload = {
@@ -41,7 +43,6 @@ const emptyCreateSubject: CreateSubjectPayload = {
 
 const emptyCreateTopic: CreateTopicPayload = {
   topic_name: "",
-  subject_associated_id: "",
 }
 
 export function SubjectsTopicsManagement({
@@ -56,6 +57,8 @@ export function SubjectsTopicsManagement({
   onDeleteTopic,
   onCreateSubtopic,
   onDeleteSubtopic,
+  onAttachTopicToSubject,
+  onDetachTopicFromSubject,
 }: SubjectsTopicsManagementProps) {
   const [subjectSearchQuery, setSubjectSearchQuery] = useState("")
   const [topicSearchQuery, setTopicSearchQuery] = useState("")
@@ -67,6 +70,8 @@ export function SubjectsTopicsManagement({
   const [showNewTopicDialog, setShowNewTopicDialog] = useState(false)
   const [showEditTopicDialog, setShowEditTopicDialog] = useState(false)
   const [showDeleteTopicDialog, setShowDeleteTopicDialog] = useState(false)
+  const [showAttachTopicDialog, setShowAttachTopicDialog] = useState(false)
+  const [showDetachTopicDialog, setShowDetachTopicDialog] = useState(false)
   const [showAddSubtopicDialog, setShowAddSubtopicDialog] = useState(false)
   const [showDeleteSubtopicDialog, setShowDeleteSubtopicDialog] = useState(false)
 
@@ -79,6 +84,7 @@ export function SubjectsTopicsManagement({
 
   const [newTopicForm, setNewTopicForm] = useState<CreateTopicPayload>(emptyCreateTopic)
   const [editTopicForm, setEditTopicForm] = useState<CreateTopicPayload>(emptyCreateTopic)
+  const [attachTopicId, setAttachTopicId] = useState<string | null>(null)
 
   const [newSubtopicName, setNewSubtopicName] = useState("")
 
@@ -89,6 +95,8 @@ export function SubjectsTopicsManagement({
   const [creatingTopic, setCreatingTopic] = useState(false)
   const [updatingTopic, setUpdatingTopic] = useState(false)
   const [deletingTopic, setDeletingTopic] = useState(false)
+  const [attachingTopic, setAttachingTopic] = useState(false)
+  const [detachingTopic, setDetachingTopic] = useState(false)
 
   const [creatingSubtopic, setCreatingSubtopic] = useState(false)
   const [deletingSubtopic, setDeletingSubtopic] = useState(false)
@@ -105,6 +113,15 @@ export function SubjectsTopicsManagement({
     () =>
       topics.filter((topic) => topic.topic_name.toLowerCase().includes(topicSearchQuery.toLowerCase())),
     [topicSearchQuery, topics],
+  )
+
+  const availableTopicsForSelectedSubject = useMemo(
+    () => {
+      if (!selectedSubject) return []
+      const existingIds = new Set(selectedSubject.topics.map((t) => t.topic_id))
+      return topics.filter((topic) => !existingIds.has(topic.topic_id))
+    },
+    [selectedSubject, topics],
   )
 
   const isInitialLoading = loading && subjects.length === 0 && topics.length === 0
@@ -160,12 +177,11 @@ export function SubjectsTopicsManagement({
   }
 
   const handleCreateTopic = async () => {
-    if (!newTopicForm.topic_name.trim() || !newTopicForm.subject_associated_id) return
+    if (!newTopicForm.topic_name.trim()) return
     try {
       setCreatingTopic(true)
       await onCreateTopic({
         topic_name: newTopicForm.topic_name.trim(),
-        subject_associated_id: newTopicForm.subject_associated_id,
       })
       setShowNewTopicDialog(false)
       setNewTopicForm(emptyCreateTopic)
@@ -178,13 +194,12 @@ export function SubjectsTopicsManagement({
 
   const handleUpdateTopic = async () => {
     if (!selectedTopic) return
-    if (!editTopicForm.topic_name?.trim() || !editTopicForm.subject_associated_id) return
+    if (!editTopicForm.topic_name?.trim()) return
 
     try {
       setUpdatingTopic(true)
       await onUpdateTopic(selectedTopic.topic_id, {
         topic_name: editTopicForm.topic_name.trim(),
-        subject_associated_id: editTopicForm.subject_associated_id,
       })
       setShowEditTopicDialog(false)
       setSelectedTopic(null)
@@ -238,6 +253,36 @@ export function SubjectsTopicsManagement({
       console.error("No se pudo eliminar el subtópico", error)
     } finally {
       setDeletingSubtopic(false)
+    }
+  }
+
+  const handleAttachTopic = async () => {
+    if (!selectedSubject || !attachTopicId) return
+    try {
+      setAttachingTopic(true)
+      await onAttachTopicToSubject(selectedSubject.subject_id, attachTopicId)
+      setShowAttachTopicDialog(false)
+      setSelectedSubject(null)
+      setAttachTopicId(null)
+    } catch (error) {
+      console.error("No se pudo asociar el tópico a la materia", error)
+    } finally {
+      setAttachingTopic(false)
+    }
+  }
+
+  const handleDetachTopic = async () => {
+    if (!selectedSubject || !selectedTopic) return
+    try {
+      setDetachingTopic(true)
+      await onDetachTopicFromSubject(selectedSubject.subject_id, selectedTopic.topic_id)
+      setShowDetachTopicDialog(false)
+      setSelectedSubject(null)
+      setSelectedTopic(null)
+    } catch (error) {
+      console.error("No se pudo desasociar el tópico de la materia", error)
+    } finally {
+      setDetachingTopic(false)
     }
   }
 
@@ -302,6 +347,19 @@ export function SubjectsTopicsManagement({
                         onClick={(e) => {
                           e.stopPropagation()
                           setSelectedSubject(subject)
+                          setAttachTopicId(null)
+                          setShowAttachTopicDialog(true)
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Agregar Tópico
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedSubject(subject)
                           setEditSubjectForm({
                             subject_name: subject.subject_name,
                             subject_program: subject.subject_program,
@@ -343,6 +401,20 @@ export function SubjectsTopicsManagement({
                                   {topic.subtopics.length} subtópicos
                                 </p>
                               </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedSubject(subject)
+                                  setSelectedTopic(topic)
+                                  setShowDetachTopicDialog(true)
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-muted-foreground" />
+                              </Button>
                             </div>
                           </div>
                         ))}
@@ -394,7 +466,9 @@ export function SubjectsTopicsManagement({
 
           <Accordion type="single" collapsible className="w-full">
             {filteredTopics.map((topic) => {
-              const subject = subjects.find((s) => s.subject_id === topic.subject_id)
+              const subjectCount = subjects.filter((s) =>
+                s.topics.some((t) => t.topic_id === topic.topic_id),
+              ).length
               const filteredSubtopics = topic.subtopics.filter((subtopic) =>
                 subtopic.subtopic_name.toLowerCase().includes(subtopicSearchQuery.toLowerCase()),
               )
@@ -408,7 +482,7 @@ export function SubjectsTopicsManagement({
                       <div className="text-left">
                         <p className="font-medium">{topic.topic_name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {subject?.subject_name || "Sin materia"} • {topic.subtopics.length} subtópicos
+                          {subjectCount} materias asociadas • {topic.subtopics.length} subtópicos
                         </p>
                       </div>
                     </div>
@@ -436,7 +510,6 @@ export function SubjectsTopicsManagement({
                             setSelectedTopic(topic)
                             setEditTopicForm({
                               topic_name: topic.topic_name,
-                              subject_associated_id: topic.subject_id,
                             })
                             setShowEditTopicDialog(true)
                           }}
@@ -616,11 +689,57 @@ export function SubjectsTopicsManagement({
         </AlertDialogContent>
       </AlertDialog>
 
+      <Dialog open={showAttachTopicDialog} onOpenChange={setShowAttachTopicDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agregar tópico a materia</DialogTitle>
+            <DialogDescription>
+              Selecciona un tópico existente para asociarlo a la materia seleccionada.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Materia</Label>
+              <Input value={selectedSubject?.subject_name ?? ""} disabled />
+            </div>
+            <div className="space-y-2">
+              <Label>Tópico</Label>
+              <Select
+                value={attachTopicId ?? ""}
+                onValueChange={(value) => setAttachTopicId(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione un tópico" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTopicsForSelectedSubject.map((topic) => (
+                    <SelectItem key={topic.topic_id} value={topic.topic_id}>
+                      {topic.topic_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setShowAttachTopicDialog(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleAttachTopic}
+              disabled={attachingTopic || !attachTopicId || availableTopicsForSelectedSubject.length === 0}
+            >
+              {attachingTopic ? "Agregando..." : "Agregar Tópico"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showNewTopicDialog} onOpenChange={setShowNewTopicDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Crear Nuevo Tópico</DialogTitle>
-            <DialogDescription>Asocia el tópico a una materia y define su nombre</DialogDescription>
+            <DialogDescription>Define el nombre del nuevo tópico</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -631,24 +750,6 @@ export function SubjectsTopicsManagement({
                 onChange={(e) => setNewTopicForm({ ...newTopicForm, topic_name: e.target.value })}
                 placeholder="Ej: Algoritmos"
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Materia asociada</Label>
-              <Select
-                value={newTopicForm.subject_associated_id}
-                onValueChange={(value) => setNewTopicForm({ ...newTopicForm, subject_associated_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccione una materia" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects.map((subject) => (
-                    <SelectItem key={subject.subject_id} value={subject.subject_id}>
-                      {subject.subject_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
           <div className="flex justify-end gap-3">
@@ -662,11 +763,11 @@ export function SubjectsTopicsManagement({
         </DialogContent>
       </Dialog>
 
-  <Dialog open={showEditTopicDialog} onOpenChange={setShowEditTopicDialog}>
+      <Dialog open={showEditTopicDialog} onOpenChange={setShowEditTopicDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Tópico</DialogTitle>
-            <DialogDescription>Actualiza el nombre o la materia asociada</DialogDescription>
+            <DialogDescription>Actualiza el nombre del tópico</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -677,24 +778,6 @@ export function SubjectsTopicsManagement({
                 onChange={(e) => setEditTopicForm({ ...editTopicForm, topic_name: e.target.value })}
                 placeholder="Ej: Algoritmos"
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Materia asociada</Label>
-              <Select
-                value={editTopicForm.subject_associated_id}
-                onValueChange={(value) => setEditTopicForm({ ...editTopicForm, subject_associated_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccione una materia" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects.map((subject) => (
-                    <SelectItem key={subject.subject_id} value={subject.subject_id}>
-                      {subject.subject_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
           <div className="flex justify-end gap-3">
@@ -765,6 +848,24 @@ export function SubjectsTopicsManagement({
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteSubtopic} disabled={deletingSubtopic}>
               {deletingSubtopic ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDetachTopicDialog} onOpenChange={setShowDetachTopicDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Quitar tópico de la materia?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se quitará el tópico {selectedTopic?.topic_name} de la materia {selectedSubject?.subject_name}, pero el
+              tópico seguirá existiendo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDetachTopic} disabled={detachingTopic}>
+              {detachingTopic ? "Quitando..." : "Quitar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

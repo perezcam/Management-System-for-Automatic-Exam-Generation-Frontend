@@ -2,10 +2,10 @@ import type {
   CreateSubjectPayload,
   SubjectDetail,
   UpdateSubjectPayload,
-} from "@/types/question_administration";
+} from "@/types/question-administration/question_administration";
 import type { BaseResponse, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
 import { backendRequest } from "@/services/api-client";
-import { QUESTION_SUBJECTS_ENDPOINT } from "@/services/api/endpoints";
+import { QUESTION_SUBJECTS_ENDPOINT, QUESTION_SUBJECT_TOPICS_ENDPOINT } from "@/services/api/endpoints";
 
 export const normalizeSubject = (subject: SubjectDetail): SubjectDetail => {
   const topics = subject.topics ?? [];
@@ -60,4 +60,30 @@ export const updateSubject = async (
 
 export const deleteSubject = async (subjectId: string): Promise<void> => {
   await backendRequest<BaseResponse>(`${QUESTION_SUBJECTS_ENDPOINT}/${subjectId}`, { method: "DELETE" });
+};
+
+export const addTopicToSubject = async (
+  subjectId: string,
+  topicId: string,
+): Promise<void> => {
+  await backendRequest<BaseResponse>(QUESTION_SUBJECT_TOPICS_ENDPOINT, {
+    method: "POST",
+    body: JSON.stringify({
+      subject_id: subjectId,
+      topic_id: topicId,
+    }),
+  });
+};
+
+export const removeTopicFromSubject = async (
+  subjectId: string,
+  topicId: string,
+): Promise<void> => {
+  await backendRequest<BaseResponse>(QUESTION_SUBJECT_TOPICS_ENDPOINT, {
+    method: "DELETE",
+    body: JSON.stringify({
+      subject_id: subjectId,
+      topic_id: topicId,
+    }),
+  });
 };

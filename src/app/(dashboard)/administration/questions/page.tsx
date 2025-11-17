@@ -16,6 +16,7 @@ export default function QuestionsAdminPage() {
     loading, error, refresh,
     createQuestionType, deleteQuestionType,
     createSubject, updateSubject, deleteSubject,
+    attachTopicToSubject, detachTopicFromSubject,
     createTopic, updateTopic, deleteTopic,
     createSubtopic, deleteSubtopic,
   } = UseQuestionAdministration(); 
@@ -70,6 +71,8 @@ export default function QuestionsAdminPage() {
           onCreateSubject={createSubject}
           onUpdateSubject={updateSubject}
           onDeleteSubject={deleteSubject}
+          onAttachTopicToSubject={attachTopicToSubject}
+          onDetachTopicFromSubject={detachTopicFromSubject}
           onCreateTopic={createTopic}
           onUpdateTopic={updateTopic}
           onDeleteTopic={deleteTopic}

@@ -12,7 +12,7 @@ import type {
   UpdateStudentPayload,
   UpdateTeacherPayload,
   UserSummary,
-} from "@/types/users";
+} from "@/types/users/users";
 import type { PaginationMeta } from "@/types/backend-responses";
 import { fetchUsers } from "@/services/users/users";
 import { useAdmins } from "./use-admins";

@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import type { AdminUser, CreateAdminPayload, UpdateAdminPayload } from "@/types/users";
+import type { AdminUser, CreateAdminPayload, UpdateAdminPayload } from "@/types/users/users";
 import type { PaginationMeta } from "@/types/backend-responses";
 import { fetchAdmins, createAdmin, updateAdmin, deleteAdmin } from "@/services/users/admins";
 

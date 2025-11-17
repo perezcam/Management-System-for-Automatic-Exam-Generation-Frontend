@@ -3,7 +3,7 @@ import type {
   TeacherDetail,
   TeacherUser,
   UpdateTeacherPayload,
-} from "@/types/users";
+} from "@/types/users/users";
 import type {
   BaseResponse,
   PaginatedSchema,

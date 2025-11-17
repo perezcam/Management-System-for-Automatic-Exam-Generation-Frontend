@@ -1,4 +1,4 @@
-import type { CreateSubtopicPayload, SubTopicDetail } from "@/types/question_administration";
+import type { CreateSubtopicPayload, SubTopicDetail } from "@/types/question-administration/question_administration";
 import type { BaseResponse, RetrieveOneSchema } from "@/types/backend-responses";
 import { backendRequest } from "@/services/api-client";
 import { QUESTION_SUBTOPICS_ENDPOINT } from "@/services/api/endpoints";

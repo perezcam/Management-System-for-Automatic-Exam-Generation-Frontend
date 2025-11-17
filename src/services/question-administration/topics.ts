@@ -1,7 +1,22 @@
-import type { CreateTopicPayload, TopicDetail, UpdateTopicPayload } from "@/types/question_administration";
-import type { BaseResponse, RetrieveOneSchema } from "@/types/backend-responses";
+import type { CreateTopicPayload, TopicDetail, UpdateTopicPayload } from "@/types/question-administration/question_administration";
+import type { BaseResponse, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
 import { backendRequest } from "@/services/api-client";
 import { QUESTION_TOPICS_ENDPOINT } from "@/services/api/endpoints";
+
+const normalizeTopic = (topic: TopicDetail): TopicDetail => {
+  const subtopics = topic.subtopics ?? [];
+  return {
+    ...topic,
+    subtopics,
+    subtopics_amount: subtopics.length,
+  };
+};
+
+export const fetchTopics = async (): Promise<TopicDetail[]> => {
+  const resp = await backendRequest<RetrieveManySchema<TopicDetail>>(QUESTION_TOPICS_ENDPOINT);
+  const topics = resp.data;
+  return topics.map(normalizeTopic);
+};
 
 export const createTopic = async (payload: CreateTopicPayload): Promise<TopicDetail> => {
   const resp = await backendRequest<RetrieveOneSchema<TopicDetail>>(QUESTION_TOPICS_ENDPOINT, {
@@ -12,10 +27,7 @@ export const createTopic = async (payload: CreateTopicPayload): Promise<TopicDet
   if (!created) {
     throw new Error("El backend no devolvió el tópico creado");
   }
-  return {
-    ...created,
-    subtopics: created.subtopics.map((subtopic) => ({ ...subtopic })),
-  };
+  return normalizeTopic(created);
 };
 
 export const updateTopic = async (topicId: string, payload: UpdateTopicPayload): Promise<TopicDetail> => {
@@ -27,10 +39,7 @@ export const updateTopic = async (topicId: string, payload: UpdateTopicPayload):
   if (!updated) {
     throw new Error("El backend no devolvió el tópico actualizado");
   }
-  return {
-    ...updated,
-    subtopics: updated.subtopics.map((subtopic) => ({ ...subtopic })),
-  };
+  return normalizeTopic(updated);
 };
 
 export const deleteTopic = async (topicId: string): Promise<void> => {
