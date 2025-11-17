@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { CreateQuestionTypePayload, QuestionTypeDetail } from "@/types/question_administration";
-import { fetchQuestionTypes, createQuestionType, deleteQuestionType } from "@/services/question-administration";
+import type { CreateQuestionTypePayload, QuestionTypeDetail } from "@/types/question-administration/question_administration";
+import { createQuestionType, deleteQuestionType, fetchQuestionTypes } from "@/services/question-administration/question_types";
 
 export type UseQuestionTypesResult = {
   questionTypes: QuestionTypeDetail[];

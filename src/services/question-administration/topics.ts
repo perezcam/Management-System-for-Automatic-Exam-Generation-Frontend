@@ -1,0 +1,47 @@
+import type { CreateTopicPayload, TopicDetail, UpdateTopicPayload } from "@/types/question-administration/question_administration";
+import type { BaseResponse, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
+import { backendRequest } from "@/services/api-client";
+import { QUESTION_TOPICS_ENDPOINT } from "@/services/api/endpoints";
+
+const normalizeTopic = (topic: TopicDetail): TopicDetail => {
+  const subtopics = topic.subtopics ?? [];
+  return {
+    ...topic,
+    subtopics,
+    subtopics_amount: subtopics.length,
+  };
+};
+
+export const fetchTopics = async (): Promise<TopicDetail[]> => {
+  const resp = await backendRequest<RetrieveManySchema<TopicDetail>>(QUESTION_TOPICS_ENDPOINT);
+  const topics = resp.data;
+  return topics.map(normalizeTopic);
+};
+
+export const createTopic = async (payload: CreateTopicPayload): Promise<TopicDetail> => {
+  const resp = await backendRequest<RetrieveOneSchema<TopicDetail>>(QUESTION_TOPICS_ENDPOINT, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  const created = resp.data;
+  if (!created) {
+    throw new Error("El backend no devolvió el tópico creado");
+  }
+  return normalizeTopic(created);
+};
+
+export const updateTopic = async (topicId: string, payload: UpdateTopicPayload): Promise<TopicDetail> => {
+  const resp = await backendRequest<RetrieveOneSchema<TopicDetail>>(`${QUESTION_TOPICS_ENDPOINT}/${topicId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  const updated = resp.data;
+  if (!updated) {
+    throw new Error("El backend no devolvió el tópico actualizado");
+  }
+  return normalizeTopic(updated);
+};
+
+export const deleteTopic = async (topicId: string): Promise<void> => {
+  await backendRequest<BaseResponse>(`${QUESTION_TOPICS_ENDPOINT}/${topicId}`, { method: "DELETE" });
+};

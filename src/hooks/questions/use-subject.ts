@@ -3,8 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import type {
   CreateSubjectPayload, SubjectDetail, UpdateSubjectPayload
-} from "@/types/question_administration";
-import { fetchSubjects, createSubject, updateSubject, deleteSubject } from "@/services/question-administration";
+} from "@/types/question-administration/question_administration";
+import {
+  addTopicToSubject,
+  createSubject,
+  deleteSubject,
+  fetchSubjects,
+  removeTopicFromSubject,
+  updateSubject,
+} from "@/services/question-administration/subjects";
+
 
 export type UseSubjectResult = {
   subjects: SubjectDetail[];
@@ -14,6 +22,8 @@ export type UseSubjectResult = {
   createSubject: (payload: CreateSubjectPayload) => Promise<void>;
   updateSubject: (subjectId: string, payload: UpdateSubjectPayload) => Promise<void>;
   deleteSubject: (subjectId: string) => Promise<void>;
+  attachTopicToSubject: (subjectId: string, topicId: string) => Promise<void>;
+  detachTopicFromSubject: (subjectId: string, topicId: string) => Promise<void>;
 
   __setSubjects: React.Dispatch<React.SetStateAction<SubjectDetail[]>>;
 };
@@ -53,6 +63,18 @@ export function useSubject(): UseSubjectResult {
     __setSubjects(prev => prev.filter(s => s.subject_id !== subjectId));
   }, []);
 
+  const handleAttachTopic = useCallback(async (subjectId: string, topicId: string) => {
+    await addTopicToSubject(subjectId, topicId);
+    const data = await fetchSubjects();
+    __setSubjects(data);
+  }, []);
+
+  const handleDetachTopic = useCallback(async (subjectId: string, topicId: string) => {
+    await removeTopicFromSubject(subjectId, topicId);
+    const data = await fetchSubjects();
+    __setSubjects(data);
+  }, []);
+
   return {
     subjects,
     loading,
@@ -61,6 +83,8 @@ export function useSubject(): UseSubjectResult {
     createSubject: handleCreate,
     updateSubject: handleUpdate,
     deleteSubject: handleDelete,
+    attachTopicToSubject: handleAttachTopic,
+    detachTopicFromSubject: handleDetachTopic,
     __setSubjects,
   };
 }

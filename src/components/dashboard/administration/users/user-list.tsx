@@ -19,12 +19,19 @@ import {
 import { Checkbox } from "../../../ui/checkbox";
 import { Users, Edit2, Trash2, Search, Plus, X } from "lucide-react";
 import type {
+  AdminUser,
+  StudentUser,
+  TeacherUser,
   UpdateAdminPayload,
   UpdateStudentPayload,
   UpdateTeacherPayload,
-  UserRecord,
+  UserSummary,
   UserRole,
-} from "@/types/users";
+} from "@/types/users/users";
+import type { PaginationMeta } from "@/types/backend-responses";
+import { fetchAdminDetail } from "@/services/users/admins";
+import { fetchStudentDetail } from "@/services/users/student";
+import { fetchTeacherDetail } from "@/services/users/teachers";
 
 type RoleFilter = "all" | UserRole;
 
@@ -33,8 +40,31 @@ interface SubjectOption {
   name: string;
 }
 
+type DisplayUser = UserSummary | AdminUser | StudentUser | TeacherUser;
+
+type SelectedUserInfo = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+};
+
+type PaginatedList<T extends DisplayUser> = {
+  data: T[];
+  meta: PaginationMeta | null;
+  page: number;
+  pageSize: number;
+  loading: boolean;
+  error: Error | null;
+  setPage: (page: number) => void;
+  refresh: () => Promise<void> | void;
+};
+
 interface UserListProps {
-  users: UserRecord[];
+  all: PaginatedList<UserSummary>;
+  admins: PaginatedList<AdminUser>;
+  students: PaginatedList<StudentUser>;
+  teachers: PaginatedList<TeacherUser>;
   subjects?: SubjectOption[];
   onUpdateAdmin: (adminId: string, payload: UpdateAdminPayload) => Promise<void> | void;
   onUpdateStudent: (studentId: string, payload: UpdateStudentPayload) => Promise<void> | void;
@@ -56,8 +86,29 @@ const ROLE_BADGE_CLASSES: Record<UserRole, string> = {
   teacher: "bg-green-100 text-emerald-700 border-transparent hover:bg-emerald-100",
 };
 
+const FILTER_LABELS: Record<RoleFilter, string> = {
+  all: "Usuarios",
+  admin: ROLE_LABELS.admin,
+  student: ROLE_LABELS.student,
+  teacher: ROLE_LABELS.teacher,
+};
+
+const createEmptyEditForm = () => ({
+  name: "",
+  email: "",
+  age: "",
+  course: "",
+  specialty: "",
+  hasRoleExaminer: false,
+  hasRoleSubjectLeader: false,
+  subjects: [] as string[],
+});
+
 export function UserList({
-  users,
+  all,
+  admins,
+  students,
+  teachers,
   subjects = [],
   onUpdateAdmin,
   onUpdateStudent,
@@ -68,45 +119,113 @@ export function UserList({
 }: UserListProps) {
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<RoleFilter>("all");
-  const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
+  const [selectedUser, setSelectedUser] = useState<SelectedUserInfo | null>(null);
+  const [selectedRoleForEdit, setSelectedRoleForEdit] = useState<RoleFilter>("all");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   const [isDeletingUser, setIsDeletingUser] = useState(false);
+  const [isLoadingUserDetail, setIsLoadingUserDetail] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [subjectSelectKey, setSubjectSelectKey] = useState(0);
-  const [editForm, setEditForm] = useState({
-    name: "",
-    email: "",
-    age: "",
-    course: "",
-    specialty: "",
-    hasRoleExaminer: false,
-    hasRoleSubjectLeader: false,
-    subjects: [] as string[],
-  });
+  const [editForm, setEditForm] = useState(createEmptyEditForm());
+
+  const listMap: Record<RoleFilter, PaginatedList<DisplayUser>> = useMemo(() => ({
+    all,
+    admin: admins,
+    student: students,
+    teacher: teachers,
+  }), [admins, all, students, teachers]);
+
+  const currentList = listMap[userRoleFilter];
+  const baseUsers = currentList.data;
 
   const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      const matchesQuery = user.name.toLowerCase().includes(userSearchQuery.toLowerCase());
-      const matchesRole = userRoleFilter === "all" || user.role === userRoleFilter;
-      return matchesQuery && matchesRole;
-    });
-  }, [users, userSearchQuery, userRoleFilter]);
+    const query = userSearchQuery.toLowerCase();
+    return baseUsers.filter((user) => user.name.toLowerCase().includes(query));
+  }, [baseUsers, userSearchQuery]);
 
-  const openEditDialog = (user: UserRecord) => {
-    setSelectedUser(user);
-    if (user.role === "admin") {
-      setEditForm({
-        name: user.name,
-        email: user.email,
-        age: "",
-        course: "",
-        specialty: "",
-        hasRoleExaminer: false,
-        hasRoleSubjectLeader: false,
-        subjects: [],
-      });
-    } else if (user.role === "student") {
+  const currentLoading = currentList.loading || isRefreshing;
+  const currentError = currentList.error;
+  const currentFilterLabel = FILTER_LABELS[userRoleFilter];
+  const currentMeta = currentList.meta;
+  const currentPage = currentList.page;
+  const totalItems = currentMeta?.total ?? filteredUsers.length;
+  const pageLimit = currentMeta?.limit && currentMeta.limit > 0 ? currentMeta.limit : currentList.pageSize;
+  const totalPages = currentMeta ? Math.max(1, Math.ceil(currentMeta.total / pageLimit)) : 1;
+
+  const refreshCurrentRole = async () => {
+    setIsRefreshing(true);
+    try {
+      await currentList.refresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const changePage = (nextPage: number) => {
+    if (nextPage < 1 || nextPage === currentPage || nextPage > totalPages) return;
+    currentList.setPage(nextPage);
+  };
+
+  const loadUserDetails = async (role: RoleFilter, userId: string) => {
+    setIsLoadingUserDetail(true);
+    try {
+      if (role === "student") {
+        const detail = await fetchStudentDetail(userId);
+        setEditForm({
+          name: detail.name,
+          email: detail.email,
+          age: String(detail.age),
+          course: String(detail.course),
+          specialty: "",
+          hasRoleExaminer: false,
+          hasRoleSubjectLeader: false,
+          subjects: [],
+        });
+      } else if (role === "teacher") {
+        const detail = await fetchTeacherDetail(userId);
+        setEditForm({
+          name: detail.name,
+          email: detail.email,
+          age: "",
+          course: "",
+          specialty: detail.specialty,
+          hasRoleExaminer: detail.hasRoleExaminer,
+          hasRoleSubjectLeader: detail.hasRoleSubjectLeader,
+          subjects: detail.subjects_ids ?? [],
+        });
+        setSubjectSelectKey((prev) => prev + 1);
+      } else {
+        const detail = await fetchAdminDetail(userId);
+        setEditForm({
+          name: detail.name,
+          email: detail.email,
+          age: "",
+          course: "",
+          specialty: "",
+          hasRoleExaminer: false,
+          hasRoleSubjectLeader: false,
+          subjects: [],
+        });
+      }
+    } catch {
+      closeDialogs();
+    } finally {
+      setIsLoadingUserDetail(false);
+    }
+  };
+
+  const openEditDialog = (user: DisplayUser) => {
+    const roleForEdit: RoleFilter = userRoleFilter === "all" ? "all" : userRoleFilter;
+    setSelectedRoleForEdit(roleForEdit);
+    setSelectedUser({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+    if (roleForEdit === "student" && "age" in user) {
       setEditForm({
         name: user.name,
         email: user.email,
@@ -117,7 +236,7 @@ export function UserList({
         hasRoleSubjectLeader: false,
         subjects: [],
       });
-    } else {
+    } else if (roleForEdit === "teacher" && "specialty" in user) {
       setEditForm({
         name: user.name,
         email: user.email,
@@ -129,28 +248,37 @@ export function UserList({
         subjects: user.subjects_ids ?? [],
       });
       setSubjectSelectKey((prev) => prev + 1);
+    } else {
+      setEditForm({
+        name: user.name,
+        email: user.email,
+        age: "",
+        course: "",
+        specialty: "",
+        hasRoleExaminer: false,
+        hasRoleSubjectLeader: false,
+        subjects: [],
+      });
     }
-
+    setIsDeleteDialogOpen(false);
     setIsEditDialogOpen(true);
+    void loadUserDetails(roleForEdit, user.id);
   };
 
   const closeDialogs = () => {
     setIsEditDialogOpen(false);
     setIsDeleteDialogOpen(false);
     setSelectedUser(null);
+    setIsLoadingUserDetail(false);
+    setEditForm(createEmptyEditForm());
+    setSelectedRoleForEdit("all");
   };
 
   const handleUpdateUser = async () => {
-    if (!selectedUser) return;
+    if (!selectedUser || isLoadingUserDetail) return;
     setIsUpdatingUser(true);
     try {
-      if (selectedUser.role === "admin") {
-        const payload: UpdateAdminPayload = {
-          name: editForm.name,
-          email: editForm.email,
-        };
-        await onUpdateAdmin(selectedUser.id, payload);
-      } else if (selectedUser.role === "student") {
+      if (selectedRoleForEdit === "student") {
         const payload: UpdateStudentPayload = {
           name: editForm.name,
           email: editForm.email,
@@ -158,7 +286,7 @@ export function UserList({
           course: editForm.course ? Number(editForm.course) : undefined,
         };
         await onUpdateStudent(selectedUser.id, payload);
-      } else {
+      } else if (selectedRoleForEdit === "teacher") {
         let payload: UpdateTeacherPayload = {
           name: editForm.name,
           email: editForm.email,
@@ -170,9 +298,14 @@ export function UserList({
           payload = { ...payload, subjects_ids: editForm.subjects };
         }
         await onUpdateTeacher(selectedUser.id, payload);
+      } else {
+        const payload: UpdateAdminPayload = {
+          name: editForm.name,
+          email: editForm.email,
+        };
+        await onUpdateAdmin(selectedUser.id, payload);
       }
-      setIsEditDialogOpen(false);
-      setSelectedUser(null);
+      closeDialogs();
     } finally {
       setIsUpdatingUser(false);
     }
@@ -182,12 +315,12 @@ export function UserList({
     if (!selectedUser) return;
     setIsDeletingUser(true);
     try {
-      if (selectedUser.role === "admin") {
-        await onDeleteAdmin(selectedUser.id);
-      } else if (selectedUser.role === "student") {
+      if (selectedRoleForEdit === "student") {
         await onDeleteStudent(selectedUser.id);
-      } else {
+      } else if (selectedRoleForEdit === "teacher") {
         await onDeleteTeacher(selectedUser.id);
+      } else {
+        await onDeleteAdmin(selectedUser.id);
       }
       closeDialogs();
     } finally {
@@ -233,19 +366,15 @@ export function UserList({
     }
   };
 
-  const renderUserExtraInfo = (user: UserRecord) => {
-    if (user.role === "student") {
+  const renderUserExtraInfo = (user: DisplayUser) => {
+    if (userRoleFilter === "student" && "age" in user && "course" in user) {
       return (
         <p className="text-xs text-muted-foreground mt-1">
           {user.age} años • {user.course}
         </p>
       );
     }
-    if (user.role === "teacher") {
-      const roles: string[] = [];
-      if (user.hasRoleExaminer) roles.push("Examinador");
-      if (user.hasRoleSubjectLeader) roles.push("Jefe de Asignatura");
-
+    if (userRoleFilter === "teacher" && "specialty" in user) {
       return (
         <p className="text-xs text-muted-foreground mt-1">
           {user.specialty}
@@ -256,7 +385,20 @@ export function UserList({
   };
 
   const renderEditFields = () => {
-    if (!selectedUser) return null;
+    if (!selectedUser) {
+      return (
+        <p className="text-sm text-muted-foreground">
+          Selecciona un usuario para editar sus datos.
+        </p>
+      );
+    }
+
+    if (isLoadingUserDetail) {
+      return <p className="text-sm text-muted-foreground">Cargando información del usuario...</p>;
+    }
+
+    const isStudentMode = selectedRoleForEdit === "student";
+    const isTeacherMode = selectedRoleForEdit === "teacher";
     const availableSubjects = subjects.filter((subject) => !editForm.subjects.includes(subject.id));
 
     return (
@@ -281,7 +423,7 @@ export function UserList({
           />
         </div>
 
-        {selectedUser.role === "student" && (
+        {isStudentMode && (
           <>
             <div className="space-y-2">
               <Label htmlFor="edit-age">Edad</Label>
@@ -305,7 +447,7 @@ export function UserList({
           </>
         )}
 
-        {selectedUser.role === "teacher" && (
+        {isTeacherMode && (
           <>
             <div className="space-y-2">
               <Label htmlFor="edit-specialty">Especialidad</Label>
@@ -440,44 +582,89 @@ export function UserList({
               <SelectItem value="teacher">Profesor</SelectItem>
             </SelectContent>
           </Select>
+          <Button variant="outline" size="sm" onClick={refreshCurrentRole} disabled={isRefreshing}>
+            {isRefreshing ? "Actualizando..." : "Refrescar"}
+          </Button>
         </div>
 
         <div className="space-y-2">
-          {filteredUsers.map((user) => (
-            <div
-              key={`${user.role}-${user.id}`}
-              className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-              onClick={() => openEditDialog(user)}
-            >
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{user.name}</p>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
-                    {renderUserExtraInfo(user)}
+          {currentError && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              Error al cargar {currentFilterLabel.toLowerCase()}: {currentError.message}
+            </div>
+          )}
+          {currentLoading ? (
+            <div className="p-4 text-sm text-muted-foreground border rounded-lg text-center">
+              Cargando {currentFilterLabel.toLowerCase()}...
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="p-4 text-sm text-muted-foreground border rounded-lg text-center">
+              No hay {currentFilterLabel.toLowerCase()} para mostrar.
+            </div>
+          ) : (
+            filteredUsers.map((user) => (
+              <div
+                key={`${user.role}-${user.id}`}
+                className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                onClick={() => openEditDialog(user)}
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                      <Users className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{user.name}</p>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                      {renderUserExtraInfo(user)}
+                    </div>
                   </div>
                 </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className={ROLE_BADGE_CLASSES[user.role]}>
+                    {ROLE_LABELS[user.role]}
+                  </Badge>
+                  <Edit2 className="h-4 w-4 text-muted-foreground" />
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Badge variant="outline" className={ROLE_BADGE_CLASSES[user.role]}>
-                  {ROLE_LABELS[user.role]}
-                </Badge>
-                <Edit2 className="h-4 w-4 text-muted-foreground" />
-              </div>
-            </div>
-          ))}
+            ))
+          )}
+        </div>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Mostrando {filteredUsers.length} de {totalItems} {currentFilterLabel.toLowerCase()}.
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => changePage(currentPage - 1)}
+              disabled={currentLoading || currentPage <= 1}
+            >
+              Anterior
+            </Button>
+            <span className="text-sm">
+              Página {currentPage} de {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => changePage(currentPage + 1)}
+              disabled={currentLoading || currentPage >= totalPages}
+            >
+              Siguiente
+            </Button>
+          </div>
         </div>
       </Card>
 
       <Dialog
         open={isEditDialogOpen}
         onOpenChange={(open) => {
-          setIsEditDialogOpen(open);
           if (!open) {
-            setSelectedUser(null);
+            closeDialogs();
+          } else {
+            setIsEditDialogOpen(true);
           }
         }}
       >
@@ -496,14 +683,15 @@ export function UserList({
               <Trash2 className="h-4 w-4 mr-2" />
               Eliminar Usuario
             </Button>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button variant="outline" onClick={closeDialogs}>
               Cancelar
             </Button>
             <Button
               onClick={handleUpdateUser}
               disabled={
+                isLoadingUserDetail ||
                 isUpdatingUser ||
-                (selectedUser?.role === "teacher" &&
+                (selectedRoleForEdit === "teacher" &&
                   editForm.hasRoleSubjectLeader &&
                   editForm.subjects.length === 0)
               }

@@ -13,7 +13,7 @@ import type {
   CreateStudentPayload,
   CreateTeacherPayload,
   UserRole,
-} from "@/types/users";
+} from "@/types/users/users";
 import { showSuccessToast } from "@/utils/toast";
 
 interface UserRegistrationFormProps {
