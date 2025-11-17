@@ -9,21 +9,27 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../../../ui/alert-dialog"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../../../ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select"
-import type {
-  CreateSubjectPayload,
-  CreateSubtopicPayload,
-  CreateTopicPayload,
-  SubjectDetail,
-  SubTopicDetail,
-  TopicDetail,
-  UpdateSubjectPayload,
-  UpdateTopicPayload,
-} from "@/types/question-administration/question_administration"
+import { CreateSubjectPayload, SubjectDetail, UpdateSubjectPayload } from "@/types/question-administration/subject"
+import { CreateTopicPayload, TopicDetail, UpdateTopicPayload } from "@/types/question-administration/topic"
+import { CreateSubtopicPayload, SubTopicDetail } from "@/types/question-administration/subtopic"
+
 
 interface SubjectsTopicsManagementProps {
   subjects: SubjectDetail[]
   topics: TopicDetail[]
   loading?: boolean
+  subjectsPage?: number
+  subjectsPageSize?: number
+  subjectsTotal?: number | null
+  topicsPage?: number
+  topicsPageSize?: number
+  topicsTotal?: number | null
+  onChangeSubjectsPage?: (page: number) => void
+  onChangeTopicsPage?: (page: number) => void
+  subjectsFilter?: string
+  topicsFilter?: string
+  onChangeSubjectsFilter?: (value: string) => void
+  onChangeTopicsFilter?: (value: string) => void
   onCreateSubject: (payload: CreateSubjectPayload) => Promise<void>
   onUpdateSubject: (subjectId: string, payload: UpdateSubjectPayload) => Promise<void>
   onDeleteSubject: (subjectId: string) => Promise<void>
@@ -49,6 +55,18 @@ export function SubjectsTopicsManagement({
   subjects,
   topics,
   loading,
+  subjectsPage = 1,
+  subjectsPageSize = subjects.length || 10,
+  subjectsTotal = subjects.length,
+  topicsPage = 1,
+  topicsPageSize = topics.length || 10,
+  topicsTotal = topics.length,
+  onChangeSubjectsPage,
+  onChangeTopicsPage,
+  subjectsFilter = "",
+  topicsFilter = "",
+  onChangeSubjectsFilter,
+  onChangeTopicsFilter,
   onCreateSubject,
   onUpdateSubject,
   onDeleteSubject,
@@ -60,9 +78,10 @@ export function SubjectsTopicsManagement({
   onAttachTopicToSubject,
   onDetachTopicFromSubject,
 }: SubjectsTopicsManagementProps) {
-  const [subjectSearchQuery, setSubjectSearchQuery] = useState("")
-  const [topicSearchQuery, setTopicSearchQuery] = useState("")
+  const [subjectSearchQuery, setSubjectSearchQuery] = useState(subjectsFilter)
+  const [topicSearchQuery, setTopicSearchQuery] = useState(topicsFilter)
   const [subtopicSearchQuery, setSubtopicSearchQuery] = useState("")
+  const [subtopicSearchValue, setSubtopicSearchValue] = useState("")
 
   const [showNewSubjectDialog, setShowNewSubjectDialog] = useState(false)
   const [showEditSubjectDialog, setShowEditSubjectDialog] = useState(false)
@@ -101,20 +120,6 @@ export function SubjectsTopicsManagement({
   const [creatingSubtopic, setCreatingSubtopic] = useState(false)
   const [deletingSubtopic, setDeletingSubtopic] = useState(false)
 
-  const filteredSubjects = useMemo(
-    () =>
-      subjects.filter((subject) =>
-        subject.subject_name.toLowerCase().includes(subjectSearchQuery.toLowerCase()),
-      ),
-    [subjectSearchQuery, subjects],
-  )
-
-  const filteredTopics = useMemo(
-    () =>
-      topics.filter((topic) => topic.topic_name.toLowerCase().includes(topicSearchQuery.toLowerCase())),
-    [topicSearchQuery, topics],
-  )
-
   const availableTopicsForSelectedSubject = useMemo(
     () => {
       if (!selectedSubject) return []
@@ -125,6 +130,16 @@ export function SubjectsTopicsManagement({
   )
 
   const isInitialLoading = loading && subjects.length === 0 && topics.length === 0
+
+  const subjectsTotalPages =
+    typeof subjectsTotal === "number" && subjectsPageSize > 0
+      ? Math.max(1, Math.ceil(subjectsTotal / subjectsPageSize))
+      : 1
+
+  const topicsTotalPages =
+    typeof topicsTotal === "number" && topicsPageSize > 0
+      ? Math.max(1, Math.ceil(topicsTotal / topicsPageSize))
+      : 1
 
   const handleCreateSubject = async () => {
     if (!newSubjectForm.subject_name.trim() || !newSubjectForm.subject_program.trim()) return
@@ -315,12 +330,17 @@ export function SubjectsTopicsManagement({
                 className="pl-10"
                 value={subjectSearchQuery}
                 onChange={(e) => setSubjectSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    onChangeSubjectsFilter?.(subjectSearchQuery.trim())
+                  }
+                }}
               />
             </div>
           </div>
 
           <Accordion type="single" collapsible className="w-full">
-            {filteredSubjects.map((subject) => (
+            {subjects.map((subject) => (
               <AccordionItem key={subject.subject_id} value={subject.subject_id}>
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center gap-3 flex-1">
@@ -430,6 +450,35 @@ export function SubjectsTopicsManagement({
             ))}
           </Accordion>
 
+          {onChangeSubjectsPage && subjectsTotalPages > 1 && (
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Mostrando {subjects.length} de {subjectsTotal ?? subjects.length} materias.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onChangeSubjectsPage(subjectsPage - 1)}
+                  disabled={subjectsPage <= 1}
+                >
+                  Anterior
+                </Button>
+                <span className="text-sm">
+                  Página {subjectsPage} de {subjectsTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onChangeSubjectsPage(subjectsPage + 1)}
+                  disabled={subjectsPage >= subjectsTotalPages}
+                >
+                  Siguiente
+                </Button>
+              </div>
+            </div>
+          )}
+
           {subjects.length === 0 && (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">No hay materias registradas</p>
@@ -460,12 +509,17 @@ export function SubjectsTopicsManagement({
                 className="pl-10"
                 value={topicSearchQuery}
                 onChange={(e) => setTopicSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    onChangeTopicsFilter?.(topicSearchQuery.trim())
+                  }
+                }}
               />
             </div>
           </div>
 
           <Accordion type="single" collapsible className="w-full">
-            {filteredTopics.map((topic) => {
+            {topics.map((topic) => {
               const subjectCount = subjects.filter((s) =>
                 s.topics.some((t) => t.topic_id === topic.topic_id),
               ).length
@@ -538,8 +592,13 @@ export function SubjectsTopicsManagement({
                             <Input
                               placeholder="Buscar subtópico..."
                               className="pl-10"
-                              value={subtopicSearchQuery}
-                              onChange={(e) => setSubtopicSearchQuery(e.target.value)}
+                              value={subtopicSearchValue}
+                              onChange={(e) => setSubtopicSearchValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  setSubtopicSearchQuery(subtopicSearchValue.trim())
+                                }
+                              }}
                             />
                           </div>
                         </div>
@@ -592,6 +651,34 @@ export function SubjectsTopicsManagement({
                 <Plus className="h-4 w-4 mr-2" />
                 Crear Primer Tópico
               </Button>
+            </div>
+          )}
+          {onChangeTopicsPage && topicsTotalPages > 1 && (
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Mostrando {topics.length} de {topicsTotal ?? topics.length} tópicos.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onChangeTopicsPage(topicsPage - 1)}
+                  disabled={topicsPage <= 1}
+                >
+                  Anterior
+                </Button>
+                <span className="text-sm">
+                  Página {topicsPage} de {topicsTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onChangeTopicsPage(topicsPage + 1)}
+                  disabled={topicsPage >= topicsTotalPages}
+                >
+                  Siguiente
+                </Button>
+              </div>
             </div>
           )}
         </Card>

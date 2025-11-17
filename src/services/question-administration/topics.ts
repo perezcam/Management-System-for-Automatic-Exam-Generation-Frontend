@@ -1,7 +1,7 @@
-import type { CreateTopicPayload, TopicDetail, UpdateTopicPayload } from "@/types/question-administration/question_administration";
 import type { BaseResponse, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
 import { backendRequest } from "@/services/api-client";
-import { QUESTION_TOPICS_ENDPOINT } from "@/services/api/endpoints";
+import { QUESTION_TOPICS_ENDPOINT, withQueryParams } from "@/services/api/endpoints";
+import { CreateTopicPayload, TopicDetail, UpdateTopicPayload } from "@/types/question-administration/topic";
 
 const normalizeTopic = (topic: TopicDetail): TopicDetail => {
   const subtopics = topic.subtopics ?? [];
@@ -12,8 +12,15 @@ const normalizeTopic = (topic: TopicDetail): TopicDetail => {
   };
 };
 
-export const fetchTopics = async (): Promise<TopicDetail[]> => {
-  const resp = await backendRequest<RetrieveManySchema<TopicDetail>>(QUESTION_TOPICS_ENDPOINT);
+export type TopicQueryParams = {
+  q?: string;
+};
+
+export const fetchTopics = async (params?: TopicQueryParams): Promise<TopicDetail[]> => {
+  const url = withQueryParams(QUESTION_TOPICS_ENDPOINT, {
+    q: params?.q,
+  });
+  const resp = await backendRequest<RetrieveManySchema<TopicDetail>>(url);
   const topics = resp.data;
   return topics.map(normalizeTopic);
 };

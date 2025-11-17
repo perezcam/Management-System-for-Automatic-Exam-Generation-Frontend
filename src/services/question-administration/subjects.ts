@@ -1,11 +1,8 @@
-import type {
-  CreateSubjectPayload,
-  SubjectDetail,
-  UpdateSubjectPayload,
-} from "@/types/question-administration/question_administration";
+
 import type { BaseResponse, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
 import { backendRequest } from "@/services/api-client";
-import { QUESTION_SUBJECTS_ENDPOINT, QUESTION_SUBJECT_TOPICS_ENDPOINT } from "@/services/api/endpoints";
+import { QUESTION_SUBJECTS_ENDPOINT, QUESTION_SUBJECT_TOPICS_ENDPOINT, withQueryParams } from "@/services/api/endpoints";
+import { CreateSubjectPayload, SubjectDetail, UpdateSubjectPayload } from "@/types/question-administration/subject";
 
 export const normalizeSubject = (subject: SubjectDetail): SubjectDetail => {
   const topics = subject.topics ?? [];
@@ -25,8 +22,19 @@ export const normalizeSubject = (subject: SubjectDetail): SubjectDetail => {
 
 export const normalizeSubjects = (subjects: SubjectDetail[]) => subjects.map(normalizeSubject);
 
-export const fetchSubjects = async (): Promise<SubjectDetail[]> => {
-  const resp = await backendRequest<RetrieveManySchema<SubjectDetail>>(QUESTION_SUBJECTS_ENDPOINT);
+export type SubjectQueryParams = {
+  q?: string;
+  name?: string;
+  program?: string;
+};
+
+export const fetchSubjects = async (params?: SubjectQueryParams): Promise<SubjectDetail[]> => {
+  const url = withQueryParams(QUESTION_SUBJECTS_ENDPOINT, {
+    q: params?.q,
+    name: params?.name,
+    program: params?.program,
+  });
+  const resp = await backendRequest<RetrieveManySchema<SubjectDetail>>(url);
   const subjects = resp.data;
   return normalizeSubjects(subjects);
 };
