@@ -26,34 +26,42 @@ export type UseUsersResult = {
   usersMeta: PaginationMeta | null;
   usersPage: number;
   usersPageSize: number;
+  usersFilter: string;
   loading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
   setUsersPage: (page: number) => void;
+  setUsersFilter: (value: string) => void;
   admins: AdminUser[];
   adminsMeta: PaginationMeta | null;
   adminsPage: number;
   adminsPageSize: number;
+  adminsFilter: string;
   adminsLoading: boolean;
   adminsError: Error | null;
   refreshAdmins: () => Promise<void>;
   setAdminsPage: (page: number) => void;
+  setAdminsFilter: (value: string) => void;
   students: StudentUser[];
   studentsMeta: PaginationMeta | null;
   studentsPage: number;
   studentsPageSize: number;
+  studentsFilter: string;
   studentsLoading: boolean;
   studentsError: Error | null;
   refreshStudents: () => Promise<void>;
   setStudentsPage: (page: number) => void;
+  setStudentsFilter: (value: string) => void;
   teachers: TeacherUser[];
   teachersMeta: PaginationMeta | null;
   teachersPage: number;
   teachersPageSize: number;
+  teachersFilter: string;
   teachersLoading: boolean;
   teachersError: Error | null;
   refreshTeachers: () => Promise<void>;
   setTeachersPage: (page: number) => void;
+  setTeachersFilter: (value: string) => void;
   createAdmin: (payload: CreateAdminPayload) => Promise<void>;
   createStudent: (payload: CreateStudentPayload) => Promise<void>;
   createTeacher: (payload: CreateTeacherPayload) => Promise<void>;
@@ -69,16 +77,18 @@ export function useUsers(): UseUsersResult {
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [usersMeta, setUsersMeta] = useState<PaginationMeta | null>(null);
   const [usersPage, setUsersPageState] = useState(1);
+  const [usersFilter, setUsersFilterState] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const loadUsersPage = useCallback(async (targetPage: number) => {
+  const loadUsersPage = useCallback(async (targetPage: number, currentFilter: string) => {
     setLoading(true);
     setError(null);
     try {
       const { data, meta } = await fetchUsers({
         limit: SUMMARY_PAGE_SIZE,
         offset: (targetPage - 1) * SUMMARY_PAGE_SIZE,
+        filter: currentFilter || undefined,
       });
       const total = meta.total;
       const totalPages = total > 0 ? Math.ceil(total / SUMMARY_PAGE_SIZE) : 1;
@@ -96,15 +106,20 @@ export function useUsers(): UseUsersResult {
   }, []);
 
   useEffect(() => {
-    void loadUsersPage(usersPage);
-  }, [loadUsersPage, usersPage]);
+    void loadUsersPage(usersPage, usersFilter);
+  }, [loadUsersPage, usersPage, usersFilter]);
 
   const refreshAll = useCallback(async () => {
-    await loadUsersPage(usersPage);
-  }, [loadUsersPage, usersPage]);
+    await loadUsersPage(usersPage, usersFilter);
+  }, [loadUsersPage, usersPage, usersFilter]);
 
   const setUsersPage = useCallback((page: number) => {
     setUsersPageState(page < 1 ? 1 : page);
+  }, []);
+
+  const setUsersFilter = useCallback((value: string) => {
+    setUsersPageState(1);
+    setUsersFilterState(value);
   }, []);
 
   const {
@@ -112,10 +127,12 @@ export function useUsers(): UseUsersResult {
     meta: adminsMeta,
     page: adminsPage,
     pageSize: adminsPageSize,
+    filter: adminsFilter,
     loading: adminsLoading,
     error: adminsError,
     refresh: refreshAdmins,
     setPage: setAdminsPage,
+    setFilter: setAdminsFilter,
     createAdmin: createAdminHook,
     updateAdmin: updateAdminHook,
     deleteAdmin: deleteAdminHook,
@@ -126,10 +143,12 @@ export function useUsers(): UseUsersResult {
     meta: studentsMeta,
     page: studentsPage,
     pageSize: studentsPageSize,
+    filter: studentsFilter,
     loading: studentsLoading,
     error: studentsError,
     refresh: refreshStudents,
     setPage: setStudentsPage,
+    setFilter: setStudentsFilter,
     createStudent: createStudentHook,
     updateStudent: updateStudentHook,
     deleteStudent: deleteStudentHook,
@@ -140,10 +159,12 @@ export function useUsers(): UseUsersResult {
     meta: teachersMeta,
     page: teachersPage,
     pageSize: teachersPageSize,
+    filter: teachersFilter,
     loading: teachersLoading,
     error: teachersError,
     refresh: refreshTeachers,
     setPage: setTeachersPage,
+    setFilter: setTeachersFilter,
     createTeacher: createTeacherHook,
     updateTeacher: updateTeacherHook,
     deleteTeacher: deleteTeacherHook,
@@ -199,34 +220,42 @@ export function useUsers(): UseUsersResult {
     usersMeta,
     usersPage,
     usersPageSize: SUMMARY_PAGE_SIZE,
+    usersFilter,
     loading,
     error,
     refresh: refreshAll,
     setUsersPage,
+    setUsersFilter,
     admins,
     adminsMeta,
     adminsPage,
     adminsPageSize,
+    adminsFilter,
     adminsLoading,
     adminsError,
     refreshAdmins,
     setAdminsPage,
+    setAdminsFilter,
     students,
     studentsMeta,
     studentsPage,
     studentsPageSize,
+    studentsFilter,
     studentsLoading,
     studentsError,
     refreshStudents,
     setStudentsPage,
+    setStudentsFilter,
     teachers,
     teachersMeta,
     teachersPage,
     teachersPageSize,
+    teachersFilter,
     teachersLoading,
     teachersError,
     refreshTeachers,
     setTeachersPage,
+    setTeachersFilter,
     createAdmin: handleCreateAdmin,
     createStudent: handleCreateStudent,
     createTeacher: handleCreateTeacher,

@@ -24,9 +24,13 @@ export const toStudentUser = (student: StudentDetail): StudentUser => ({
 
 
 export const fetchStudents = async (
-  params: PaginationParams = {},
+  params: PaginationParams & { filter?: string } = {},
 ): Promise<PaginatedResult<StudentUser>> => {
-  const url = withQueryParams(STUDENT_ENDPOINT, { limit: params.limit, offset: params.offset });
+  const url = withQueryParams(STUDENT_ENDPOINT, {
+    limit: params.limit,
+    offset: params.offset,
+    filter: params.filter,
+  });
   const resp = await backendRequest<PaginatedSchema<StudentDetail>>(url);
   return { data: resp.data.map(toStudentUser), meta: resp.meta };
 };

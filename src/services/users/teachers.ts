@@ -24,9 +24,13 @@ export const toTeacherUser = (teacher: TeacherDetail): TeacherUser => ({
 
 
 export const fetchTeachers = async (
-  params: PaginationParams = {},
+  params: PaginationParams & { filter?: string } = {},
 ): Promise<PaginatedResult<TeacherUser>> => {
-  const url = withQueryParams(TEACHER_ENDPOINT, { limit: params.limit, offset: params.offset });
+  const url = withQueryParams(TEACHER_ENDPOINT, {
+    limit: params.limit,
+    offset: params.offset,
+    filter: params.filter,
+  });
   const resp = await backendRequest<PaginatedSchema<TeacherDetail>>(url);
   return { data: resp.data.map(toTeacherUser), meta: resp.meta };
 };

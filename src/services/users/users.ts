@@ -25,12 +25,13 @@ export {
 } from "@/services/users/teachers";
 
 export const fetchUsers = async (
-  params: PaginationParams & { role?: UserRole } = {},
+  params: PaginationParams & { role?: UserRole; filter?: string } = {},
 ): Promise<PaginatedResult<UserSummary>> => {
   const url = withQueryParams(USERS_ENDPOINT, {
     limit: params.limit,
     offset: params.offset,
     role: params.role,
+    filter: params.filter,
   });
   const resp = await backendRequest<PaginatedSchema<UserSummary>>(url);
   return { data: resp.data, meta: resp.meta };
