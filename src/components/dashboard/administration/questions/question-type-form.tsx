@@ -20,7 +20,7 @@ export function QuestionTypeForm({ onCreateType }: QuestionTypeFormProps) {
 
     try {
       setSubmitting(true)
-      await onCreateType({ question_type_name: newTypeName.trim() })
+      await onCreateType({ name: newTypeName.trim() })
       setNewTypeName("")
     } finally {
       setSubmitting(false)
