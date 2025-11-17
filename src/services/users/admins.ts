@@ -23,12 +23,13 @@ export const toAdminUser = (admin: AdminDetail): AdminUser => ({
 });
 
 export const fetchAdmins = async (
-  params: PaginationParams = {},
+  params: PaginationParams & { filter?: string } = {},
 ): Promise<PaginatedResult<AdminUser>> => {
   const url = withQueryParams(USERS_ENDPOINT, {
     limit: params.limit,
     offset: params.offset,
     role: "admin",
+    filter: params.filter,
   });
   const resp = await backendRequest<PaginatedSchema<AdminDetail>>(url);
   return { data: resp.data.map(toAdminUser), meta: resp.meta };

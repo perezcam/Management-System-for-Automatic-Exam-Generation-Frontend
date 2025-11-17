@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "../../../ui/card";
 import { Input } from "../../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select";
@@ -54,10 +54,12 @@ type PaginatedList<T extends DisplayUser> = {
   meta: PaginationMeta | null;
   page: number;
   pageSize: number;
+  filter: string;
   loading: boolean;
   error: Error | null;
   setPage: (page: number) => void;
   refresh: () => Promise<void> | void;
+  setFilter: (value: string) => void;
 };
 
 interface UserListProps {
@@ -117,8 +119,8 @@ export function UserList({
   onDeleteStudent,
   onDeleteTeacher,
 }: UserListProps) {
-  const [userSearchQuery, setUserSearchQuery] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<RoleFilter>("all");
+  const [searchValue, setSearchValue] = useState(all.filter);
   const [selectedUser, setSelectedUser] = useState<SelectedUserInfo | null>(null);
   const [selectedRoleForEdit, setSelectedRoleForEdit] = useState<RoleFilter>("all");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -138,21 +140,43 @@ export function UserList({
   }), [admins, all, students, teachers]);
 
   const currentList = listMap[userRoleFilter];
-  const baseUsers = currentList.data;
-
-  const filteredUsers = useMemo(() => {
-    const query = userSearchQuery.toLowerCase();
-    return baseUsers.filter((user) => user.name.toLowerCase().includes(query));
-  }, [baseUsers, userSearchQuery]);
+  const currentUsers = currentList.data;
 
   const currentLoading = currentList.loading || isRefreshing;
   const currentError = currentList.error;
   const currentFilterLabel = FILTER_LABELS[userRoleFilter];
   const currentMeta = currentList.meta;
   const currentPage = currentList.page;
-  const totalItems = currentMeta?.total ?? filteredUsers.length;
+  const totalItems = currentMeta?.total ?? currentUsers.length;
   const pageLimit = currentMeta?.limit && currentMeta.limit > 0 ? currentMeta.limit : currentList.pageSize;
   const totalPages = currentMeta ? Math.max(1, Math.ceil(currentMeta.total / pageLimit)) : 1;
+
+  const handleRoleChange = (value: RoleFilter) => {
+    setUserRoleFilter(value);
+    if (value === "admin") {
+      setSearchValue(admins.filter);
+    } else if (value === "student") {
+      setSearchValue(students.filter);
+    } else if (value === "teacher") {
+      setSearchValue(teachers.filter);
+    } else {
+      setSearchValue(all.filter);
+    }
+  };
+
+  useEffect(() => {
+    // Mantener el texto inicial coherente con el filtro del hook
+    if (userRoleFilter === "admin") {
+      setSearchValue(admins.filter);
+    } else if (userRoleFilter === "student") {
+      setSearchValue(students.filter);
+    } else if (userRoleFilter === "teacher") {
+      setSearchValue(teachers.filter);
+    } else {
+      setSearchValue(all.filter);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const refreshCurrentRole = async () => {
     setIsRefreshing(true);
@@ -561,30 +585,40 @@ export function UserList({
     <>
       <Card className="p-6">
         <h2 className="text-lg mb-4">Usuarios del Sistema</h2>
-        <div className="mb-4 flex items-center gap-3">
-          <div className="relative flex-1">
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por nombre..."
               className="pl-10"
-              value={userSearchQuery}
-              onChange={(e) => setUserSearchQuery(e.target.value)}
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  currentList.setFilter(searchValue.trim());
+                }
+              }}
             />
           </div>
-          <Select value={userRoleFilter} onValueChange={(value) => setUserRoleFilter(value as RoleFilter)}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filtrar por rol" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los roles</SelectItem>
-              <SelectItem value="admin">Administrador</SelectItem>
-              <SelectItem value="student">Estudiante</SelectItem>
-              <SelectItem value="teacher">Profesor</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" onClick={refreshCurrentRole} disabled={isRefreshing}>
-            {isRefreshing ? "Actualizando..." : "Refrescar"}
-          </Button>
+          <div className="flex gap-3 md:justify-end">
+            <Select
+              value={userRoleFilter}
+              onValueChange={(value) => handleRoleChange(value as RoleFilter)}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Filtrar por rol" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los roles</SelectItem>
+                <SelectItem value="admin">Administrador</SelectItem>
+                <SelectItem value="student">Estudiante</SelectItem>
+                <SelectItem value="teacher">Profesor</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={refreshCurrentRole} disabled={isRefreshing}>
+              {isRefreshing ? "Actualizando..." : "Refrescar"}
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -597,12 +631,12 @@ export function UserList({
             <div className="p-4 text-sm text-muted-foreground border rounded-lg text-center">
               Cargando {currentFilterLabel.toLowerCase()}...
             </div>
-          ) : filteredUsers.length === 0 ? (
+          ) : currentUsers.length === 0 ? (
             <div className="p-4 text-sm text-muted-foreground border rounded-lg text-center">
               No hay {currentFilterLabel.toLowerCase()} para mostrar.
             </div>
           ) : (
-            filteredUsers.map((user) => (
+            currentUsers.map((user) => (
               <div
                 key={`${user.role}-${user.id}`}
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
@@ -632,7 +666,7 @@ export function UserList({
         </div>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
-            Mostrando {filteredUsers.length} de {totalItems} {currentFilterLabel.toLowerCase()}.
+            Mostrando {currentUsers.length} de {totalItems} {currentFilterLabel.toLowerCase()}.
           </p>
           <div className="flex items-center gap-2">
             <Button
