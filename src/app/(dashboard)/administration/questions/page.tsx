@@ -12,8 +12,21 @@ export default function QuestionsAdminPage() {
   const router = useRouter();
 
   const {
-    questionTypes, subjects, topics, totals,
-    loading, error, refresh,
+    questionTypes,
+    subjects,
+    subjectsPage,
+    subjectsPageSize,
+    subjectsTotal,
+    topics,
+    topicsPage,
+    topicsPageSize,
+    topicsTotal,
+    totals,
+    loading,
+    error,
+    refresh,
+    setSubjectsPage,
+    setTopicsPage,
     createQuestionType, deleteQuestionType,
     createSubject, updateSubject, deleteSubject,
     attachTopicToSubject, detachTopicFromSubject,
@@ -68,6 +81,14 @@ export default function QuestionsAdminPage() {
           subjects={subjects}
           topics={topics}
           loading={loading}
+          subjectsPage={subjectsPage}
+          subjectsPageSize={subjectsPageSize}
+          subjectsTotal={subjectsTotal}
+          topicsPage={topicsPage}
+          topicsPageSize={topicsPageSize}
+          topicsTotal={topicsTotal}
+          onChangeSubjectsPage={setSubjectsPage}
+          onChangeTopicsPage={setTopicsPage}
           onCreateSubject={createSubject}
           onUpdateSubject={updateSubject}
           onDeleteSubject={deleteSubject}

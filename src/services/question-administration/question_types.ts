@@ -1,7 +1,7 @@
-import type { CreateQuestionTypePayload, QuestionTypeDetail } from "@/types/question-administration/question_administration";
 import type { BaseResponse, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
 import { backendRequest } from "@/services/api-client";
 import { QUESTION_TYPES_ENDPOINT } from "@/services/api/endpoints";
+import { CreateQuestionTypePayload, QuestionTypeDetail } from "@/types/question-administration/question-type";
 
 export const fetchQuestionTypes = async (): Promise<QuestionTypeDetail[]> => {
   const resp = await backendRequest<RetrieveManySchema<QuestionTypeDetail>>(QUESTION_TYPES_ENDPOINT);

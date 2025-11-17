@@ -1,15 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type {
-  CreateSubtopicPayload, CreateTopicPayload, SubTopicDetail, TopicDetail, UpdateTopicPayload, SubjectDetail
-} from "@/types/question-administration/question_administration";
+
 import { createTopic, deleteTopic, fetchTopics, updateTopic } from "@/services/question-administration/topics";
 import { createSubtopic, deleteSubtopic } from "@/services/question-administration/subtopics";
+import { CreateTopicPayload, TopicDetail, UpdateTopicPayload } from "@/types/question-administration/topic";
+import { CreateSubtopicPayload, SubTopicDetail } from "@/types/question-administration/subtopic";
+import { SubjectDetail } from "@/types/question-administration/subject";
 
+
+const PAGE_SIZE = 2;
 
 export type UseTopicsResult = {
-  topics: TopicDetail[]; 
+  topics: TopicDetail[];
+  page: number;
+  pageSize: number;
+  total: number | null;
+  loading: boolean;
+  error: Error | null;
+  refresh: () => Promise<void>;
+  setPage: (page: number) => void;
   createTopic: (payload: CreateTopicPayload) => Promise<void>;
   updateTopic: (topicId: string, payload: UpdateTopicPayload) => Promise<void>;
   deleteTopic: (topicId: string) => Promise<void>;
@@ -23,21 +33,37 @@ export function useTopics(
 ): UseTopicsResult {
 
   const [topics, setTopics] = useState<TopicDetail[]>([]);
+  const [page, setPageState] = useState(1);
+  const [total, setTotal] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await fetchTopics();
+      setTopics(data);
+      setTotal(data.length);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const loadTopics = async () => {
-      try {
-        const data = await fetchTopics();
-        setTopics(data);
-      } catch {
-      }
-    };
-    void loadTopics();
+    void refresh();
+  }, [refresh]);
+
+  const setPage = useCallback((nextPage: number) => {
+    setPageState(nextPage < 1 ? 1 : nextPage);
   }, []);
 
   const handleCreateTopic = useCallback(async (payload: CreateTopicPayload) => {
     const created = await createTopic(payload);
     setTopics(prev => [...prev, created]);
+    setTotal((prev) => (typeof prev === "number" ? prev + 1 : prev));
   }, []);
 
   const handleUpdateTopic = useCallback(async (topicId: string, payload: UpdateTopicPayload) => {
@@ -61,6 +87,7 @@ export function useTopics(
       }))
     );
     setTopics(prev => prev.filter(t => t.topic_id !== topicId));
+    setTotal((prev) => (typeof prev === "number" ? Math.max(0, prev - 1) : prev));
   }, [setSubjects]);
 
   const handleCreateSubtopic = useCallback(async (payload: CreateSubtopicPayload) => {
@@ -112,6 +139,13 @@ export function useTopics(
 
   return {
     topics,
+    page,
+    pageSize: PAGE_SIZE,
+    total,
+    loading,
+    error,
+    refresh,
+    setPage,
     createTopic: handleCreateTopic,
     updateTopic: handleUpdateTopic,
     deleteTopic: handleDeleteTopic,

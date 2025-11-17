@@ -1,9 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type {
-  CreateSubjectPayload, SubjectDetail, UpdateSubjectPayload
-} from "@/types/question-administration/question_administration";
+
 import {
   addTopicToSubject,
   createSubject,
@@ -12,13 +10,20 @@ import {
   removeTopicFromSubject,
   updateSubject,
 } from "@/services/question-administration/subjects";
+import { CreateSubjectPayload, SubjectDetail, UpdateSubjectPayload } from "@/types/question-administration/subject";
 
+
+const PAGE_SIZE = 2;
 
 export type UseSubjectResult = {
   subjects: SubjectDetail[];
+  page: number;
+  pageSize: number;
+  total: number | null;
   loading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
+  setPage: (page: number) => void;
   createSubject: (payload: CreateSubjectPayload) => Promise<void>;
   updateSubject: (subjectId: string, payload: UpdateSubjectPayload) => Promise<void>;
   deleteSubject: (subjectId: string) => Promise<void>;
@@ -30,6 +35,8 @@ export type UseSubjectResult = {
 
 export function useSubject(): UseSubjectResult {
   const [subjects, __setSubjects] = useState<SubjectDetail[]>([]);
+  const [page, setPageState] = useState(1);
+  const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -37,8 +44,9 @@ export function useSubject(): UseSubjectResult {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchSubjects();
+      const { data } = await fetchSubjects();
       __setSubjects(data);
+      setTotal(data.length);
     } catch (err) {
       setError(err as Error);
     } finally {
@@ -48,9 +56,14 @@ export function useSubject(): UseSubjectResult {
 
   useEffect(() => { void refresh(); }, [refresh]);
 
+  const setPage = useCallback((nextPage: number) => {
+    setPageState(nextPage < 1 ? 1 : nextPage);
+  }, []);
+
   const handleCreate = useCallback(async (payload: CreateSubjectPayload) => {
     const created = await createSubject(payload);
     __setSubjects(prev => [...prev, created]);
+    setTotal((prev) => (typeof prev === "number" ? prev + 1 : prev));
   }, []);
 
   const handleUpdate = useCallback(async (subjectId: string, payload: UpdateSubjectPayload) => {
@@ -61,25 +74,32 @@ export function useSubject(): UseSubjectResult {
   const handleDelete = useCallback(async (subjectId: string) => {
     await deleteSubject(subjectId);
     __setSubjects(prev => prev.filter(s => s.subject_id !== subjectId));
+    setTotal((prev) => (typeof prev === "number" ? Math.max(0, prev - 1) : prev));
   }, []);
 
   const handleAttachTopic = useCallback(async (subjectId: string, topicId: string) => {
     await addTopicToSubject(subjectId, topicId);
-    const data = await fetchSubjects();
+    const { data } = await fetchSubjects();
     __setSubjects(data);
+    setTotal(data.length);
   }, []);
 
   const handleDetachTopic = useCallback(async (subjectId: string, topicId: string) => {
     await removeTopicFromSubject(subjectId, topicId);
-    const data = await fetchSubjects();
+    const { data } = await fetchSubjects();
     __setSubjects(data);
+    setTotal(data.length);
   }, []);
 
   return {
     subjects,
+    page,
+    pageSize: PAGE_SIZE,
+    total,
     loading,
     error,
     refresh,
+    setPage,
     createSubject: handleCreate,
     updateSubject: handleUpdate,
     deleteSubject: handleDelete,

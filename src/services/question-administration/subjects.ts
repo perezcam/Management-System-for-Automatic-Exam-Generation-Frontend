@@ -1,11 +1,8 @@
-import type {
-  CreateSubjectPayload,
-  SubjectDetail,
-  UpdateSubjectPayload,
-} from "@/types/question-administration/question_administration";
-import type { BaseResponse, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
+
+import type { BaseResponse, PaginatedSchema, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
 import { backendRequest } from "@/services/api-client";
-import { QUESTION_SUBJECTS_ENDPOINT, QUESTION_SUBJECT_TOPICS_ENDPOINT } from "@/services/api/endpoints";
+import { QUESTION_SUBJECTS_ENDPOINT, QUESTION_SUBJECT_TOPICS_ENDPOINT, withQueryParams } from "@/services/api/endpoints";
+import { CreateSubjectPayload, SubjectDetail, UpdateSubjectPayload } from "@/types/question-administration/subject";
 
 export const normalizeSubject = (subject: SubjectDetail): SubjectDetail => {
   const topics = subject.topics ?? [];
@@ -25,10 +22,27 @@ export const normalizeSubject = (subject: SubjectDetail): SubjectDetail => {
 
 export const normalizeSubjects = (subjects: SubjectDetail[]) => subjects.map(normalizeSubject);
 
-export const fetchSubjects = async (): Promise<SubjectDetail[]> => {
-  const resp = await backendRequest<RetrieveManySchema<SubjectDetail>>(QUESTION_SUBJECTS_ENDPOINT);
-  const subjects = resp.data;
-  return normalizeSubjects(subjects);
+export type PaginatedSubjectsResult = {
+  data: SubjectDetail[];
+  meta: PaginatedSchema<SubjectDetail>["meta"] | null;
+};
+
+export const fetchSubjects = async (
+  params?: { limit?: number; offset?: number },
+): Promise<PaginatedSubjectsResult> => {
+  if (!params) {
+    const resp = await backendRequest<RetrieveManySchema<SubjectDetail>>(QUESTION_SUBJECTS_ENDPOINT);
+    const subjects = resp.data;
+    return { data: normalizeSubjects(subjects), meta: null };
+  }
+
+  const url = withQueryParams(QUESTION_SUBJECTS_ENDPOINT, {
+    limit: params.limit,
+    offset: params.offset,
+  });
+  const resp = await backendRequest<PaginatedSchema<SubjectDetail>>(url);
+  const subjects = normalizeSubjects(resp.data);
+  return { data: subjects, meta: resp.meta };
 };
 
 export const createSubject = async (payload: CreateSubjectPayload): Promise<SubjectDetail> => {

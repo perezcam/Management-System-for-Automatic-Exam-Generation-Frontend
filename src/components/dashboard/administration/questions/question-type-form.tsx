@@ -4,7 +4,7 @@ import { Input } from "../../../ui/input"
 import { Label } from "../../../ui/label"
 import { Plus } from "lucide-react"
 import { useState } from "react"
-import type { CreateQuestionTypePayload } from "@/types/question-administration/question_administration"
+import { CreateQuestionTypePayload } from "@/types/question-administration/question-type"
 
 interface QuestionTypeFormProps {
   onCreateType: (payload: CreateQuestionTypePayload) => Promise<void> | void
