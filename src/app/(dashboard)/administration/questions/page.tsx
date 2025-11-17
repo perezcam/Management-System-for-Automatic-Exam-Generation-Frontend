@@ -17,16 +17,20 @@ export default function QuestionsAdminPage() {
     subjectsPage,
     subjectsPageSize,
     subjectsTotal,
+    subjectsFilter,
     topics,
     topicsPage,
     topicsPageSize,
     topicsTotal,
+    topicsFilter,
     totals,
     loading,
     error,
     refresh,
     setSubjectsPage,
     setTopicsPage,
+    setSubjectsFilter,
+    setTopicsFilter,
     createQuestionType, deleteQuestionType,
     createSubject, updateSubject, deleteSubject,
     attachTopicToSubject, detachTopicFromSubject,
@@ -87,6 +91,10 @@ export default function QuestionsAdminPage() {
           topicsPage={topicsPage}
           topicsPageSize={topicsPageSize}
           topicsTotal={topicsTotal}
+          subjectsFilter={subjectsFilter}
+          topicsFilter={topicsFilter}
+          onChangeSubjectsFilter={setSubjectsFilter}
+          onChangeTopicsFilter={setTopicsFilter}
           onChangeSubjectsPage={setSubjectsPage}
           onChangeTopicsPage={setTopicsPage}
           onCreateSubject={createSubject}

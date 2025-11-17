@@ -20,10 +20,12 @@ export type UseSubjectResult = {
   page: number;
   pageSize: number;
   total: number | null;
+  filter: string;
   loading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
   setPage: (page: number) => void;
+  setFilter: (value: string) => void;
   createSubject: (payload: CreateSubjectPayload) => Promise<void>;
   updateSubject: (subjectId: string, payload: UpdateSubjectPayload) => Promise<void>;
   deleteSubject: (subjectId: string) => Promise<void>;
@@ -37,6 +39,7 @@ export function useSubject(): UseSubjectResult {
   const [subjects, __setSubjects] = useState<SubjectDetail[]>([]);
   const [page, setPageState] = useState(1);
   const [total, setTotal] = useState<number | null>(null);
+   const [filter, setFilterState] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -44,7 +47,7 @@ export function useSubject(): UseSubjectResult {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await fetchSubjects();
+      const data = await fetchSubjects(filter ? { q: filter } : undefined);
       __setSubjects(data);
       setTotal(data.length);
     } catch (err) {
@@ -52,12 +55,17 @@ export function useSubject(): UseSubjectResult {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filter]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
   const setPage = useCallback((nextPage: number) => {
     setPageState(nextPage < 1 ? 1 : nextPage);
+  }, []);
+
+  const setFilter = useCallback((value: string) => {
+    setPageState(1);
+    setFilterState(value);
   }, []);
 
   const handleCreate = useCallback(async (payload: CreateSubjectPayload) => {
@@ -79,27 +87,29 @@ export function useSubject(): UseSubjectResult {
 
   const handleAttachTopic = useCallback(async (subjectId: string, topicId: string) => {
     await addTopicToSubject(subjectId, topicId);
-    const { data } = await fetchSubjects();
+    const data = await fetchSubjects(filter ? { q: filter } : undefined);
     __setSubjects(data);
     setTotal(data.length);
-  }, []);
+  }, [filter]);
 
   const handleDetachTopic = useCallback(async (subjectId: string, topicId: string) => {
     await removeTopicFromSubject(subjectId, topicId);
-    const { data } = await fetchSubjects();
+    const data = await fetchSubjects(filter ? { q: filter } : undefined);
     __setSubjects(data);
     setTotal(data.length);
-  }, []);
+  }, [filter]);
 
   return {
     subjects,
     page,
     pageSize: PAGE_SIZE,
     total,
+    filter,
     loading,
     error,
     refresh,
     setPage,
+    setFilter,
     createSubject: handleCreate,
     updateSubject: handleUpdate,
     deleteSubject: handleDelete,

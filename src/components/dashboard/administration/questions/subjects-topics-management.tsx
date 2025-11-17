@@ -26,6 +26,10 @@ interface SubjectsTopicsManagementProps {
   topicsTotal?: number | null
   onChangeSubjectsPage?: (page: number) => void
   onChangeTopicsPage?: (page: number) => void
+  subjectsFilter?: string
+  topicsFilter?: string
+  onChangeSubjectsFilter?: (value: string) => void
+  onChangeTopicsFilter?: (value: string) => void
   onCreateSubject: (payload: CreateSubjectPayload) => Promise<void>
   onUpdateSubject: (subjectId: string, payload: UpdateSubjectPayload) => Promise<void>
   onDeleteSubject: (subjectId: string) => Promise<void>
@@ -59,6 +63,10 @@ export function SubjectsTopicsManagement({
   topicsTotal = topics.length,
   onChangeSubjectsPage,
   onChangeTopicsPage,
+  subjectsFilter = "",
+  topicsFilter = "",
+  onChangeSubjectsFilter,
+  onChangeTopicsFilter,
   onCreateSubject,
   onUpdateSubject,
   onDeleteSubject,
@@ -70,9 +78,10 @@ export function SubjectsTopicsManagement({
   onAttachTopicToSubject,
   onDetachTopicFromSubject,
 }: SubjectsTopicsManagementProps) {
-  const [subjectSearchQuery, setSubjectSearchQuery] = useState("")
-  const [topicSearchQuery, setTopicSearchQuery] = useState("")
+  const [subjectSearchQuery, setSubjectSearchQuery] = useState(subjectsFilter)
+  const [topicSearchQuery, setTopicSearchQuery] = useState(topicsFilter)
   const [subtopicSearchQuery, setSubtopicSearchQuery] = useState("")
+  const [subtopicSearchValue, setSubtopicSearchValue] = useState("")
 
   const [showNewSubjectDialog, setShowNewSubjectDialog] = useState(false)
   const [showEditSubjectDialog, setShowEditSubjectDialog] = useState(false)
@@ -110,20 +119,6 @@ export function SubjectsTopicsManagement({
 
   const [creatingSubtopic, setCreatingSubtopic] = useState(false)
   const [deletingSubtopic, setDeletingSubtopic] = useState(false)
-
-  const filteredSubjects = useMemo(
-    () =>
-      subjects.filter((subject) =>
-        subject.subject_name.toLowerCase().includes(subjectSearchQuery.toLowerCase()),
-      ),
-    [subjectSearchQuery, subjects],
-  )
-
-  const filteredTopics = useMemo(
-    () =>
-      topics.filter((topic) => topic.topic_name.toLowerCase().includes(topicSearchQuery.toLowerCase())),
-    [topicSearchQuery, topics],
-  )
 
   const availableTopicsForSelectedSubject = useMemo(
     () => {
@@ -335,12 +330,17 @@ export function SubjectsTopicsManagement({
                 className="pl-10"
                 value={subjectSearchQuery}
                 onChange={(e) => setSubjectSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    onChangeSubjectsFilter?.(subjectSearchQuery.trim())
+                  }
+                }}
               />
             </div>
           </div>
 
           <Accordion type="single" collapsible className="w-full">
-            {filteredSubjects.map((subject) => (
+            {subjects.map((subject) => (
               <AccordionItem key={subject.subject_id} value={subject.subject_id}>
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center gap-3 flex-1">
@@ -509,12 +509,17 @@ export function SubjectsTopicsManagement({
                 className="pl-10"
                 value={topicSearchQuery}
                 onChange={(e) => setTopicSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    onChangeTopicsFilter?.(topicSearchQuery.trim())
+                  }
+                }}
               />
             </div>
           </div>
 
           <Accordion type="single" collapsible className="w-full">
-            {filteredTopics.map((topic) => {
+            {topics.map((topic) => {
               const subjectCount = subjects.filter((s) =>
                 s.topics.some((t) => t.topic_id === topic.topic_id),
               ).length
@@ -587,8 +592,13 @@ export function SubjectsTopicsManagement({
                             <Input
                               placeholder="Buscar subtópico..."
                               className="pl-10"
-                              value={subtopicSearchQuery}
-                              onChange={(e) => setSubtopicSearchQuery(e.target.value)}
+                              value={subtopicSearchValue}
+                              onChange={(e) => setSubtopicSearchValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  setSubtopicSearchQuery(subtopicSearchValue.trim())
+                                }
+                              }}
                             />
                           </div>
                         </div>

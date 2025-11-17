@@ -1,5 +1,5 @@
 
-import type { BaseResponse, PaginatedSchema, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
+import type { BaseResponse, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
 import { backendRequest } from "@/services/api-client";
 import { QUESTION_SUBJECTS_ENDPOINT, QUESTION_SUBJECT_TOPICS_ENDPOINT, withQueryParams } from "@/services/api/endpoints";
 import { CreateSubjectPayload, SubjectDetail, UpdateSubjectPayload } from "@/types/question-administration/subject";
@@ -22,27 +22,21 @@ export const normalizeSubject = (subject: SubjectDetail): SubjectDetail => {
 
 export const normalizeSubjects = (subjects: SubjectDetail[]) => subjects.map(normalizeSubject);
 
-export type PaginatedSubjectsResult = {
-  data: SubjectDetail[];
-  meta: PaginatedSchema<SubjectDetail>["meta"] | null;
+export type SubjectQueryParams = {
+  q?: string;
+  name?: string;
+  program?: string;
 };
 
-export const fetchSubjects = async (
-  params?: { limit?: number; offset?: number },
-): Promise<PaginatedSubjectsResult> => {
-  if (!params) {
-    const resp = await backendRequest<RetrieveManySchema<SubjectDetail>>(QUESTION_SUBJECTS_ENDPOINT);
-    const subjects = resp.data;
-    return { data: normalizeSubjects(subjects), meta: null };
-  }
-
+export const fetchSubjects = async (params?: SubjectQueryParams): Promise<SubjectDetail[]> => {
   const url = withQueryParams(QUESTION_SUBJECTS_ENDPOINT, {
-    limit: params.limit,
-    offset: params.offset,
+    q: params?.q,
+    name: params?.name,
+    program: params?.program,
   });
-  const resp = await backendRequest<PaginatedSchema<SubjectDetail>>(url);
-  const subjects = normalizeSubjects(resp.data);
-  return { data: subjects, meta: resp.meta };
+  const resp = await backendRequest<RetrieveManySchema<SubjectDetail>>(url);
+  const subjects = resp.data;
+  return normalizeSubjects(subjects);
 };
 
 export const createSubject = async (payload: CreateSubjectPayload): Promise<SubjectDetail> => {

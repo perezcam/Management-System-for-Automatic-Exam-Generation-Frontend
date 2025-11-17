@@ -18,16 +18,20 @@ export type UseQuestionAdministrationResult
   subjectsPage: number;
   subjectsPageSize: number;
   subjectsTotal: number | null;
+  subjectsFilter: string;
   topics: TopicDetail[];
   topicsPage: number;
   topicsPageSize: number;
   topicsTotal: number | null;
+  topicsFilter: string;
   totals: TotalsDetail;
   loading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
   setSubjectsPage: (page: number) => void;
   setTopicsPage: (page: number) => void;
+  setSubjectsFilter: (value: string) => void;
+  setTopicsFilter: (value: string) => void;
   createQuestionType: (payload: CreateQuestionTypePayload) => Promise<void>;
   deleteQuestionType: (questionTypeId: string) => Promise<void>;
   createSubject: (payload: CreateSubjectPayload) => Promise<void>;
@@ -95,16 +99,20 @@ export function UseQuestionAdministration(): UseQuestionAdministrationResult
     subjectsPage: SUB.page,
     subjectsPageSize: SUB.pageSize,
     subjectsTotal: SUB.total,
+    subjectsFilter: SUB.filter,
     topics: paginatedTopics,
     topicsPage: TOP.page,
     topicsPageSize: TOP.pageSize,
     topicsTotal: TOP.total,
+    topicsFilter: TOP.filter,
     totals,
     loading,
     error,
     refresh,
     setSubjectsPage: SUB.setPage,
     setTopicsPage: TOP.setPage,
+    setSubjectsFilter: SUB.setFilter,
+    setTopicsFilter: TOP.setFilter,
     // actions mapeadas
     createQuestionType: TYP.createQuestionType,
     deleteQuestionType: TYP.deleteQuestionType,

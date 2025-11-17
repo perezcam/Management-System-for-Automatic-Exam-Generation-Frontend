@@ -16,10 +16,12 @@ export type UseTopicsResult = {
   page: number;
   pageSize: number;
   total: number | null;
+  filter: string;
   loading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
   setPage: (page: number) => void;
+  setFilter: (value: string) => void;
   createTopic: (payload: CreateTopicPayload) => Promise<void>;
   updateTopic: (topicId: string, payload: UpdateTopicPayload) => Promise<void>;
   deleteTopic: (topicId: string) => Promise<void>;
@@ -35,6 +37,7 @@ export function useTopics(
   const [topics, setTopics] = useState<TopicDetail[]>([]);
   const [page, setPageState] = useState(1);
   const [total, setTotal] = useState<number | null>(null);
+  const [filter, setFilterState] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -42,7 +45,7 @@ export function useTopics(
     setLoading(true);
     setError(null);
     try {
-      const { data } = await fetchTopics();
+      const data = await fetchTopics(filter ? { q: filter } : undefined);
       setTopics(data);
       setTotal(data.length);
     } catch (err) {
@@ -50,7 +53,7 @@ export function useTopics(
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filter]);
 
   useEffect(() => {
     void refresh();
@@ -58,6 +61,11 @@ export function useTopics(
 
   const setPage = useCallback((nextPage: number) => {
     setPageState(nextPage < 1 ? 1 : nextPage);
+  }, []);
+
+  const setFilter = useCallback((value: string) => {
+    setPageState(1);
+    setFilterState(value);
   }, []);
 
   const handleCreateTopic = useCallback(async (payload: CreateTopicPayload) => {
@@ -142,10 +150,12 @@ export function useTopics(
     page,
     pageSize: PAGE_SIZE,
     total,
+    filter,
     loading,
     error,
     refresh,
     setPage,
+    setFilter,
     createTopic: handleCreateTopic,
     updateTopic: handleUpdateTopic,
     deleteTopic: handleDeleteTopic,

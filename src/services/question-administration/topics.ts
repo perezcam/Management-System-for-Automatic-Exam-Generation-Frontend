@@ -1,4 +1,4 @@
-import type { BaseResponse, PaginatedSchema, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
+import type { BaseResponse, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
 import { backendRequest } from "@/services/api-client";
 import { QUESTION_TOPICS_ENDPOINT, withQueryParams } from "@/services/api/endpoints";
 import { CreateTopicPayload, TopicDetail, UpdateTopicPayload } from "@/types/question-administration/topic";
@@ -12,27 +12,17 @@ const normalizeTopic = (topic: TopicDetail): TopicDetail => {
   };
 };
 
-export type PaginatedTopicsResult = {
-  data: TopicDetail[];
-  meta: PaginatedSchema<TopicDetail>["meta"] | null;
+export type TopicQueryParams = {
+  q?: string;
 };
 
-export const fetchTopics = async (
-  params?: { limit?: number; offset?: number },
-): Promise<PaginatedTopicsResult> => {
-  if (!params) {
-    const resp = await backendRequest<RetrieveManySchema<TopicDetail>>(QUESTION_TOPICS_ENDPOINT);
-    const topics = resp.data;
-    return { data: topics.map(normalizeTopic), meta: null };
-  }
-
+export const fetchTopics = async (params?: TopicQueryParams): Promise<TopicDetail[]> => {
   const url = withQueryParams(QUESTION_TOPICS_ENDPOINT, {
-    limit: params.limit,
-    offset: params.offset,
+    q: params?.q,
   });
-  const resp = await backendRequest<PaginatedSchema<TopicDetail>>(url);
-  const topics = resp.data.map(normalizeTopic);
-  return { data: topics, meta: resp.meta };
+  const resp = await backendRequest<RetrieveManySchema<TopicDetail>>(url);
+  const topics = resp.data;
+  return topics.map(normalizeTopic);
 };
 
 export const createTopic = async (payload: CreateTopicPayload): Promise<TopicDetail> => {
