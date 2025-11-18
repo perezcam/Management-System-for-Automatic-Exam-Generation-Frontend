@@ -40,7 +40,7 @@ export function useQuestionTypes(): UseQuestionTypesResult {
 
   const handleDelete = useCallback(async (questionTypeId: string) => {
     await deleteQuestionType(questionTypeId);
-    setQuestionTypes(prev => prev.filter(t => t.question_type_id !== questionTypeId));
+    setQuestionTypes(prev => prev.filter(t => t.id !== questionTypeId));
   }, []);
 
   return {

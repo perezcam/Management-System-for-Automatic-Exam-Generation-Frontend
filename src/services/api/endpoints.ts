@@ -4,7 +4,7 @@ export const API_ENDPOINTS = {
   users: "/api/proxy/users",
   student: "/api/proxy/student",
   teacher: "/api/proxy/teacher",
-  questionTypes: "/api/proxy/question-bank/question-types",
+  questionTypes: "/api/proxy/question-types",
   questionSubjects: "/api/proxy/subjects",
   questionTopics: "/api/proxy/topics",
   questionSubtopics: "/api/proxy/subtopics",

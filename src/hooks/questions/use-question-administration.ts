@@ -47,17 +47,18 @@ export type UseQuestionAdministrationResult
 };
 
 const computeTotals = (
-  types: QuestionTypeDetail[],
-  subjects: SubjectDetail[],
-  topics: TopicDetail[],
+  question_types: QuestionTypeDetail[],
+  subjects: SubjectDetail[] = [],
+  topics: TopicDetail[] = [],
 ): TotalsDetail => {
+  console.log("Question types", question_types)
   const totalTopics = topics.length;
   const totalSubtopics = topics.reduce(
     (acc, t) => acc + t.subtopics.length,
     0,
   );
   return {
-    total_question_types: types.length,
+    total_question_types: question_types.length,
     total_subjects: subjects.length,
     total_topics: totalTopics,
     total_subtopics: totalSubtopics,

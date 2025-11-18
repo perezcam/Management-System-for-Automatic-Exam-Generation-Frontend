@@ -19,7 +19,7 @@ export function QuestionTypeList({ questionTypes, onDeleteType }: QuestionTypeLi
 
     try {
       setIsDeleting(true)
-      await onDeleteType(selectedType.question_type_id)
+      await onDeleteType(selectedType.id)
       setShowDeleteDialog(false)
       setSelectedType(null)
     } finally {
@@ -37,7 +37,7 @@ export function QuestionTypeList({ questionTypes, onDeleteType }: QuestionTypeLi
           )}
           {questionTypes.map((type) => (
             <div
-              key={type.question_type_id}
+              key={type.id}
               className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
               onClick={() => {
                 setSelectedType(type)
@@ -50,7 +50,7 @@ export function QuestionTypeList({ questionTypes, onDeleteType }: QuestionTypeLi
                     <Settings className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <p className="font-medium">{type.question_type_name}</p>
+                    <p className="font-medium">{type.name}</p>
                   </div>
                 </div>
               </div>
@@ -68,7 +68,7 @@ export function QuestionTypeList({ questionTypes, onDeleteType }: QuestionTypeLi
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Esta acción eliminará permanentemente el tipo de pregunta {selectedType?.question_type_name} del sistema.
+              Esta acción no se puede deshacer. Esta acción eliminará permanentemente el tipo de pregunta {selectedType?.name} del sistema.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
