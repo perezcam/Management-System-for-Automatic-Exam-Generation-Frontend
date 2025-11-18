@@ -27,6 +27,7 @@ import type {
   UpdateTeacherPayload,
   UserSummary,
   UserRole,
+  User,
 } from "@/types/users/users";
 import type { PaginationMeta } from "@/types/backend-responses";
 import { fetchAdminDetail } from "@/services/users/admins";
@@ -40,7 +41,7 @@ interface SubjectOption {
   name: string;
 }
 
-type DisplayUser = UserSummary | AdminUser | StudentUser | TeacherUser;
+type DisplayUser = UserSummary | User;
 
 type SelectedUserInfo = {
   id: string;
