@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { getRolesFromToken } from "@/utils/auth";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL;
 const COOKIE_NAME = "token";
@@ -11,6 +12,16 @@ async function proxy(req: Request, pathSegments?: string[]) {
 
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
+  const roles = await getRolesFromToken(token);
+  if (!roles.length) {
+    return NextResponse.json(
+      { message: "Sesión expirada" },
+      {
+        status: 401,
+        headers: { "cache-control": "no-store" },
+      },
+    );
+  }
 
   const url = new URL(req.url);
   const tail = (pathSegments ?? []).join("/");
