@@ -35,6 +35,9 @@ export async function backendRequest<TSchema extends BaseResponse>(
   const payload = await parseResponseJson(response);
 
   if (!response.ok) {
+    if (shouldForceLogin(response.status)) {
+      await handleExpiredSession();
+    }
     const fallbackMessage = response.statusText || `Error ${response.status}`;
     const message = extractBackendMessage(payload) ?? fallbackMessage;
     showErrorToast(message);
@@ -51,3 +54,21 @@ const parseResponseJson = async (response: Response) => {
     return null;
   }
 };
+
+const shouldForceLogin = (status: number) => status === 401 || status === 419 || status === 440;
+
+async function handleExpiredSession() {
+  if (typeof window === "undefined") return;
+  try {
+    await fetch("/api/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch {
+    // Ignoramos errores al intentar cerrar sesion
+  }
+
+  const { pathname, search } = window.location;
+  const next = encodeURIComponent(`${pathname}${search}`);
+  window.location.assign(`/login?next=${next}`);
+}
