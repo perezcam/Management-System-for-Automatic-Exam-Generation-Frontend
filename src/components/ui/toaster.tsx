@@ -8,29 +8,52 @@ import type { CSSProperties } from "react";
 
 const DEFAULT_DURATION = 4000;
 
-const variantStyles: Record<
-  string,
-  { className: string; style: CSSProperties }
-> = {
+const glassBase: CSSProperties = {
+  borderColor: "rgba(255,255,255,0.18)",
+  boxShadow: "0 25px 60px rgba(15,23,42,0.45)",
+  backdropFilter: "blur(18px) saturate(150%)",
+  WebkitBackdropFilter: "blur(18px) saturate(150%)",
+};
+
+const variantStyles: Record<string, { className: string; style: CSSProperties }> = {
   default: {
     className: "text-white",
-    style: { backgroundColor: "rgba(15,23,42,0.95)", borderColor: "rgba(15,23,42,0.95)" },
+    style: {
+      ...glassBase,
+      background: "linear-gradient(135deg, rgba(15,23,42,0.85), rgba(30,41,59,0.65))",
+    },
   },
   info: {
     className: "text-white",
-    style: { backgroundColor: "#2563eb", borderColor: "#1d4ed8" },
+    style: {
+      ...glassBase,
+      background: "linear-gradient(135deg, rgba(37,99,235,0.9), rgba(14,165,233,0.6))",
+      borderColor: "rgba(125,211,252,0.45)",
+    },
   },
   success: {
     className: "text-white",
-    style: { backgroundColor: "#059669", borderColor: "#047857" },
+    style: {
+      ...glassBase,
+      background: "linear-gradient(135deg, rgba(16,185,129,0.95), rgba(5,150,105,0.65))",
+      borderColor: "rgba(167,243,208,0.45)",
+    },
   },
   warning: {
     className: "text-white",
-    style: { backgroundColor: "#f97316", borderColor: "#ea580c" },
+    style: {
+      ...glassBase,
+      background: "linear-gradient(135deg, rgba(249,115,22,0.92), rgba(249,115,22,0.6))",
+      borderColor: "rgba(254,215,170,0.5)",
+    },
   },
   error: {
     className: "text-white",
-    style: { backgroundColor: "#dc2626", borderColor: "#b91c1c" },
+    style: {
+      ...glassBase,
+      background: "linear-gradient(135deg, rgba(239,68,68,0.92), rgba(185,28,28,0.6))",
+      borderColor: "rgba(254,202,202,0.5)",
+    },
   },
 };
 
@@ -157,7 +180,7 @@ export function Toaster() {
           <div
             key={toast.id}
             className={cn(
-              "pointer-events-auto w-full max-w-4xl rounded-2xl border px-8 py-6 text-base shadow-2xl transition-all",
+              "pointer-events-auto w-full max-w-4xl rounded-2xl border px-8 py-6 text-base shadow-2xl transition-all backdrop-blur-2xl",
               variant.className,
             )}
             style={variant.style}

@@ -1,23 +1,43 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { getRolesFromToken } from "@/utils/auth";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL;
 const COOKIE_NAME = "token";
+const PUBLIC_PROXY_PATHS = new Set(["login"]);
+
+const isPublicProxyPath = (segments: string[] = []) => {
+  const [first = ""] = segments;
+  return PUBLIC_PROXY_PATHS.has(first);
+};
 
 async function proxy(req: Request, pathSegments?: string[]) {
   if (!BACKEND_URL) {
     return NextResponse.json({ error: "Configura BACKEND_URL" }, { status: 500 });
   }
 
+  const url = new URL(req.url);
+  const segments = pathSegments ?? [];
+  const tail = segments.join("/");
+  const target = `${BACKEND_URL.replace(/\/$/, "")}/${tail}${url.search}`;
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
 
-  const url = new URL(req.url);
-  const tail = (pathSegments ?? []).join("/");
-  const target = `${BACKEND_URL.replace(/\/$/, "")}/${tail}${url.search}`;
+  if (!isPublicProxyPath(segments)) {
+    const roles = await getRolesFromToken(token);
+    if (!roles.length) {
+      return NextResponse.json(
+        { message: "SesiA3n expirada" },
+        {
+          status: 401,
+          headers: { "cache-control": "no-store" },
+        },
+      );
+    }
+  }
 
   const headers = new Headers();
-  // Propagar cabeceras de contenido/aceptación si existen
+  // Propagar cabeceras de contenido/aceptaciA3n si existen
   const contentType = req.headers.get("content-type");
   const accept = req.headers.get("accept");
   if (contentType) headers.set("content-type", contentType);
