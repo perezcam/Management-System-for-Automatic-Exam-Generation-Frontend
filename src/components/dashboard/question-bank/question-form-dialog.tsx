@@ -5,17 +5,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Textarea } from "../../ui/textarea"
 import { Button } from "../../ui/button"
 import { Input } from "../../ui/input"
-import { Question, QuestionType } from "./types"
+import type { QuestionListItem, QuestionTypeOption } from "@/types/question-bank/view"
 
 interface QuestionFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   mode: "create" | "edit"
-  question: Partial<Question>
-  onQuestionChange: (question: Partial<Question>) => void
+  question: Partial<QuestionListItem>
+  onQuestionChange: (question: Partial<QuestionListItem>) => void
   options: string[]
   onOptionsChange: (options: string[]) => void
-  questionTypes: QuestionType[]
+  questionTypes: QuestionTypeOption[]
   allSubtopics: string[]
   onSubmit: () => void
 }

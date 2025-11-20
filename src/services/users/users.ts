@@ -1,5 +1,5 @@
 import type { UserSummary, UserRole } from "@/types/users/users";
-import type { PaginatedSchema } from "@/types/backend-responses";
+import type { PaginatedSchema, RetrieveOneSchema } from "@/types/backend-responses";
 import { backendRequest } from "@/services/api-client";
 import {
   PaginatedResult,
@@ -35,4 +35,12 @@ export const fetchUsers = async (
   });
   const resp = await backendRequest<PaginatedSchema<UserSummary>>(url);
   return { data: resp.data, meta: resp.meta };
+};
+
+export const fetchUserSummary = async (userId: string): Promise<UserSummary> => {
+  const resp = await backendRequest<RetrieveOneSchema<UserSummary>>(`${USERS_ENDPOINT}/${userId}`);
+  if (!resp.data) {
+    throw new Error("El backend no devolvió el usuario solicitado");
+  }
+  return resp.data;
 };

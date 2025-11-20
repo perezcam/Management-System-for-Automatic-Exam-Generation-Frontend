@@ -2,15 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type {
-  AdminUser,
-  CreateAdminPayload,
-  CreateStudentPayload,
-  CreateTeacherPayload,
-  StudentUser,
-  TeacherUser,
-  UpdateAdminPayload,
-  UpdateStudentPayload,
-  UpdateTeacherPayload,
   UserSummary,
 } from "@/types/users/users";
 import type { PaginationMeta } from "@/types/backend-responses";
@@ -18,6 +9,9 @@ import { fetchUsers } from "@/services/users/users";
 import { useAdmins } from "./use-admins";
 import { useStudents } from "./use-students";
 import { useTeachers } from "./use-teachers";
+import { AdminUser, CreateAdminPayload, UpdateAdminPayload } from "@/types/users/admin";
+import { CreateStudentPayload, StudentUser, UpdateStudentPayload } from "@/types/users/student";
+import { CreateTeacherPayload, TeacherUser, UpdateTeacherPayload } from "@/types/users/teacher";
 
 const SUMMARY_PAGE_SIZE = 4;
 

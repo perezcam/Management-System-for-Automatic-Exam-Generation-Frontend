@@ -5,6 +5,7 @@ export const API_ENDPOINTS = {
   student: "/api/proxy/student",
   teacher: "/api/proxy/teacher",
   questionTypes: "/api/proxy/question-types",
+  questionBankQuestions: "/api/proxy/questions",
   questionSubjects: "/api/proxy/subjects",
   questionTopics: "/api/proxy/topics",
   questionSubtopics: "/api/proxy/subtopics",
@@ -18,6 +19,7 @@ export const USERS_ENDPOINT = API_ENDPOINTS.users;
 export const STUDENT_ENDPOINT = API_ENDPOINTS.student;
 export const TEACHER_ENDPOINT = API_ENDPOINTS.teacher;
 export const QUESTION_TYPES_ENDPOINT = API_ENDPOINTS.questionTypes;
+export const QUESTION_BANK_QUESTIONS_ENDPOINT = API_ENDPOINTS.questionBankQuestions;
 export const QUESTION_SUBJECTS_ENDPOINT = API_ENDPOINTS.questionSubjects;
 export const QUESTION_TOPICS_ENDPOINT = API_ENDPOINTS.questionTopics;
 export const QUESTION_SUBTOPICS_ENDPOINT = API_ENDPOINTS.questionSubtopics;

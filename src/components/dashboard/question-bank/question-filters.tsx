@@ -5,20 +5,17 @@ import { Badge } from "../../ui/badge"
 import { Card } from "../../ui/card"
 import { Label } from "../../ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select"
-
-export type Filters = {
-  subtopic: string
-  type: string
-  difficulty: string
-}
+import type { QuestionFilterValues } from "@/types/question-bank/view"
 
 interface QuestionFiltersProps {
-  filters: Filters
-  onFiltersChange: (filters: Filters) => void
+  filters: QuestionFilterValues
+  onFiltersChange: (filters: QuestionFilterValues) => void
   showFilters: boolean
   onToggleFilters: () => void
   uniqueSubtopics: string[]
   uniqueTypes: string[]
+  searchValue: string
+  onSearchChange: (value: string) => void
 }
 
 export function QuestionFilters({
@@ -27,20 +24,23 @@ export function QuestionFilters({
   showFilters,
   onToggleFilters,
   uniqueSubtopics,
-  uniqueTypes
+  uniqueTypes,
+  searchValue,
+  onSearchChange,
 }: QuestionFiltersProps) {
   const clearFilters = () => {
     onFiltersChange({ subtopic: "all", type: "all", difficulty: "all" })
   }
 
-  const hasActiveFilters = (filters.subtopic && filters.subtopic !== "all") || 
-                           (filters.type && filters.type !== "all") || 
-                           (filters.difficulty && filters.difficulty !== "all")
+  const hasActiveFilters =
+    (filters.subtopic && filters.subtopic !== "all") ||
+    (filters.type && filters.type !== "all") ||
+    (filters.difficulty && filters.difficulty !== "all")
 
   const activeFiltersCount = [
     filters.subtopic !== "all" ? 1 : 0,
     filters.type !== "all" ? 1 : 0,
-    filters.difficulty !== "all" ? 1 : 0
+    filters.difficulty !== "all" ? 1 : 0,
   ].reduce((a, b) => a + b, 0)
 
   return (
@@ -51,6 +51,8 @@ export function QuestionFilters({
           <Input
             placeholder="Buscar preguntas..."
             className="pl-10"
+            value={searchValue}
+            onChange={(event) => onSearchChange(event.target.value)}
           />
         </div>
         <Button variant="outline" onClick={onToggleFilters}>

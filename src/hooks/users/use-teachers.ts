@@ -1,8 +1,8 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import type { TeacherUser, CreateTeacherPayload, UpdateTeacherPayload } from "@/types/users/users";
 import type { PaginationMeta } from "@/types/backend-responses";
 import { fetchTeachers, createTeacher, updateTeacher, deleteTeacher } from "@/services/users/teachers";
+import { CreateTeacherPayload, TeacherUser, UpdateTeacherPayload } from "@/types/users/teacher";
 
 const PAGE_SIZE = 10;
 
