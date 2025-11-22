@@ -16,7 +16,7 @@ interface QuestionFormDialogProps {
   options: string[]
   onOptionsChange: (options: string[]) => void
   questionTypes: QuestionTypeOption[]
-  allSubtopics: string[]
+  availableSubtopics: string[]
   onSubmit: () => void
 }
 
@@ -29,7 +29,7 @@ export function QuestionFormDialog({
   options,
   onOptionsChange,
   questionTypes,
-  allSubtopics,
+  availableSubtopics,
   onSubmit
 }: QuestionFormDialogProps) {
   const handleTypeChange = (value: string) => {
@@ -83,7 +83,7 @@ export function QuestionFormDialog({
                   <SelectValue placeholder="Selecciona un subtópico" />
                 </SelectTrigger>
                 <SelectContent>
-                  {allSubtopics.map((subtopic) => (
+                  {availableSubtopics.map((subtopic) => (
                     <SelectItem key={subtopic} value={subtopic}>
                       {subtopic}
                     </SelectItem>

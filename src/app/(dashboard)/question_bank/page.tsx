@@ -27,6 +27,7 @@ export default function BancoPreguntasView() {
     setSearch,
     uniqueSubtopicNames,
     uniqueQuestionTypeNames,
+    availableSubtopics,
     allSubtopics,
     questionTypes,
     create,
@@ -58,7 +59,7 @@ export default function BancoPreguntasView() {
   const [newQuestionOptions, setNewQuestionOptions] = useState<string[]>([])
   const [editQuestionOptions, setEditQuestionOptions] = useState<string[]>([])
   
-  const allSubtopicNames = useMemo(() => allSubtopics.map(subtopic => subtopic.name), [allSubtopics])
+  const availableSubtopicNames = useMemo(() => availableSubtopics.map((subtopic) => subtopic.name), [availableSubtopics])
 
   const resetNewQuestionState = () => {
     setNewQuestion({
@@ -88,7 +89,7 @@ export default function BancoPreguntasView() {
     if (!newQuestion.subtopic || !newQuestion.body || !newQuestion.type) {
       return
     }
-    const subtopicId = allSubtopics.find((subtopic) => subtopic.name === newQuestion.subtopic)?.id
+    const subtopicId = availableSubtopics.find((subtopic) => subtopic.name === newQuestion.subtopic)?.id
     const questionTypeId = questionTypes.find((type) => type.name === newQuestion.type)?.id
     if (!subtopicId || !questionTypeId) {
       return
@@ -134,7 +135,7 @@ export default function BancoPreguntasView() {
     if (!selectedQuestion || !editQuestion.subtopic || !editQuestion.body || !editQuestion.type) {
       return
     }
-    const subtopicId = allSubtopics.find((subtopic) => subtopic.name === editQuestion.subtopic)?.id
+    const subtopicId = availableSubtopics.find((subtopic) => subtopic.name === editQuestion.subtopic)?.id
     const questionTypeId = questionTypes.find((type) => type.name === editQuestion.type)?.id
     if (!subtopicId || !questionTypeId) {
       return
@@ -232,7 +233,7 @@ export default function BancoPreguntasView() {
         options={newQuestionOptions}
         onOptionsChange={setNewQuestionOptions}
         questionTypes={questionTypes}
-        allSubtopics={allSubtopicNames}
+        availableSubtopics={availableSubtopicNames}
         onSubmit={handleCreateQuestion}
       />
 
@@ -245,7 +246,7 @@ export default function BancoPreguntasView() {
         options={editQuestionOptions}
         onOptionsChange={setEditQuestionOptions}
         questionTypes={questionTypes}
-        allSubtopics={allSubtopicNames}
+        availableSubtopics={availableSubtopicNames}
         onSubmit={handleEditQuestion}
       />
 

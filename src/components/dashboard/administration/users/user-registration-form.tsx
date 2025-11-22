@@ -8,13 +8,11 @@ import { Label } from "../../../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../ui/select";
 import { Checkbox } from "../../../ui/checkbox";
 import { Plus, AlertCircle } from "lucide-react";
-import type {
-  CreateAdminPayload,
-  CreateStudentPayload,
-  CreateTeacherPayload,
-  UserRole,
-} from "@/types/users/users";
 import { showSuccessToast } from "@/utils/toast";
+import { CreateAdminPayload } from "@/types/users/admin";
+import { CreateStudentPayload } from "@/types/users/student";
+import { CreateTeacherPayload } from "@/types/users/teacher";
+import { UserRole } from "@/types/users/users";
 
 interface UserRegistrationFormProps {
   subjects?: { id: string; name: string }[];
@@ -47,6 +45,7 @@ export function UserRegistrationForm({
     hasRoleExaminer: false,
     hasRoleSubjectLeader: false,
     subjects: [] as string[],
+    teachingSubjects: [] as string[],
   });
 
   const updateForm = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
@@ -63,6 +62,18 @@ export function UserRegistrationForm({
     });
   };
 
+  const toggleTeachingSubject = (subjectId: string) => {
+    setForm((prev) => {
+      const exists = prev.teachingSubjects.includes(subjectId);
+      return {
+        ...prev,
+        teachingSubjects: exists
+          ? prev.teachingSubjects.filter((id) => id !== subjectId)
+          : [...prev.teachingSubjects, subjectId],
+      };
+    });
+  };
+
   const resetForm = () => {
     setForm({
       name: "",
@@ -74,6 +85,7 @@ export function UserRegistrationForm({
       hasRoleExaminer: false,
       hasRoleSubjectLeader: false,
       subjects: [],
+      teachingSubjects: [],
     });
     setUserType("admin");
   };
@@ -96,6 +108,7 @@ export function UserRegistrationForm({
     if (userType === "teacher") {
       if (!form.specialty) return false;
       if (form.hasRoleSubjectLeader && form.subjects.length === 0) return false;
+      if (form.teachingSubjects.length === 0) return false;
     }
     return true;
   };
@@ -134,7 +147,8 @@ export function UserRegistrationForm({
           specialty: form.specialty,
           hasRoleExaminer: form.hasRoleExaminer,
           hasRoleSubjectLeader: form.hasRoleSubjectLeader,
-          subjects_ids: form.hasRoleSubjectLeader ? form.subjects : undefined,
+          subjects_ids: form.hasRoleSubjectLeader ? form.subjects : [],
+          teaching_subjects_ids: form.teachingSubjects,
         };
         await onCreateTeacher(payload);
         successMessage = "Profesor creado correctamente";
@@ -219,6 +233,44 @@ export function UserRegistrationForm({
                 placeholder="Ingrese especialidad"
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                Asignaturas que imparte
+                {form.teachingSubjects.length > 0 &&
+                  ` (${form.teachingSubjects.length} seleccionada${form.teachingSubjects.length > 1 ? "s" : ""})`}
+              </Label>
+              {subjects.length > 0 ? (
+                <>
+                  <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                    {subjects.map((subject) => (
+                      <div key={subject.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`teaching-subject-${subject.id}`}
+                          checked={form.teachingSubjects.includes(subject.id)}
+                          onCheckedChange={() => toggleTeachingSubject(subject.id)}
+                        />
+                        <label htmlFor={`teaching-subject-${subject.id}`} className="text-sm flex-1 cursor-pointer">
+                          {subject.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  {form.teachingSubjects.length === 0 && (
+                    <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                      <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-amber-800">
+                        Debe seleccionar al menos una asignatura que imparte el profesor.
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground p-3 border rounded-md">
+                  No hay asignaturas disponibles. Crea asignaturas en la sección de Configuración de Preguntas.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

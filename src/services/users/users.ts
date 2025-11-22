@@ -1,4 +1,4 @@
-import type { UserSummary, UserRole } from "@/types/users/users";
+import type { UserSummary, UserRole, CurrentUser } from "@/types/users/users";
 import type { PaginatedSchema, RetrieveOneSchema } from "@/types/backend-responses";
 import { backendRequest } from "@/services/api-client";
 import {
@@ -6,6 +6,7 @@ import {
   PaginationParams,
   USERS_ENDPOINT,
   withQueryParams,
+  CURRENT_USER_ENDPOINT,
 } from "@/services/api/endpoints";
 
 export { fetchAdmins, fetchAdminDetail, createAdmin, updateAdmin, deleteAdmin } from "@/services/users/admins";
@@ -41,6 +42,14 @@ export const fetchUserSummary = async (userId: string): Promise<UserSummary> => 
   const resp = await backendRequest<RetrieveOneSchema<UserSummary>>(`${USERS_ENDPOINT}/${userId}`);
   if (!resp.data) {
     throw new Error("El backend no devolvió el usuario solicitado");
+  }
+  return resp.data;
+};
+
+export const fetchCurrentUser = async (): Promise<CurrentUser> => {
+  const resp = await backendRequest<RetrieveOneSchema<CurrentUser>>(CURRENT_USER_ENDPOINT);
+  if (!resp.data) {
+    throw new Error("El backend no devolvió el usuario actual");
   }
   return resp.data;
 };

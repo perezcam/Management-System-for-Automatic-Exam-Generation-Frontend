@@ -15,11 +15,13 @@ export type UseQuestionAdministrationResult
  = {
   questionTypes: QuestionTypeDetail[];
   subjects: SubjectDetail[];
+  subjectsAll: SubjectDetail[];
+  topics: TopicDetail[];
+  topicsAll: TopicDetail[];
   subjectsPage: number;
   subjectsPageSize: number;
   subjectsTotal: number | null;
   subjectsFilter: string;
-  topics: TopicDetail[];
   topicsPage: number;
   topicsPageSize: number;
   topicsTotal: number | null;
@@ -97,11 +99,13 @@ export function UseQuestionAdministration(): UseQuestionAdministrationResult
   return {
     questionTypes: TYP.questionTypes,
     subjects: paginatedSubjects,
+    subjectsAll: SUB.subjects,
+    topics: paginatedTopics,
+    topicsAll: TOP.topics,
     subjectsPage: SUB.page,
     subjectsPageSize: SUB.pageSize,
     subjectsTotal: SUB.total,
     subjectsFilter: SUB.filter,
-    topics: paginatedTopics,
     topicsPage: TOP.page,
     topicsPageSize: TOP.pageSize,
     topicsTotal: TOP.total,

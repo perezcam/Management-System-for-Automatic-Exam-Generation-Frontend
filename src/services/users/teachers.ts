@@ -1,9 +1,4 @@
-import type {
-  CreateTeacherPayload,
-  TeacherDetail,
-  TeacherUser,
-  UpdateTeacherPayload,
-} from "@/types/users/users";
+
 import type {
   BaseResponse,
   PaginatedSchema,
@@ -16,6 +11,7 @@ import {
   TEACHER_ENDPOINT,
   withQueryParams,
 } from "@/services/api/endpoints";
+import { CreateTeacherPayload, TeacherDetail, TeacherUser, UpdateTeacherPayload } from "@/types/users/teacher";
 
 export const toTeacherUser = (teacher: TeacherDetail): TeacherUser => ({
   ...teacher,
@@ -48,7 +44,12 @@ export const createTeacher = async (payload: CreateTeacherPayload): Promise<Teac
   // El backend puede requerir rol "teacher" en la creación
   const createdResp = await backendRequest<RetrieveOneSchema<TeacherDetail>>(TEACHER_ENDPOINT, {
     method: "POST",
-    body: JSON.stringify({ ...payload, role: "teacher" }),
+    body: JSON.stringify({
+      ...payload,
+      subjects_ids: payload.subjects_ids ?? [],
+      teaching_subjects_ids: payload.teaching_subjects_ids ?? [],
+      role: "teacher",
+    }),
   });
   const created = createdResp.data;
   if (!created) {

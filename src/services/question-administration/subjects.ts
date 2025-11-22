@@ -9,6 +9,7 @@ export const normalizeSubject = (subject: SubjectDetail): SubjectDetail => {
   return {
     ...subject,
     topics_amount: topics.length,
+    subject_leader_id: subject.subject_leader_id,
     topics: topics.map((topic) => {
       const subtopics = topic.subtopics ?? [];
       return {

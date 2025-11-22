@@ -16,3 +16,4 @@ export type UserSummary = {
   role: UserRole;
 };
 
+export type CurrentUser = UserSummary;

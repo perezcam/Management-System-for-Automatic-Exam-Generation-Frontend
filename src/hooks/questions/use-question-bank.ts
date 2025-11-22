@@ -5,11 +5,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createQuestion, deleteQuestion, fetchQuestions, updateQuestion } from "@/services/question-bank/questions";
 import { fetchQuestionTypes } from "@/services/question-administration/question_types";
 import { fetchTopics } from "@/services/question-administration/topics";
+import { fetchSubjects } from "@/services/question-administration/subjects";
+import { fetchTeachers } from "@/services/users/teachers";
 import type { QuestionFilterValues, QuestionListItem } from "@/types/question-bank/view";
 import type { QuestionDetail, CreateQuestionPayload, UpdateQuestionPayload } from "@/types/question-bank/question";
 import { DifficultyLevelEnum } from "@/types/question-bank/enums/difficultyLevel";
 import type { QuestionTypeDetail } from "@/types/question-administration/question-type";
 import type { TopicDetail } from "@/types/question-administration/topic";
+import type { SubjectDetail } from "@/types/question-administration/subject";
+import { fetchCurrentUser } from "@/services/users/users";
 import { fetchUserSummary } from "@/services/users/users";
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -45,6 +49,7 @@ export type UseQuestionBankResult = {
   questionTypes: QuestionTypeDetail[];
   topics: TopicDetail[];
   allSubtopics: Array<{ id: string; name: string }>;
+  availableSubtopics: Array<{ id: string; name: string }>;
   uniqueSubtopicNames: string[];
   uniqueQuestionTypeNames: string[];
   setFilters: (next: QuestionFilterValues) => void;
@@ -64,7 +69,10 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
   const [questions, setQuestions] = useState<QuestionDetail[]>([]);
   const [questionTypes, setQuestionTypes] = useState<QuestionTypeDetail[]>([]);
   const [topics, setTopics] = useState<TopicDetail[]>([]);
+  const [subjects, setSubjects] = useState<SubjectDetail[]>([]);
   const [authorNames, setAuthorNames] = useState<Record<string, string>>({});
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentTeacherId, setCurrentTeacherId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -89,6 +97,26 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
       ),
     [topics],
   );
+
+  const availableSubtopics = useMemo(() => {
+    if (!currentUserId) return [];
+    const leaderId = currentTeacherId ?? currentUserId;
+    const seen = new Set<string>();
+    const list: Array<{ id: string; name: string }> = [];
+    subjects
+      .filter((subject) => subject.subject_leader_id === leaderId)
+      .forEach((subject) => {
+        subject.topics.forEach((topic) => {
+          topic.subtopics.forEach((subtopic) => {
+            if (!seen.has(subtopic.subtopic_id)) {
+              seen.add(subtopic.subtopic_id);
+              list.push({ id: subtopic.subtopic_id, name: subtopic.subtopic_name });
+            }
+          });
+        });
+      });
+    return list;
+  }, [currentTeacherId, currentUserId, subjects]);
 
   const subtopicNameToId = useMemo(() => {
     const map = new Map<string, string>();
@@ -135,9 +163,29 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
 
   const loadCatalogs = useCallback(async () => {
     try {
-      const [types, fetchedTopics] = await Promise.all([fetchQuestionTypes(), fetchTopics()]);
+      const [types, fetchedTopics, fetchedSubjects, currentUser] = await Promise.all([
+        fetchQuestionTypes(),
+        fetchTopics(),
+        fetchSubjects(),
+        fetchCurrentUser().catch(() => null),
+      ]);
+
+      let teacherId: string | null = null;
+      if (currentUser?.id) { //TODO: AQUI SE ESTA CARGANDO TODOS LOS TEACHERS PARA OBTENER EL TEACHER_ID A TRAVES DE EL USER ID, ES MAS RAPIDO
+        //TENER UN ENDPOINT APARTE QUE TE DE ESO
+        try {
+          const teachersPage = await fetchTeachers({ limit: 100, offset: 0 });
+          teacherId = teachersPage.data.find((t) => t.userId === currentUser.id)?.id ?? null;
+        } catch (err) {
+          console.error("No se pudo obtener el teacherId del usuario actual", err);
+        }
+      }
+
       setQuestionTypes(types);
       setTopics(fetchedTopics);
+      setSubjects(fetchedSubjects);
+      setCurrentUserId(currentUser?.id ?? null);
+      setCurrentTeacherId(teacherId);
     } catch (err) {
       setError(err as Error);
     }
@@ -256,6 +304,7 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
     questionTypes,
     topics,
     allSubtopics,
+    availableSubtopics,
     uniqueSubtopicNames,
     uniqueQuestionTypeNames,
     setFilters,

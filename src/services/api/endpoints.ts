@@ -18,6 +18,7 @@ export const getEndpoint = (key: ApiEndpointKey): string => API_ENDPOINTS[key];
 export const USERS_ENDPOINT = API_ENDPOINTS.users;
 export const STUDENT_ENDPOINT = API_ENDPOINTS.student;
 export const TEACHER_ENDPOINT = API_ENDPOINTS.teacher;
+export const CURRENT_USER_ENDPOINT = `${USERS_ENDPOINT}/me`;
 export const QUESTION_TYPES_ENDPOINT = API_ENDPOINTS.questionTypes;
 export const QUESTION_BANK_QUESTIONS_ENDPOINT = API_ENDPOINTS.questionBankQuestions;
 export const QUESTION_SUBJECTS_ENDPOINT = API_ENDPOINTS.questionSubjects;

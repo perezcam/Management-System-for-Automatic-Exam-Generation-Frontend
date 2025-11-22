@@ -9,6 +9,7 @@ export type TeacherDetail = {
   hasRoleSubjectLeader: boolean;
   subjects_names?: string[];
   subjects_ids?: string[];
+  teaching_subjects_ids?: string[];
 };
 
 export type TeacherUser = TeacherDetail & { role: "teacher" };
@@ -23,6 +24,7 @@ export type CreateTeacherPayload = {
   hasRoleExaminer: boolean;
   hasRoleSubjectLeader: boolean;
   subjects_ids?: string[];
+  teaching_subjects_ids: string[];
 };
 
 // Update schemas
