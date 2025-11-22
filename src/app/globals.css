@@ -1,0 +1,165 @@
+[data-toast-root="true"] .msfaeg-toaster-root {
+  pointer-events: none;
+  position: fixed;
+  top: 1.5rem;             /* separación desde arriba */
+  left: 50%;               /* centrado horizontal */
+  transform: translateX(-50%);
+  z-index: 9999;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;            /* espacio entre toasts */
+  box-sizing: border-box;
+  padding: 0 1.5rem;       /* margen lateral */
+}
+
+/* Toast base: más delgado, sin sombra */
+[data-toast-root="true"] .msfaeg-toaster-item {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 48rem;        /* ancho máximo del toast */
+  margin-inline: auto;     /* centra el bloque dentro del root */
+  border-radius: 0.75rem;
+  border-width: 1px;
+  border-style: solid;
+  padding: 0.75rem 1.5rem; /* menos alto que antes */
+  font-size: 0.95rem;
+  line-height: 1.45;
+  box-shadow: none;        /* sin sombra */
+  transition-property: transform, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-sizing: border-box;
+}
+
+/* Layout interno del contenido */
+[data-toast-root="true"] .msfaeg-toaster-inner {
+  display: flex;
+  align-items: flex-start;
+  column-gap: 1rem;
+}
+
+/* Spinner de carga */
+[data-toast-root="true"] .msfaeg-toaster-spinner {
+  margin-top: 0.25rem; /* similar a mt-1 */
+  width: 1.25rem;      /* w-5 */
+  height: 1.25rem;     /* h-5 */
+  border-radius: 9999px;
+  border-width: 2px;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.8);
+  border-top-color: transparent;
+  animation: msfaeg-spin 0.8s linear infinite;
+}
+
+/* Contenedor del texto */
+[data-toast-root="true"] .msfaeg-toaster-body {
+  flex: 1 1 auto;
+}
+
+/* Título del toast */
+[data-toast-root="true"] .msfaeg-toaster-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0;
+}
+
+/* Descripción del toast */
+[data-toast-root="true"] .msfaeg-toaster-description {
+  font-size: 0.95rem;
+  opacity: 0.9;
+  margin: 0.25rem 0 0;
+}
+
+/* Botón de cierre (X) */
+[data-toast-root="true"] .msfaeg-toaster-close {
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0.8;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  align-self: flex-start;
+  transition: opacity 120ms ease-out, transform 120ms ease-out;
+}
+
+[data-toast-root="true"] .msfaeg-toaster-close:hover {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* Texto blanco para todas las variantes "glass" */
+[data-toast-root="true"] .msfaeg-toaster-item--default,
+[data-toast-root="true"] .msfaeg-toaster-item--info,
+[data-toast-root="true"] .msfaeg-toaster-item--success,
+[data-toast-root="true"] .msfaeg-toaster-item--warning,
+[data-toast-root="true"] .msfaeg-toaster-item--error {
+  color: #ffffff !important;
+}
+
+/* ===== VARIANTES CON FONDO MÁS TRANSPARENTE ===== */
+
+/* default */
+[data-toast-root="true"] .msfaeg-toaster-item--default {
+  background: linear-gradient(
+      135deg,
+      rgba(15, 23, 42, 0.70),
+      rgba(30, 41, 59, 0.40)
+    ) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* info */
+[data-toast-root="true"] .msfaeg-toaster-item--info {
+  background: linear-gradient(
+      135deg,
+      rgba(37, 99, 235, 0.80),
+      rgba(14, 165, 233, 0.45)
+    ) !important;
+  border-color: rgba(125, 211, 252, 0.40) !important;
+}
+
+/* success */
+[data-toast-root="true"] .msfaeg-toaster-item--success {
+  background: linear-gradient(
+      135deg,
+      rgba(16, 185, 129, 0.85),
+      rgba(5, 150, 105, 0.45)
+    ) !important;
+  border-color: rgba(167, 243, 208, 0.40) !important;
+}
+
+/* warning */
+[data-toast-root="true"] .msfaeg-toaster-item--warning {
+  background: linear-gradient(
+      135deg,
+      rgba(249, 115, 22, 0.82),
+      rgba(249, 115, 22, 0.45)
+    ) !important;
+  border-color: rgba(254, 215, 170, 0.45) !important;
+}
+
+/* error */
+[data-toast-root="true"] .msfaeg-toaster-item--error {
+  background: linear-gradient(
+      135deg,
+      rgba(239, 68, 68, 0.82),
+      rgba(185, 28, 28, 0.45)
+    ) !important;
+  border-color: rgba(254, 202, 202, 0.45) !important;
+}
+
+/* Animación del spinner */
+@keyframes msfaeg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

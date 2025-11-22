@@ -17,8 +17,8 @@ export async function GET() {
     }
 
     // Fallback: intentar decodificar del token (claims name/email)
-    const claims = decodeJwt(token) as any;
-    const derivedName = (claims?.name || claims?.email || "Bienvenido").trim();
+    const claims = decodeJwt(token) ;
+    const derivedName = (claims?.name || claims?.email || "Bienvenido");
     return NextResponse.json({ name: derivedName });
   } catch {
     return NextResponse.json({ name: "Bienvenido" }, { status: 401 });
