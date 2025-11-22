@@ -19,6 +19,8 @@ npm install
 
 ```bash
 npm install @radix-ui/react-avatar @radix-ui/react-checkbox @radix-ui/react-dialog @radix-ui/react-label @radix-ui/react-separator @radix-ui/react-switch @radix-ui/react-slot
+
+npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
 ```
 
 Opcional si es necesario:
