@@ -81,7 +81,8 @@ export function ExamPreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
+      {/* Cambiado: ahora el scroll va en el DialogContent */}
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Vista Previa del Examen</DialogTitle>
           <DialogDescription>
@@ -89,7 +90,8 @@ export function ExamPreviewDialog({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4 py-4 overflow-y-auto pr-2">
+        {/* Quitamos overflow-y-auto aquí */}
+        <div className="space-y-4 py-4 pr-2">
           <Card className="p-4">
             <div className="flex items-center justify-between mb-4">
               <div>

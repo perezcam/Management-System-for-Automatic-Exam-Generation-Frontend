@@ -119,14 +119,19 @@ export function AutomaticExamFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+      {/* aquí limitamos la altura del contenido y ocultamos el overflow */}
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+
         <DialogHeader>
           <DialogTitle>Generar Examen Automático</DialogTitle>
           <DialogDescription>
             Configura los parámetros para generar el examen automáticamente
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-6 py-4 overflow-y-auto pr-2">
+
+        {/* este div es el que ahora se hace scrollable */}
+        <div className="space-y-6 py-4 pr-2">
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nombre del Examen</Label>
@@ -317,6 +322,8 @@ export function AutomaticExamFormDialog({
             </Card>
           )}
         </div>
+
+        {/* footer fijo abajo */}
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar

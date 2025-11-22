@@ -160,14 +160,17 @@ export function ManualExamFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      {/* Igual que en el automático: altura máx + overflow oculto */}
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditMode ? "Editar Examen Manual" : "Crear Examen Manual"}</DialogTitle>
           <DialogDescription>
             {isEditMode ? "Modifica las preguntas y datos del examen. Arrastra las preguntas para reordenarlas." : "Selecciona manualmente las preguntas para tu examen. Arrastra para reordenar."}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4 overflow-y-auto pr-2">
+
+        {/* body scrollable */}
+        <div className="space-y-4 py-4 pr-2">
           <div className="grid gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nombre del Examen</Label>
@@ -326,6 +329,8 @@ export function ManualExamFormDialog({
             </Card>
           )}
         </div>
+
+        {/* footer fijo */}
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar

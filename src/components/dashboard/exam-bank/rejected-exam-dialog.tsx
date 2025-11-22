@@ -32,14 +32,17 @@ export function RejectedExamDialog({ open, onOpenChange, exam }: RejectedExamDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      {/* Scroll en el propio DialogContent */}
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Examen Rechazado</DialogTitle>
           <DialogDescription>
             Revisa los comentarios de revisión y el contenido del examen
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-6 py-4 overflow-y-auto pr-2">
+
+        {/* Sin overflow aquí */}
+        <div className="space-y-6 py-4 pr-2">
           <Card className="p-4 bg-red-50 border-red-200">
             <div className="flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
@@ -118,6 +121,7 @@ export function RejectedExamDialog({ open, onOpenChange, exam }: RejectedExamDia
             </ScrollArea>
           </div>
         </div>
+
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button onClick={() => onOpenChange(false)}>
             Cerrar

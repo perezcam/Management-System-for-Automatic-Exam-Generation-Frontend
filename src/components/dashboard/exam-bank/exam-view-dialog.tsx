@@ -48,7 +48,8 @@ export function ExamViewDialog({ open, onOpenChange, exam }: ExamViewDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      {/* Aquí también movemos el overflow al DialogContent */}
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isRejected ? "Examen Rechazado" : isUnderReview ? "Vista Previa del Examen" : "Detalles del Examen"}
@@ -61,7 +62,8 @@ export function ExamViewDialog({ open, onOpenChange, exam }: ExamViewDialogProps
               : "Detalles y contenido del examen"}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-6 py-4 overflow-y-auto pr-2">
+        {/* Quitamos overflow-y-auto aquí */}
+        <div className="space-y-6 py-4 pr-2">
           {/* Mostrar comentarios de rechazo solo si está rechazado */}
           {isRejected && exam.reviewComment && (
             <Card className="p-4 bg-red-50 border-red-200">

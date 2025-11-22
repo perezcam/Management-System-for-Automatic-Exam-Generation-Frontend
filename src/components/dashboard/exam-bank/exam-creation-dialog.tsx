@@ -18,7 +18,8 @@ export function ExamCreationDialog({
 }: ExamCreationDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      {/* Añadido max-h y overflow para evitar desborde */}
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Crear Nuevo Examen</DialogTitle>
           <DialogDescription>

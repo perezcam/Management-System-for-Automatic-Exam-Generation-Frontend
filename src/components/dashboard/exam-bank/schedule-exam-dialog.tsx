@@ -64,14 +64,17 @@ export function ScheduleExamDialog({ open, onOpenChange, exam, onSchedule }: Sch
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      {/* Scroll en el DialogContent */}
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Programar Examen Aprobado</DialogTitle>
           <DialogDescription>
             Asigna el examen aprobado a un curso con fecha y hora específicas
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-6 py-4 overflow-y-auto pr-2">
+
+        {/* Sin overflow aquí */}
+        <div className="space-y-6 py-4 pr-2">
           <Card className="p-4 bg-accent/50">
             <div className="space-y-2">
               <h3 className="font-medium">{exam.name}</h3>
@@ -204,6 +207,7 @@ export function ScheduleExamDialog({ open, onOpenChange, exam, onSchedule }: Sch
             )}
           </div>
         </div>
+
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
