@@ -12,7 +12,6 @@ import { DifficultyLevelEnum } from "@/types/question-bank/enums/difficultyLevel
 import type { QuestionTypeDetail } from "@/types/question-administration/question-type";
 import type { TopicDetail } from "@/types/question-administration/topic";
 import { fetchCurrentUser } from "@/services/users/users";
-import { fetchUserSummary } from "@/services/users/users";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -76,6 +75,8 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentTeacherId, setCurrentTeacherId] = useState<string | null>(null);
   const [teachingSubjectIds, setTeachingSubjectIds] = useState<string[]>([]);
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
+  const [currentTeacherName, setCurrentTeacherName] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -187,7 +188,8 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
       body: question.body,
       type: questionTypeIdToName.get(question.questionTypeId) ?? question.questionTypeId,
       expectedAnswer: question.response ?? "",
-      author: authorNames[question.authorId] ?? question.authorId,
+      // nunca mostramos el ID crudo; si no hay nombre, texto amigable
+      author: authorNames[question.authorId] ?? "Autor desconocido",
       options: question.options?.map((option) => option.text),
     }));
   }, [authorNames, questions, questionTypeIdToName, subtopicIdToName]);
@@ -202,6 +204,12 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
 
       let teacherId: string | null = null;
       let teacherTeachingSubjectIds: string[] = [];
+      let teacherName: string | null = null;
+      let userName: string | null = null;
+
+      if (currentUser) {
+        userName = (currentUser).name ?? (currentUser).email ?? null;
+      }
 
       if (currentUser?.id) {
         try {
@@ -213,12 +221,13 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
             teacherId = teacher.id;
 
             try {
-              // Aquí sacamos las asignaturas que IMPARTE el profesor
+              // Aquí sacamos las asignaturas que IMPARTE el profesor y su nombre
               const teacherDetail = await fetchTeacherDetail(teacherId);
               teacherTeachingSubjectIds =
-                (teacherDetail ).teaching_subjects_ids ??
+                (teacherDetail).teaching_subjects_ids ??
                 (teacherDetail).subjects_ids ??
                 [];
+              teacherName = (teacherDetail).name ?? null;
             } catch (err) {
               console.error("No se pudo obtener el detalle del profesor actual", err);
             }
@@ -231,37 +240,49 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
       setQuestionTypes(types);
       setTopics(fetchedTopics);
       setCurrentUserId(currentUser?.id ?? null);
+      setCurrentUserName(userName);
       setCurrentTeacherId(teacherId);
+      setCurrentTeacherName(teacherName);
       setTeachingSubjectIds(teacherTeachingSubjectIds);
+
+      // si ya sabemos quién es el teacher actual, precargamos su nombre en el mapa
+      if (teacherId && teacherName) {
+        setAuthorNames((prev) =>
+          prev[teacherId!] ? prev : { ...prev, [teacherId!]: teacherName! },
+        );
+      }
     } catch (err) {
       setError(err as Error);
     }
   }, []);
 
-  const loadQuestions = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = {
-        q: search || undefined,
-        subtopicId: filters.subtopic !== "all" ? subtopicNameToId.get(filters.subtopic) : undefined,
-        questionTypeId: filters.type !== "all" ? questionTypeNameToId.get(filters.type) : undefined,
-        difficulty:
-          filters.difficulty !== "all"
-            ? DIFFICULTY_ENUM_BY_LABEL[filters.difficulty as QuestionListItem["difficulty"]]
-            : undefined,
-        limit: pageSize,
-        offset: (page - 1) * pageSize,
-      };
-      const { data, meta } = await fetchQuestions(params);
-      setQuestions(data);
-      setTotal(meta.total);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setLoading(false);
-    }
-  }, [filters, page, pageSize, questionTypeNameToId, search, subtopicNameToId]);
+  const loadQuestions = useCallback(
+    async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = {
+          q: search || undefined,
+          subtopicId: filters.subtopic !== "all" ? subtopicNameToId.get(filters.subtopic) : undefined,
+          questionTypeId: filters.type !== "all" ? questionTypeNameToId.get(filters.type) : undefined,
+          difficulty:
+            filters.difficulty !== "all"
+              ? DIFFICULTY_ENUM_BY_LABEL[filters.difficulty as QuestionListItem["difficulty"]]
+              : undefined,
+          limit: pageSize,
+          offset: (page - 1) * pageSize,
+        };
+        const { data, meta } = await fetchQuestions(params);
+        setQuestions(data);
+        setTotal(meta.total);
+      } catch (err) {
+        setError(err as Error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [filters, page, pageSize, questionTypeNameToId, search, subtopicNameToId],
+  );
 
   useEffect(() => {
     void loadCatalogs();
@@ -271,40 +292,70 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
     void loadQuestions();
   }, [loadQuestions]);
 
+  // Carga perezosa de nombres de autores (asumimos que authorId es teacherId)
   useEffect(() => {
-    const uniqueAuthorIds = Array.from(new Set(questions.map((question) => question.authorId)));
-    const missingAuthorIds = uniqueAuthorIds.filter((authorId) => !(authorId in authorNames));
-    if (missingAuthorIds.length === 0) {
-      return;
-    }
+    const uniqueAuthorIds = Array.from(new Set(questions.map((q) => q.authorId)));
+    const missingAuthorIds = uniqueAuthorIds.filter((id) => !(id in authorNames));
+    if (missingAuthorIds.length === 0) return;
+
     let cancelled = false;
+
     const loadAuthors = async () => {
       try {
         const entries = await Promise.all(
           missingAuthorIds.map(async (authorId) => {
-            const user = await fetchUserSummary(authorId);
-            return [authorId, user.name] as const;
+            // 1) Si es el teacher actual y ya tenemos su nombre
+            if (currentTeacherId && authorId === currentTeacherId && currentTeacherName) {
+              return [authorId, currentTeacherName] as const;
+            }
+
+            // 2) Intentar como teacher (principal caso)
+            try {
+              const teacher = await fetchTeacherDetail(authorId);
+              const name =
+                (teacher).name ??
+                (teacher).email ??
+                "Autor";
+              return [authorId, name] as const;
+            } catch {
+              // 3) Último recurso: si coincide con el user actual y tenemos su nombre
+              if (currentUserId && authorId === currentUserId && currentUserName) {
+                return [authorId, currentUserName] as const;
+              }
+              return [authorId, "Autor desconocido"] as const;
+            }
           }),
         );
-        if (cancelled) {
-          return;
-        }
+
+        if (cancelled) return;
+
         setAuthorNames((prev) => {
           const next = { ...prev };
-          entries.forEach(([authorId, name]) => {
-            next[authorId] = name;
+          entries.forEach(([id, name]) => {
+            if (!next[id]) {
+              next[id] = name;
+            }
           });
           return next;
         });
-      } catch (err) {
-        console.error("No se pudo cargar el autor de la pregunta", err);
+      } catch {
+        // si algo peta aquí, mejor no spamear la consola
       }
     };
+
     void loadAuthors();
+
     return () => {
       cancelled = true;
     };
-  }, [authorNames, questions]);
+  }, [
+    authorNames,
+    questions,
+    currentTeacherId,
+    currentTeacherName,
+    currentUserId,
+    currentUserName,
+  ]);
 
   const refresh = useCallback(async () => {
     await loadQuestions();
@@ -319,18 +370,54 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
     setPageState(nextPage < 1 ? 1 : nextPage);
   }, []);
 
-  const create = useCallback(async (payload: CreateQuestionPayload) => {
-    const created = await createQuestion(payload);
-    setQuestions((prev) => [created, ...prev]);
-    setTotal((prev) => (typeof prev === "number" ? prev + 1 : prev));
-    return created;
-  }, []);
+  const create = useCallback(
+    async (payload: CreateQuestionPayload) => {
+      const created = await createQuestion(payload);
+      setQuestions((prev) => [created, ...prev]);
+      setTotal((prev) => (typeof prev === "number" ? prev + 1 : prev));
 
-  const update = useCallback(async (questionId: string, payload: UpdateQuestionPayload) => {
-    const updated = await updateQuestion(questionId, payload);
-    setQuestions((prev) => prev.map((question) => (question.questionId === questionId ? updated : question)));
-    return updated;
-  }, []);
+      // Pre-cargar el nombre del autor si sabemos quién es
+      if (created.authorId) {
+        setAuthorNames((prev) => {
+          if (prev[created.authorId]) return prev;
+
+          let name: string | null = null;
+
+          if (
+            currentTeacherId &&
+            created.authorId === currentTeacherId &&
+            currentTeacherName
+          ) {
+            name = currentTeacherName;
+          } else if (
+            currentUserId &&
+            created.authorId === currentUserId &&
+            currentUserName
+          ) {
+            name = currentUserName;
+          }
+
+          if (!name) return prev;
+
+          return { ...prev, [created.authorId]: name };
+        });
+      }
+
+      return created;
+    },
+    [currentTeacherId, currentTeacherName, currentUserId, currentUserName],
+  );
+
+  const update = useCallback(
+    async (questionId: string, payload: UpdateQuestionPayload) => {
+      const updated = await updateQuestion(questionId, payload);
+      setQuestions((prev) =>
+        prev.map((question) => (question.questionId === questionId ? updated : question)),
+      );
+      return updated;
+    },
+    [],
+  );
 
   const remove = useCallback(async (questionId: string) => {
     await deleteQuestion(questionId);
