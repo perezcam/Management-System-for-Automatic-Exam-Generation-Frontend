@@ -35,9 +35,9 @@ export function QuestionFormDialog({
   const handleTypeChange = (value: string) => {
     onQuestionChange({ ...question, type: value })
     // Inicializar opciones para Verdadero/Falso
-    if (value === "Verdadero/Falso") {
-      onOptionsChange(["Verdadero", "Falso"])
-    } else if (value !== "Opción Múltiple") {
+    if (value === "TRUE_FALSE") {
+      onOptionsChange(["TRUE", "FALSE"])
+    } else if (value !== "MCQ") {
       onOptionsChange([])
     }
   }
@@ -60,7 +60,7 @@ export function QuestionFormDialog({
     onQuestionChange({ ...question, options: newOptions })
   }
 
-  const isMultipleChoiceOrTrueFalse = question.type === "Opción Múltiple" || question.type === "Verdadero/Falso"
+  const isMultipleChoiceOrTrueFalse = question.type === "MCQ" || question.type === "TRUE_FALSE"
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -139,9 +139,8 @@ export function QuestionFormDialog({
                       onChange={(e) => updateOption(index, e.target.value)}
                       placeholder={`Opción ${index + 1}`}
                       className="flex-1"
-                      disabled={question.type === "Verdadero/Falso"}
                     />
-                    {question.type !== "Verdadero/Falso" && (
+                    {question.type != "TRUE_FALSE" && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -152,7 +151,7 @@ export function QuestionFormDialog({
                     )}
                   </div>
                 ))}
-                {question.type === "Opción Múltiple" && (
+                {question.type == "MCQ" && (
                   <Button
                     variant="outline"
                     size="sm"
