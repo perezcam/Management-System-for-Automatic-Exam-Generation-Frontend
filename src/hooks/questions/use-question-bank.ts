@@ -13,7 +13,7 @@ import type { QuestionTypeDetail } from "@/types/question-administration/questio
 import type { TopicDetail } from "@/types/question-administration/topic";
 import { fetchCurrentUser } from "@/services/users/users";
 
-const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 2;
 
 const DIFFICULTY_LABELS: Record<DifficultyLevelEnum, QuestionListItem["difficulty"]> = {
   [DifficultyLevelEnum.EASY]: "Fácil",
@@ -373,7 +373,14 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
   const create = useCallback(
     async (payload: CreateQuestionPayload) => {
       const created = await createQuestion(payload);
-      setQuestions((prev) => [created, ...prev]);
+
+      // Solo insertamos en la página actual cuando estamos en la primera página.
+      // Además recortamos para respetar el límite de items por página.
+      setQuestions((prev) => {
+        if (page !== 1) return prev;
+        const next = [created, ...prev];
+        return next.slice(0, pageSize);
+      });
       setTotal((prev) => (typeof prev === "number" ? prev + 1 : prev));
 
       // Pre-cargar el nombre del autor si sabemos quién es
@@ -405,7 +412,7 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
 
       return created;
     },
-    [currentTeacherId, currentTeacherName, currentUserId, currentUserName],
+    [currentTeacherId, currentTeacherName, currentUserId, currentUserName, page, pageSize],
   );
 
   const update = useCallback(

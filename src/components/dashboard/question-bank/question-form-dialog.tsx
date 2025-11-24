@@ -5,7 +5,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Textarea } from "../../ui/textarea"
 import { Button } from "../../ui/button"
 import { Input } from "../../ui/input"
+import { Checkbox } from "../../ui/checkbox"
 import type { QuestionListItem, QuestionTypeOption } from "@/types/question-bank/view"
+
+type OptionInput = {
+  text: string
+  isCorrect: boolean
+}
 
 interface QuestionFormDialogProps {
   open: boolean
@@ -13,8 +19,8 @@ interface QuestionFormDialogProps {
   mode: "create" | "edit"
   question: Partial<QuestionListItem>
   onQuestionChange: (question: Partial<QuestionListItem>) => void
-  options: string[]
-  onOptionsChange: (options: string[]) => void
+  options: OptionInput[]
+  onOptionsChange: (options: OptionInput[]) => void
   questionTypes: QuestionTypeOption[]
   availableSubtopics: string[]
   onSubmit: () => void
@@ -33,31 +39,42 @@ export function QuestionFormDialog({
   onSubmit
 }: QuestionFormDialogProps) {
   const handleTypeChange = (value: string) => {
-    onQuestionChange({ ...question, type: value })
-    // Inicializar opciones para Verdadero/Falso
+    const baseQuestion = { ...question, type: value, expectedAnswer: "" }
+    onQuestionChange(baseQuestion)
+    // Inicializar opciones para Verdadero/Falso o limpiar para otros tipos
     if (value === "TRUE_FALSE") {
-      onOptionsChange(["TRUE", "FALSE"])
+      onOptionsChange([
+        { text: "", isCorrect: false },
+        { text: "", isCorrect: false },
+      ])
     } else if (value !== "MCQ") {
       onOptionsChange([])
+    } else {
+      onOptionsChange(options.length ? options : [{ text: "", isCorrect: false }])
     }
   }
 
   const addOption = () => {
-    onOptionsChange([...options, ""])
+    onOptionsChange([...options, { text: "", isCorrect: false }])
   }
 
   const removeOption = (index: number) => {
     const newOptions = [...options]
     newOptions.splice(index, 1)
     onOptionsChange(newOptions)
-    onQuestionChange({ ...question, options: newOptions })
   }
 
   const updateOption = (index: number, value: string) => {
     const newOptions = [...options]
-    newOptions[index] = value
+    newOptions[index] = { ...newOptions[index], text: value }
     onOptionsChange(newOptions)
-    onQuestionChange({ ...question, options: newOptions })
+  }
+
+  const toggleOptionCorrect = (index: number) => {
+    const newOptions = options.map((option, idx) =>
+      idx === index ? { ...option, isCorrect: !option.isCorrect } : option,
+    )
+    onOptionsChange(newOptions)
   }
 
   const isMultipleChoiceOrTrueFalse = question.type === "MCQ" || question.type === "TRUE_FALSE"
@@ -126,7 +143,7 @@ export function QuestionFormDialog({
               </SelectContent>
             </Select>
           </div>
-          {isMultipleChoiceOrTrueFalse ? (
+          {isMultipleChoiceOrTrueFalse && (
             <div className="space-y-2">
               <Label>Opciones</Label>
               <div className="space-y-2">
@@ -135,23 +152,30 @@ export function QuestionFormDialog({
                     <span className="text-sm font-medium w-6">{index + 1}.</span>
                     <Input
                       type="text"
-                      value={option}
+                      value={option.text}
                       onChange={(e) => updateOption(index, e.target.value)}
                       placeholder={`Opción ${index + 1}`}
                       className="flex-1"
                     />
-                    {question.type != "TRUE_FALSE" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeOption(index)}
-                      >
-                        <X className="h-4 w-4 text-destructive" />
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={option.isCorrect}
+                        onCheckedChange={() => toggleOptionCorrect(index)}
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {question.type === "TRUE_FALSE" ? "Verdadero" : "Correcta"}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeOption(index)}
+                    >
+                      <X className="h-4 w-4 text-destructive" />
+                    </Button>
                   </div>
                 ))}
-                {question.type == "MCQ" && (
+                {(question.type == "MCQ" || question.type === "TRUE_FALSE") && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -163,43 +187,31 @@ export function QuestionFormDialog({
                 )}
               </div>
             </div>
-          ) : (
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="body">{isMultipleChoiceOrTrueFalse ? "Enunciado de la Pregunta" : "Cuerpo de la Pregunta"}</Label>
+            <Textarea
+              id="body"
+              value={question.body}
+              onChange={(e) => onQuestionChange({ ...question, body: e.target.value })}
+              placeholder="Escribe aquí el enunciado de la pregunta..."
+              className="resize-none"
+              rows={isMultipleChoiceOrTrueFalse ? 3 : 4}
+            />
+          </div>
+          {!isMultipleChoiceOrTrueFalse && (
             <div className="space-y-2">
-              <Label htmlFor="body">Cuerpo de la Pregunta</Label>
+              <Label htmlFor="expectedAnswer">Respuesta Esperada</Label>
               <Textarea
-                id="body"
-                value={question.body}
-                onChange={(e) => onQuestionChange({ ...question, body: e.target.value })}
-                placeholder="Escribe aquí la pregunta..."
+                id="expectedAnswer"
+                value={question.expectedAnswer}
+                onChange={(e) => onQuestionChange({ ...question, expectedAnswer: e.target.value })}
+                placeholder="Describe la respuesta esperada..."
                 className="resize-none"
                 rows={4}
               />
             </div>
           )}
-          {isMultipleChoiceOrTrueFalse && (
-            <div className="space-y-2">
-              <Label htmlFor="body">Enunciado de la Pregunta</Label>
-              <Textarea
-                id="body"
-                value={question.body}
-                onChange={(e) => onQuestionChange({ ...question, body: e.target.value })}
-                placeholder="Escribe aquí el enunciado de la pregunta..."
-                className="resize-none"
-                rows={3}
-              />
-            </div>
-          )}
-          <div className="space-y-2">
-            <Label htmlFor="expectedAnswer">Respuesta Esperada</Label>
-            <Textarea
-              id="expectedAnswer"
-              value={question.expectedAnswer}
-              onChange={(e) => onQuestionChange({ ...question, expectedAnswer: e.target.value })}
-              placeholder="Describe la respuesta esperada..."
-              className="resize-none"
-              rows={4}
-            />
-          </div>
         </div>
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
