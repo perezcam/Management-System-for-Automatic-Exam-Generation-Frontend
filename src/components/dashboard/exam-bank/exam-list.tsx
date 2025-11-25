@@ -1,34 +1,33 @@
-import { Edit2, Trash2, FileText, Calendar, Send } from "lucide-react"
+import { FileText } from "lucide-react"
+import type { ExamListItem } from "@/hooks/exams/use-exams"
 import { Card } from "../../ui/card"
-import { Button } from "../../ui/button"
 import { Badge } from "../../ui/badge"
-import { Exam } from "./types"
 
 interface ExamListProps {
-  exams: Exam[]
-  onView: (exam: Exam) => void
-  onEdit: (exam: Exam) => void
-  onDelete: (exam: Exam) => void
-  onSchedule: (exam: Exam) => void
-  onSendToReview?: (exam: Exam) => void
+  exams: ExamListItem[]
+  onSelect?: (exam: ExamListItem) => void
 }
 
 function getStatusColor(status: string) {
   switch (status) {
     case "Aprobado":
+    case "APPROVED":
       return "bg-green-100 text-green-700 hover:bg-green-100"
     case "Bajo Revisión":
+    case "UNDER_REVIEW":
       return "bg-yellow-100 text-yellow-700 hover:bg-yellow-100"
     case "Rechazado":
+    case "REJECTED":
       return "bg-red-100 text-red-700 hover:bg-red-100"
     case "Borrador":
+    case "DRAFT":
       return "bg-gray-100 text-gray-700 hover:bg-gray-100"
     default:
       return "bg-gray-100 text-gray-700 hover:bg-gray-100"
   }
 }
 
-export function ExamList({ exams, onView, onEdit, onDelete, onSchedule, onSendToReview }: ExamListProps) {
+export function ExamList({ exams, onSelect }: ExamListProps) {
   return (
     <Card className="p-6">
       <div className="space-y-3">
@@ -39,66 +38,38 @@ export function ExamList({ exams, onView, onEdit, onDelete, onSchedule, onSendTo
           >
             <div
               className="p-4 hover:bg-accent transition-colors cursor-pointer"
-              onClick={() => onView(exam)}
+              onClick={() => onSelect?.(exam)}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <FileText className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="font-medium">{exam.name}</h3>
-                    <Badge className={getStatusColor(exam.status)}>
-                      {exam.status}
+                    <h3 className="font-medium">{exam.title}</h3>
+                    <Badge className={getStatusColor(exam.statusLabel || exam.status)}>
+                      {exam.statusLabel || exam.status}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <Badge variant="outline">{exam.subject}</Badge>
+                    {exam.subjectName ? <Badge variant="outline">{exam.subjectName}</Badge> : null}
                     <Badge variant="secondary">
-                      {exam.totalQuestions} pregunta{exam.totalQuestions !== 1 ? "s" : ""}
+                      {exam.questionCount} pregunta{exam.questionCount !== 1 ? "s" : ""}
                     </Badge>
                     <Badge variant="secondary">
-                      {exam.type === "manual" ? "Manual" : "Automático"}
+                      {exam.difficultyLabel}
                     </Badge>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    <span className="font-medium">Creado por:</span> {exam.createdBy}
-                    <span className="mx-2">•</span>
-                    <span>{exam.createdAt}</span>
-                    {exam.validator && (
+                    {exam.authorLabel ? (
                       <>
+                        <span className="font-medium">Autor:</span> {exam.authorLabel}
                         <span className="mx-2">•</span>
-                        <span className="font-medium">Validador:</span> {exam.validator}
                       </>
-                    )}
+                    ) : null}
+                    <span>{exam.createdAtLabel}</span>
                   </div>
-                </div>
-                <div className="flex gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <Button variant="ghost" size="sm" onClick={() => onView(exam)} title="Ver examen">
-                    <FileText className="h-4 w-4" />
-                  </Button>
-                  {exam.type === "manual" && (
-                    <Button variant="ghost" size="sm" onClick={() => onEdit(exam)} title="Editar examen">
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button variant="ghost" size="sm" onClick={() => onDelete(exam)} title="Eliminar examen">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                  {exam.status === "Aprobado" && (
-                    <Button variant="default" size="sm" onClick={() => onSchedule(exam)} title="Programar examen">
-                      <Calendar className="h-4 w-4" />
-                    </Button>
-                  )}
-                  {exam.status === "Borrador" && (
-                    <Button variant="default" size="sm" onClick={() => onSendToReview?.(exam)} title="Enviar a revisión">
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  )}
                 </div>
               </div>
             </div>
-            
-            {/* Vista previa automática para exámenes aprobados */}
-            {/* Removed preview section */}
           </div>
         ))}
       </div>

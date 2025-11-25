@@ -35,11 +35,11 @@ export function QuestionList({ questions, onEdit, onDelete }: QuestionListProps)
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <Badge variant="outline">{question.subtopic}</Badge>
+                  {question.subtopic ? <Badge variant="outline">{question.subtopic}</Badge> : null}
                   <Badge className={getDifficultyColor(question.difficulty)}>
                     {question.difficulty}
                   </Badge>
-                  <Badge variant="secondary">{question.type}</Badge>
+                  {question.type ? <Badge variant="secondary">{question.type}</Badge> : null}
                 </div>
                 <p className="mb-2 break-words">{question.body}</p>
                 <p className="text-sm text-muted-foreground">
