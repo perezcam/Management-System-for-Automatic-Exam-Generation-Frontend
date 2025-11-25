@@ -41,7 +41,7 @@ export const config = {
     "/messaging","/messaging/:path*",
     "/statistics","/statistics/:path*",
     "/administration","/administration/:path*",
-    //"/exam_bank","/exam_bank/:path*",
+    "/exam_bank","/exam_bank/:path*",
     "/exam_generator","/exam_generator/:path*",
     "/question_bank","/question_bank/:path*",
     "/subjects","/subjects/:path*",
