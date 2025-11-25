@@ -42,7 +42,6 @@ export const config = {
     "/statistics","/statistics/:path*",
     "/administration","/administration/:path*",
     "/exam_bank","/exam_bank/:path*",
-    "/exam_generator","/exam_generator/:path*",
     "/question_bank","/question_bank/:path*",
     "/subjects","/subjects/:path*",
     "/exams","/exams/:path*",

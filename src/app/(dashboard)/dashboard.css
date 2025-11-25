@@ -715,10 +715,6 @@
     height: 200px;
   }
 
-  .h-\[250px\] {
-    height: 250px;
-  }
-
   .h-\[300px\] {
     height: 300px;
   }
@@ -2334,20 +2330,8 @@
   }
 
   @media (width >= 40rem) {
-    .sm\:h-8 {
-      height: calc(var(--spacing) * 8);
-    }
-  }
-
-  @media (width >= 40rem) {
     .sm\:h-16 {
       height: calc(var(--spacing) * 16);
-    }
-  }
-
-  @media (width >= 40rem) {
-    .sm\:w-8 {
-      width: calc(var(--spacing) * 8);
     }
   }
 
