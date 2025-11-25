@@ -57,7 +57,7 @@ export default function UsersAdminPage() {
     deleteAdmin, deleteStudent, deleteTeacher,
   } = useUsers();
 
-  const { subjects } = UseQuestionAdministration();
+  const { subjectsAll } = UseQuestionAdministration();
 
   return (
     <div className="flex-1 p-6 overflow-auto">
@@ -78,7 +78,7 @@ export default function UsersAdminPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <UserRegistrationForm
-              subjects={subjects.map((s) => ({ id: s.subject_id, name: s.subject_name }))}
+              subjects={subjectsAll.map((s) => ({ id: s.subject_id, name: s.subject_name }))}
               onCreateAdmin={createAdmin}
               onCreateStudent={createStudent}
               onCreateTeacher={createTeacher}
@@ -140,7 +140,7 @@ export default function UsersAdminPage() {
                   refresh: refreshTeachers,
                   setFilter: setTeachersFilter,
                 }}
-                subjects={subjects.map((s) => ({ id: s.subject_id, name: s.subject_name }))}
+                subjects={subjectsAll.map((s) => ({ id: s.subject_id, name: s.subject_name }))}
                 onUpdateAdmin={updateAdmin}
                 onUpdateStudent={updateStudent}
                 onUpdateTeacher={updateTeacher}

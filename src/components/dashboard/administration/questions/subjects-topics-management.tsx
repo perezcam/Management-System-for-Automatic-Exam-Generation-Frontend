@@ -16,7 +16,9 @@ import { CreateSubtopicPayload, SubTopicDetail } from "@/types/question-administ
 
 interface SubjectsTopicsManagementProps {
   subjects: SubjectDetail[]
+  allSubjects?: SubjectDetail[]
   topics: TopicDetail[]
+  allTopics?: TopicDetail[]
   loading?: boolean
   subjectsPage?: number
   subjectsPageSize?: number
@@ -53,7 +55,9 @@ const emptyCreateTopic: CreateTopicPayload = {
 
 export function SubjectsTopicsManagement({
   subjects,
+  allSubjects = subjects,
   topics,
+  allTopics = topics,
   loading,
   subjectsPage = 1,
   subjectsPageSize = subjects.length || 10,
@@ -124,9 +128,9 @@ export function SubjectsTopicsManagement({
     () => {
       if (!selectedSubject) return []
       const existingIds = new Set(selectedSubject.topics.map((t) => t.topic_id))
-      return topics.filter((topic) => !existingIds.has(topic.topic_id))
+      return allTopics.filter((topic) => !existingIds.has(topic.topic_id))
     },
-    [selectedSubject, topics],
+    [selectedSubject, allTopics],
   )
 
   const isInitialLoading = loading && subjects.length === 0 && topics.length === 0
@@ -520,7 +524,7 @@ export function SubjectsTopicsManagement({
 
           <Accordion type="single" collapsible className="w-full">
             {topics.map((topic) => {
-              const subjectCount = subjects.filter((s) =>
+              const subjectCount = allSubjects.filter((s) =>
                 s.topics.some((t) => t.topic_id === topic.topic_id),
               ).length
               const filteredSubtopics = topic.subtopics.filter((subtopic) =>

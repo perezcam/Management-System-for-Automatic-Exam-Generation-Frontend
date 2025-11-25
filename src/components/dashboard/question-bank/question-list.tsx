@@ -2,12 +2,12 @@ import { Edit2, Trash2 } from "lucide-react"
 import { Card } from "../../ui/card"
 import { Button } from "../../ui/button"
 import { Badge } from "../../ui/badge"
-import { Question } from "./types"
+import type { QuestionListItem } from "@/types/question-bank/view"
 
 interface QuestionListProps {
-  questions: Question[]
-  onEdit: (question: Question) => void
-  onDelete: (question: Question) => void
+  questions: QuestionListItem[]
+  onEdit: (question: QuestionListItem) => void
+  onDelete: (question: QuestionListItem) => void
 }
 
 function getDifficultyColor(difficulty: string) {

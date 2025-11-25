@@ -15,22 +15,4 @@ export type UserSummary = {
   role: UserRole;
 };
 
-export type {
-  AdminDetail,
-  AdminUser,
-  CreateAdminPayload,
-  UpdateAdminPayload,
-} from "./admin";
-export type {
-  StudentDetail,
-  StudentUser,
-  CreateStudentPayload,
-  UpdateStudentPayload,
-} from "./student";
-export type {
-  TeacherDetail,
-  TeacherUser,
-  CreateTeacherPayload,
-  UpdateTeacherPayload,
-} from "./teacher";
-
+export type CurrentUser = UserSummary;

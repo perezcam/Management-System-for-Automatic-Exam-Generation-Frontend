@@ -14,11 +14,13 @@ export default function QuestionsAdminPage() {
   const {
     questionTypes,
     subjects,
+    subjectsAll,
     subjectsPage,
     subjectsPageSize,
     subjectsTotal,
     subjectsFilter,
     topics,
+    topicsAll,
     topicsPage,
     topicsPageSize,
     topicsTotal,
@@ -84,6 +86,8 @@ export default function QuestionsAdminPage() {
         <SubjectsTopicsManagement
           subjects={subjects}
           topics={topics}
+          allSubjects={subjectsAll}
+          allTopics={topicsAll}
           loading={loading}
           subjectsPage={subjectsPage}
           subjectsPageSize={subjectsPageSize}
