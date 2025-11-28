@@ -10,7 +10,7 @@ export const API_ENDPOINTS = {
   questionTopics: "/api/proxy/topics",
   questionSubtopics: "/api/proxy/subtopics",
   subjectTopics: "/api/proxy/subject-topics",
-  pendingExams: "/api/proxy/pending-exams",
+  pendingExams: "/api/proxy/exams",
 } as const;
 
 export type ApiEndpointKey = keyof typeof API_ENDPOINTS;

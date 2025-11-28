@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from "react"
 import { XCircle, MessageSquare } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../ui/dialog"

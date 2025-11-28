@@ -26,13 +26,13 @@ export const ROLE_ALLOWED_KEYS: Record<Role, FolderKey[]> = {
     "messaging", "statistics", "administration",
   ],
   [Role.Teacher]: [
-    "messaging", "question-bank",
+    "messaging", "question-bank", "pending-exams", 
   ],
   [Role.SubjectLeader]: [
-    "pending-exams", "messaging",
+    "pending-exams", "messaging", "question-bank",
   ],
   [Role.Examiner]: [
-    "exam-bank", "pending-exams", "messaging",
+    "exam-bank", "messaging", "question-bank",
   ],
   [Role.Student]: [
     "exams", "subjects", "messaging",

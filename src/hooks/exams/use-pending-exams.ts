@@ -67,10 +67,10 @@ export function usePendingExams(pageSize: number = DEFAULT_PAGE_SIZE): UsePendin
     try {
       const trimmedSearch = search.trim();
       const { data, meta } = await fetchPendingExams({
-        q: trimmedSearch || undefined,
+        title: trimmedSearch || undefined,
         subjectId: mapValue(filters.subjectId),
-        teacherId: mapValue(filters.professorId),
-        status: mapValue(filters.status),
+        authorId: mapValue(filters.professorId),
+        examStatus: mapValue(filters.status),
         limit: pageSize,
         offset: (page - 1) * pageSize,
       });
