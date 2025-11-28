@@ -6,6 +6,7 @@ import { Badge } from "../../ui/badge"
 interface ExamListProps {
   exams: ExamListItem[]
   onSelect?: (exam: ExamListItem) => void
+  selectedExamId?: string | null
 }
 
 function getStatusColor(status: string) {
@@ -27,17 +28,19 @@ function getStatusColor(status: string) {
   }
 }
 
-export function ExamList({ exams, onSelect }: ExamListProps) {
+export function ExamList({ exams, onSelect, selectedExamId }: ExamListProps) {
   return (
     <Card className="p-6">
       <div className="space-y-3">
-        {exams.map((exam) => (
+        {exams.map((exam) => {
+          const isSelected = selectedExamId === exam.id
+          return (
           <div
             key={exam.id}
-            className="border rounded-lg"
+            className={`border rounded-lg ${isSelected ? "border-primary" : ""}`}
           >
             <div
-              className="p-4 hover:bg-accent transition-colors cursor-pointer"
+              className={`p-4 hover:bg-accent transition-colors cursor-pointer ${isSelected ? "bg-primary/5" : ""}`}
               onClick={() => onSelect?.(exam)}
             >
               <div className="flex items-start justify-between gap-4">
@@ -71,7 +74,8 @@ export function ExamList({ exams, onSelect }: ExamListProps) {
               </div>
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
     </Card>
   )

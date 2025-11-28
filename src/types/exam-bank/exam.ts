@@ -5,6 +5,13 @@ export type TopicCoverage = {
   minPerTopic: number;
 };
 
+export type ExamQuestionAssignment = {
+  id: string;
+  examId: string;
+  questionId: string;
+  questionIndex: number;
+};
+
 export type ExamDetail = {
   id: string;
   title: string;
@@ -20,4 +27,26 @@ export type ExamDetail = {
   validatedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  questions?: ExamQuestionAssignment[] | null;
+};
+
+
+export type CreateManualExamPayload = {
+  title: string;
+  subjectId: string;
+  questions: Array<{ questionId: string; questionIndex: number }>;
+};
+
+export type CreateAutomaticExamPayload = {
+  title: string;
+  subjectId: string;
+  questionCount: number;
+  questionTypeDistribution: Array<{ type: string; count: number }>;
+  difficultyDistribution: Array<{ difficulty: string; count: number }>;
+  topicCoverage?: string[];
+  subtopicDistribution?: Array<{ subtopic: string; count: number }>;
+};
+
+export type UpdateExamPayload = {
+  questions: Array<{ questionId: string; questionIndex: number }>;
 };

@@ -2,11 +2,26 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { fetchExams } from "@/services/exam-bank/exams";
+import {
+  createAutomaticExam,
+  createManualExam,
+  deleteExam as deleteExamRequest,
+  fetchExamById,
+  fetchExams,
+  sendExamForReview as sendExamForReviewRequest,
+  updateExam,
+} from "@/services/exam-bank/exams";
+import { fetchQuestionById } from "@/services/question-bank/questions";
 import { fetchSubjects } from "@/services/question-administration/subjects";
 import { fetchCurrentUser, fetchUsers } from "@/services/users/users";
 import { fetchTeacherDetail, fetchTeachers } from "@/services/users/teachers";
-import type { ExamDetail } from "@/types/exam-bank/exam";
+import type {
+  CreateAutomaticExamPayload,
+  CreateManualExamPayload,
+  ExamDetail,
+  ExamQuestionAssignment,
+} from "@/types/exam-bank/exam";
+import type { QuestionDetail } from "@/types/question-bank/question";
 import type { SubjectDetail } from "@/types/question-administration/subject";
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -53,6 +68,11 @@ export type ExamListItem = {
   createdAtLabel: string;
 };
 
+export type ExamQuestionItem = ExamQuestionAssignment & {
+  key: string;
+  detail?: QuestionDetail;
+};
+
 export const DEFAULT_EXAM_FILTERS: ExamFilters = {
   subjectId: "all",
   difficulty: "all",
@@ -69,8 +89,30 @@ const formatDateLabel = (value?: string | null): string => {
 
 const withFallbackLabel = (value?: string | null, labels: Record<string, string> = {}) => {
   if (!value) return "—";
-  return labels[value] ?? value;
+  const normalized = String(value);
+  return labels[normalized] ?? labels[normalized.toUpperCase()] ?? normalized;
 };
+
+const normalizeExamQuestions = (questions: ExamQuestionAssignment[] = []): ExamQuestionAssignment[] => {
+  const sorted = [...questions].sort((a, b) => (a.questionIndex ?? 0) - (b.questionIndex ?? 0));
+  return sorted.map((question, index) => ({
+    ...question,
+    questionIndex: index + 1,
+    id: question.id ?? `${question.questionId}-${index}`,
+  }));
+};
+
+const toPatchPayloadQuestions = (questions: ExamQuestionAssignment[]) =>
+  normalizeExamQuestions(questions)
+    .map((question, idx) => {
+      const questionId = (question as unknown as { question_id?: string }).question_id ?? question.questionId;
+      if (!questionId) return null;
+      return {
+        questionId,
+        questionIndex: question.questionIndex ?? idx + 1,
+      };
+    })
+    .filter(Boolean) as Array<{ questionId: string; questionIndex: number }>;
 
 export type UseExamsResult = {
   exams: ExamListItem[];
@@ -90,6 +132,26 @@ export type UseExamsResult = {
   availableDifficulties: string[];
   refresh: () => Promise<void>;
   setPage: (page: number) => void;
+  creatingExam: boolean;
+  createManual: (payload: CreateManualExamPayload) => Promise<ExamDetail | null>;
+  createAutomatic: (payload: CreateAutomaticExamPayload) => Promise<ExamDetail | null>;
+  selectedExamId: string | null;
+  selectedExam: ExamDetail | null;
+  selectedExamQuestions: ExamQuestionItem[];
+  selectedExamLoading: boolean;
+  selectedExamError: Error | null;
+  savingExam: boolean;
+  deletingExam: boolean;
+  sendingForReview: boolean;
+  saveExamQuestions: (questions: ExamQuestionAssignment[]) => Promise<void>;
+  selectExam: (examId: string | null) => Promise<void>;
+  refreshSelectedExam: () => Promise<void>;
+  addQuestionToSelectedExam: (questionId: string) => Promise<void>;
+  removeQuestionFromSelectedExam: (questionId: string) => Promise<void>;
+  reorderSelectedExamQuestions: (fromIndex: number, toIndex: number) => Promise<void>;
+  deleteExam: (examId: string) => Promise<void>;
+  sendExamForReview: (examId: string) => Promise<void>;
+  clearSelection: () => void;
 };
 
 export function useExams(pageSize: number = DEFAULT_PAGE_SIZE): UseExamsResult {
@@ -107,6 +169,15 @@ export function useExams(pageSize: number = DEFAULT_PAGE_SIZE): UseExamsResult {
   const [teacherSubjectsMap, setTeacherSubjectsMap] = useState<Record<string, string[]>>({});
   const [currentTeacherId, setCurrentTeacherId] = useState<string | null>(null);
   const [currentTeacherName, setCurrentTeacherName] = useState<string | null>(null);
+  const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
+  const [selectedExam, setSelectedExam] = useState<ExamDetail | null>(null);
+  const [selectedExamLoading, setSelectedExamLoading] = useState(false);
+  const [selectedExamError, setSelectedExamError] = useState<Error | null>(null);
+  const [savingExam, setSavingExam] = useState(false);
+  const [deletingExam, setDeletingExam] = useState(false);
+  const [sendingForReview, setSendingForReview] = useState(false);
+  const [questionDetails, setQuestionDetails] = useState<Record<string, QuestionDetail>>({});
+  const [creatingExam, setCreatingExam] = useState(false);
 
   const subjectIdToName = useMemo(() => {
     const map = new Map<string, string>();
@@ -272,6 +343,16 @@ export function useExams(pageSize: number = DEFAULT_PAGE_SIZE): UseExamsResult {
     }));
   }, [rawExams, subjectIdToName, teacherNameById]);
 
+  const selectedExamQuestions = useMemo<ExamQuestionItem[]>(() => {
+    if (!selectedExam?.questions) return [];
+    const normalized = normalizeExamQuestions(selectedExam.questions);
+    return normalized.map((question) => ({
+      ...question,
+      key: question.id ?? question.questionId,
+      detail: questionDetails[question.questionId],
+    }));
+  }, [questionDetails, selectedExam]);
+
   const loadSubjects = useCallback(async () => {
     try {
       const fetchedSubjects = await fetchSubjects();
@@ -309,6 +390,283 @@ export function useExams(pageSize: number = DEFAULT_PAGE_SIZE): UseExamsResult {
     }
   }, [filters.authorId, filters.difficulty, filters.status, filters.subjectId, page, pageSize, search]);
 
+  const ensureQuestionDetails = useCallback(
+    async (questions: ExamQuestionAssignment[] = []) => {
+      const ids = questions.map((item) => item.questionId).filter(Boolean);
+      const missing = Array.from(new Set(ids)).filter((id) => !questionDetails[id]);
+      if (!missing.length) return;
+
+      const entries = await Promise.all(
+        missing.map(async (id) => {
+          try {
+            const detail = await fetchQuestionById(id);
+            return [id, detail] as const;
+          } catch (err) {
+            console.error(`No se pudo cargar la pregunta ${id}`, err);
+            return null;
+          }
+        }),
+      );
+
+      setQuestionDetails((prev) => {
+        const next = { ...prev };
+        entries.forEach((entry) => {
+          if (!entry) return;
+          const [id, detail] = entry;
+          next[id] = detail;
+        });
+        return next;
+      });
+    },
+    [questionDetails],
+  );
+
+  const loadSelectedExam = useCallback(
+    async (examId: string) => {
+      setSelectedExamLoading(true);
+      setSelectedExamError(null);
+      setSelectedExamId(examId);
+      setSelectedExam(null);
+      try {
+        const exam = await fetchExamById(examId);
+        setSelectedExam(exam);
+        await ensureQuestionDetails(exam.questions ?? []);
+      } catch (err) {
+        setSelectedExamError(err as Error);
+      } finally {
+        setSelectedExamLoading(false);
+      }
+    },
+    [ensureQuestionDetails],
+  );
+
+  const refreshSelectedExam = useCallback(async () => {
+    if (!selectedExamId) return;
+    await loadSelectedExam(selectedExamId);
+  }, [loadSelectedExam, selectedExamId]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedExamId(null);
+    setSelectedExam(null);
+    setSelectedExamError(null);
+  }, []);
+
+  const persistExamQuestions = useCallback(
+    async (questions: ExamQuestionAssignment[]) => {
+      if (!selectedExamId) return;
+      setSelectedExamError(null);
+      setSavingExam(true);
+      try {
+        const payload = {
+          questions: toPatchPayloadQuestions(questions),
+        };
+        if (!payload.questions.length) {
+          throw new Error("No se pudo preparar el listado de preguntas para guardar");
+        }
+        const updated = await updateExam(selectedExamId, payload);
+        setSelectedExam(updated);
+        setRawExams((prev) =>
+          prev.map((exam) => (exam.id === updated.id ? { ...exam, ...updated } : exam)),
+        );
+        await ensureQuestionDetails(updated.questions ?? []);
+      } catch (err) {
+        setSelectedExamError(err as Error);
+        throw err;
+      } finally {
+        setSavingExam(false);
+      }
+    },
+    [ensureQuestionDetails, selectedExamId],
+  );
+
+  const reorderSelectedExamQuestions = useCallback(
+    async (fromIndex: number, toIndex: number) => {
+      if (!selectedExam) return;
+      const current = normalizeExamQuestions(selectedExam.questions ?? []);
+      if (fromIndex === toIndex) return;
+      if (fromIndex < 0 || toIndex < 0 || fromIndex >= current.length || toIndex >= current.length) return;
+
+      const next = [...current];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+
+      setSelectedExam((prev) =>
+        prev
+          ? {
+            ...prev,
+            questions: normalizeExamQuestions(next),
+            questionCount: next.length,
+          }
+          : prev,
+      );
+
+      await persistExamQuestions(next);
+    },
+    [persistExamQuestions, selectedExam],
+  );
+
+  const removeQuestionFromSelectedExam = useCallback(
+    async (questionId: string) => {
+      if (!selectedExam) return;
+      const current = normalizeExamQuestions(selectedExam.questions ?? []);
+      const next = current.filter((question) => question.questionId !== questionId);
+      setSelectedExam((prev) =>
+        prev
+          ? {
+            ...prev,
+            questions: normalizeExamQuestions(next),
+            questionCount: next.length,
+          }
+          : prev,
+      );
+      await persistExamQuestions(next);
+    },
+    [persistExamQuestions, selectedExam],
+  );
+
+  const addQuestionToSelectedExam = useCallback(
+    async (questionId: string) => {
+      if (!selectedExam) return;
+      const current = normalizeExamQuestions(selectedExam.questions ?? []);
+      if (current.some((question) => question.questionId === questionId)) return;
+
+      const next: ExamQuestionAssignment[] = [
+        ...current,
+        {
+          id: `temp-${questionId}-${Date.now()}`,
+          examId: selectedExam.id,
+          questionId,
+          questionIndex: current.length + 1,
+        },
+      ];
+
+      setSelectedExam((prev) =>
+        prev
+          ? {
+            ...prev,
+            questions: normalizeExamQuestions(next),
+            questionCount: next.length,
+          }
+          : prev,
+      );
+
+      await ensureQuestionDetails([
+        {
+          id: questionId,
+          examId: selectedExam.id,
+          questionId,
+          questionIndex: next.length,
+        },
+      ]);
+      await persistExamQuestions(next);
+    },
+    [ensureQuestionDetails, persistExamQuestions, selectedExam],
+  );
+
+  const selectExam = useCallback(
+    async (examId: string | null) => {
+      if (!examId) {
+        clearSelection();
+        return;
+      }
+      await loadSelectedExam(examId);
+    },
+    [clearSelection, loadSelectedExam],
+  );
+
+  const deleteExam = useCallback(
+    async (examId: string) => {
+      setDeletingExam(true);
+      setSelectedExamError(null);
+      try {
+        await deleteExamRequest(examId);
+        setRawExams((prev) => prev.filter((exam) => exam.id !== examId));
+        setTotal((prev) => (typeof prev === "number" ? Math.max(0, prev - 1) : prev));
+
+        if (selectedExamId === examId) {
+          clearSelection();
+        }
+      } catch (err) {
+        setSelectedExamError(err as Error);
+        throw err;
+      } finally {
+        setDeletingExam(false);
+      }
+    },
+    [clearSelection, selectedExamId],
+  );
+
+  const createManual = useCallback(
+    async (payload: CreateManualExamPayload) => {
+      setCreatingExam(true);
+      setSelectedExamError(null);
+      try {
+        const created = await createManualExam(payload);
+        setRawExams((prev) => [created, ...prev]);
+        setTotal((prev) => (typeof prev === "number" ? prev + 1 : prev));
+        setSelectedExam(created);
+        setSelectedExamId(created.id);
+        await ensureQuestionDetails(created.questions ?? []);
+        return created;
+      } catch (err) {
+        setSelectedExamError(err as Error);
+        throw err;
+      } finally {
+        setCreatingExam(false);
+      }
+    },
+    [ensureQuestionDetails],
+  );
+
+  const saveExamQuestions = useCallback(
+    async (questions: ExamQuestionAssignment[]) => {
+      await persistExamQuestions(questions);
+    },
+    [persistExamQuestions],
+  );
+
+  const createAutomatic = useCallback(
+    async (payload: CreateAutomaticExamPayload) => {
+      setCreatingExam(true);
+      setSelectedExamError(null);
+      try {
+        const created = await createAutomaticExam(payload);
+        setRawExams((prev) => [created, ...prev]);
+        setTotal((prev) => (typeof prev === "number" ? prev + 1 : prev));
+        setSelectedExam(created);
+        setSelectedExamId(created.id);
+        await ensureQuestionDetails(created.questions ?? []);
+        return created;
+      } catch (err) {
+        setSelectedExamError(err as Error);
+        throw err;
+      } finally {
+        setCreatingExam(false);
+      }
+    },
+    [ensureQuestionDetails],
+  );
+
+  const sendExamForReview = useCallback(
+    async (examId: string) => {
+      setSendingForReview(true);
+      setSelectedExamError(null);
+      try {
+        const updated = await sendExamForReviewRequest(examId);
+        setSelectedExam(updated);
+        setRawExams((prev) =>
+          prev.map((exam) => (exam.id === updated.id ? { ...exam, ...updated } : exam))
+        );
+      } catch (err) {
+        setSelectedExamError(err as Error);
+        throw err;
+      } finally {
+        setSendingForReview(false);
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
     loadSubjects();
   }, [loadSubjects]);
@@ -320,6 +678,12 @@ export function useExams(pageSize: number = DEFAULT_PAGE_SIZE): UseExamsResult {
   useEffect(() => {
     loadExams();
   }, [loadExams]);
+
+  useEffect(() => {
+    if (selectedExam?.questions?.length) {
+      void ensureQuestionDetails(selectedExam.questions);
+    }
+  }, [ensureQuestionDetails, selectedExam]);
 
   const setFilters = (next: ExamFilters) => {
     setPageState(1);
@@ -357,5 +721,25 @@ export function useExams(pageSize: number = DEFAULT_PAGE_SIZE): UseExamsResult {
     availableDifficulties,
     refresh,
     setPage,
+    creatingExam,
+    createManual,
+    createAutomatic,
+    selectedExamId,
+    selectedExam,
+    selectedExamQuestions,
+    selectedExamLoading,
+    selectedExamError,
+    savingExam,
+    deletingExam,
+    sendingForReview,
+    selectExam,
+    refreshSelectedExam,
+    addQuestionToSelectedExam,
+    removeQuestionFromSelectedExam,
+    reorderSelectedExamQuestions,
+    deleteExam,
+    sendExamForReview,
+    saveExamQuestions,
+    clearSelection,
   };
 }
