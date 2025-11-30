@@ -205,21 +205,6 @@ const getEstadoBadge = (estado: Prueba["estado"]) => {
   }
 }
 
-const getEstadoLabel = (estado: string) => {
-  switch (estado) {
-    case "pendiente":
-      return "Pendiente"
-    case "activa":
-      return "Activa"
-    case "en-revision":
-      return "En Revisión"
-    case "calificada":
-      return "Calificada"
-    default:
-      return estado
-  }
-}
-
 // Mock questions para los exámenes activos
 const mockQuestions = {
   "2": [ // Parcial 2 - Base de Datos (activa)
