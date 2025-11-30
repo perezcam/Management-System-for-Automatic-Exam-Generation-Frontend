@@ -99,9 +99,9 @@ export const createAutomaticExam = async (payload: CreateAutomaticExamPayload): 
 
 export const sendExamForReview = async (examId: string): Promise<ExamDetail> => {
   const resp = await backendRequest<RetrieveExamResponse>(
-    `${EXAMS_ENDPOINT}/${examId}/submit-for-review`,
+    `${EXAMS_ENDPOINT}/${examId}/request-review`,
     {
-      method: "PATCH",
+      method: "POST",
     }
   );
   if (!resp.data) {
