@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
   questionTopics: "/api/proxy/topics",
   questionSubtopics: "/api/proxy/subtopics",
   subjectTopics: "/api/proxy/subject-topics",
+  exams: "/api/proxy/exams",
 } as const;
 
 export type ApiEndpointKey = keyof typeof API_ENDPOINTS;
@@ -25,6 +26,9 @@ export const QUESTION_SUBJECTS_ENDPOINT = API_ENDPOINTS.questionSubjects;
 export const QUESTION_TOPICS_ENDPOINT = API_ENDPOINTS.questionTopics;
 export const QUESTION_SUBTOPICS_ENDPOINT = API_ENDPOINTS.questionSubtopics;
 export const QUESTION_SUBJECT_TOPICS_ENDPOINT = API_ENDPOINTS.subjectTopics;
+export const EXAMS_ENDPOINT = API_ENDPOINTS.exams;
+export const EXAMS_MANUAL_ENDPOINT = `${EXAMS_ENDPOINT}/manual`;
+export const EXAMS_AUTOMATIC_ENDPOINT = `${EXAMS_ENDPOINT}/automatic`;
 
 
 export type QueryParams = Record<string, string | number | boolean | undefined | null>;
