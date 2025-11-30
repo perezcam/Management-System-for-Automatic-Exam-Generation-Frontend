@@ -2,7 +2,7 @@ import { Plus } from "lucide-react"
 import { Button } from "../../ui/button"
 
 interface ExamBankHeaderProps {
-  onNewExam: () => void
+  onNewExam?: () => void
 }
 
 export function ExamBankHeader({ onNewExam }: ExamBankHeaderProps) {
@@ -14,10 +14,12 @@ export function ExamBankHeader({ onNewExam }: ExamBankHeaderProps) {
           Repositorio de exámenes creados y aprobados
         </p>
       </div>
-      <Button onClick={onNewExam}>
-        <Plus className="mr-2 h-4 w-4" />
-        Nuevo Examen
-      </Button>
+      {onNewExam && (
+        <Button onClick={onNewExam}>
+          <Plus className="mr-2 h-4 w-4" />
+          Nuevo Examen
+        </Button>
+      )}
     </div>
   )
 }

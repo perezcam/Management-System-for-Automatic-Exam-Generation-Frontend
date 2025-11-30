@@ -29,6 +29,11 @@ export type SelectedQuestion = {
   options?: string[]
 }
 
+// Payload para actualizar un examen (reordenar/agregar/quitar preguntas)
+export type ExamUpdatePayload = {
+  questions: Array<{ questionId: string; questionIndex: number }>
+}
+
 export type Subject = {
   id: string
   name: string

@@ -183,10 +183,10 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
   const viewQuestions = useMemo<QuestionListItem[]>(() => {
     return questions.map((question) => ({
       id: question.questionId,
-      subtopic: subtopicIdToName.get(question.subtopicId) ?? question.subtopicId,
+      subtopic: subtopicIdToName.get(question.subtopicId) ?? "",
       difficulty: DIFFICULTY_LABELS[question.difficulty] ?? "Regular",
       body: question.body,
-      type: questionTypeIdToName.get(question.questionTypeId) ?? question.questionTypeId,
+      type: questionTypeIdToName.get(question.questionTypeId) ?? "",
       expectedAnswer: question.response ?? "",
       // nunca mostramos el ID crudo; si no hay nombre, texto amigable
       author: authorNames[question.authorId] ?? "Autor desconocido",
