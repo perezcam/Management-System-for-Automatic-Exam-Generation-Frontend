@@ -4,6 +4,7 @@ export type PendingExamDifficulty = "F\u00E1cil" | "Regular" | "Dif\u00EDcil" | 
 
 export type PendingExamQuestion = {
   id: string;
+  questionId?: string;
   body: string;
   type: string;
   difficulty: PendingExamDifficulty;

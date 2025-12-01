@@ -50,3 +50,29 @@ export type CreateAutomaticExamPayload = {
 export type UpdateExamPayload = {
   questions: Array<{ questionId: string; questionIndex: number }>;
 };
+
+export type AutomaticExamPreviewQuestion = {
+  questionId: string;
+  questionIndex: number;
+  difficulty: string;
+  questionTypeId: string;
+  subTopicId: string;
+  topicId: string;
+  body: string;
+  options?: Array<{ text: string; isCorrect: boolean }>;
+  response?: string | null;
+};
+
+export type AutomaticExamPreview = {
+  title: string;
+  subjectId: string;
+  difficulty: string;
+  examStatus: string;
+  authorId: string;
+  validatorId?: string | null;
+  observations?: string | null;
+  questionCount: number;
+  topicProportion?: TopicProportion | null;
+  topicCoverage?: TopicCoverage | null;
+  questions: AutomaticExamPreviewQuestion[];
+};

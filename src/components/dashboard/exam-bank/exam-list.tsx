@@ -35,45 +35,45 @@ export function ExamList({ exams, onSelect, selectedExamId }: ExamListProps) {
         {exams.map((exam) => {
           const isSelected = selectedExamId === exam.id
           return (
-          <div
-            key={exam.id}
-            className={`border rounded-lg ${isSelected ? "border-primary" : ""}`}
-          >
             <div
-              className={`p-4 hover:bg-accent transition-colors cursor-pointer ${isSelected ? "bg-primary/5" : ""}`}
-              onClick={() => onSelect?.(exam)}
+              key={exam.id}
+              className={`border rounded-lg ${isSelected ? "border-primary" : ""}`}
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="font-medium">{exam.title}</h3>
-                    <Badge className={getStatusColor(exam.statusLabel || exam.status)}>
-                      {exam.statusLabel || exam.status}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    {exam.subjectName ? <Badge variant="outline">{exam.subjectName}</Badge> : null}
-                    <Badge variant="secondary">
-                      {exam.questionCount} pregunta{exam.questionCount !== 1 ? "s" : ""}
-                    </Badge>
-                    <Badge variant="secondary">
-                      {exam.difficultyLabel}
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {exam.authorLabel ? (
-                      <>
-                        <span className="font-medium">Autor:</span> {exam.authorLabel}
-                        <span className="mx-2">•</span>
-                      </>
-                    ) : null}
-                    <span>{exam.createdAtLabel}</span>
+              <div
+                className={`p-4 hover:bg-accent transition-colors cursor-pointer ${isSelected ? "bg-primary/5" : ""}`}
+                onClick={() => onSelect?.(exam)}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <h3 className="font-medium">{exam.title}</h3>
+                      <Badge className={getStatusColor(exam.statusLabel || exam.status)}>
+                        {exam.statusLabel || exam.status}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      {exam.subjectName ? <Badge variant="outline">{exam.subjectName}</Badge> : null}
+                      <Badge variant="secondary">
+                        {exam.questionCount} pregunta{exam.questionCount !== 1 ? "s" : ""}
+                      </Badge>
+                      <Badge variant="secondary">
+                        {exam.difficultyLabel}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {exam.authorLabel ? (
+                        <>
+                          <span className="font-medium">Autor:</span> {exam.authorLabel}
+                          <span className="mx-2">•</span>
+                        </>
+                      ) : null}
+                      <span>{exam.createdAtLabel}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
           )
         })}
       </div>

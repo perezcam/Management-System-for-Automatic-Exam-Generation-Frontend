@@ -16,8 +16,13 @@ import {
   fetchPendingExams,
   rejectPendingExam,
 } from "@/services/pending-exams/exams";
-import { fetchSubjectDetail } from "@/services/question-administration/subjects";
-import { fetchTeacherDetail } from "@/services/users/teachers";
+import { fetchSubjectDetail, fetchSubjects } from "@/services/question-administration/subjects";
+import { fetchTeacherDetail, fetchTeachers } from "@/services/users/teachers";
+import { fetchCurrentUser } from "@/services/users/users";
+import { fetchQuestionById } from "@/services/question-bank/questions";
+import type { QuestionDetail } from "@/types/question-bank/question";
+import type { ExamQuestionListItem } from "@/types/exam-question-list";
+import { fetchQuestionTypes } from "@/services/question-administration/question_types";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -145,6 +150,7 @@ export type UsePendingExamsResult = {
   setSearch: (value: string) => void;
   refresh: () => Promise<void>;
   getExamDetail: (examId: string, options?: { force?: boolean }) => Promise<PendingExamDetail>;
+  getExamQuestionsWithDetails: (exam: PendingExamDetail | null) => ExamQuestionListItem[];
   approveExam: (examId: string, payload?: ApprovePendingExamPayload) => Promise<PendingExamDetail>;
   rejectExam: (examId: string, payload?: RejectPendingExamPayload) => Promise<PendingExamDetail>;
 };
@@ -157,18 +163,140 @@ export function usePendingExams(pageSize: number = DEFAULT_PAGE_SIZE): UsePendin
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [validatorId, setValidatorId] = useState<string | null>(null);
+  const [validatorReady, setValidatorReady] = useState(false);
   const examDetailsRef = useRef<ExamDetailCache>({});
+  const [questionDetails, setQuestionDetails] = useState<Record<string, QuestionDetail>>({});
+  const [subtopicNames, setSubtopicNames] = useState<Record<string, string>>({});
+  const [questionTypeNames, setQuestionTypeNames] = useState<Record<string, string>>({});
+const ensurePendingQuestionDetails = useCallback(
+  async (questions: PendingExamQuestion[] = []) => {
+    const ids = Array.from(
+      new Set(
+        questions
+          .map((question) => question.questionId ?? question.id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+      const missing = ids.filter((id) => !questionDetails[id]);
+      if (!missing.length) return;
+
+      const entries = await Promise.all(
+        missing.map(async (id) => {
+          try {
+            const detail = await fetchQuestionById(id);
+            return [id, detail] as const;
+          } catch (err) {
+            console.error(`No se pudo cargar la pregunta ${id}`, err);
+            return null;
+          }
+        }),
+      );
+
+      setQuestionDetails((prev) => {
+        const next = { ...prev };
+        entries.forEach((entry) => {
+          if (!entry) return;
+          const [id, detail] = entry;
+          next[id] = detail;
+        });
+        return next;
+      });
+    },
+    [questionDetails],
+  );
+
+const resolveValidatorTeacher = useCallback(async () => {
+  try {
+    const currentUser = await fetchCurrentUser().catch(() => null);
+    if (!currentUser?.id) return;
+
+    const teachersPage = await fetchTeachers({ limit: 100, offset: 0 });
+    teachersPage.data.forEach((teacher) => {
+      if (teacher.id && teacher.name) {
+        teacherNameCache.set(teacher.id, teacher.name);
+      }
+    });
+
+    const currentTeacher = teachersPage.data.find((teacher) => teacher.userId === currentUser.id);
+    if (currentTeacher?.id) {
+      setValidatorId(currentTeacher.id);
+      if (currentTeacher.name) {
+        teacherNameCache.set(currentTeacher.id, currentTeacher.name);
+      } else if (currentUser.name) {
+        teacherNameCache.set(currentTeacher.id, currentUser.name);
+      }
+    }
+  } catch (err) {
+    console.error("No se pudo resolver el validador actual", err);
+  } finally {
+    setValidatorReady(true);
+  }
+}, []);
+
+useEffect(() => {
+  let active = true;
+
+  const loadLookupData = async () => {
+    try {
+      const [subjects, questionTypes] = await Promise.all([
+        fetchSubjects(),
+        fetchQuestionTypes({ limit: 100 }),
+      ]);
+
+      if (!active) return;
+
+      const subtopicMap: Record<string, string> = {};
+      subjects.forEach((subject) => {
+        subject.topics?.forEach((topic) => {
+          topic.subtopics?.forEach((subtopic) => {
+            if (subtopic.subtopic_id && subtopic.subtopic_name) {
+              subtopicMap[subtopic.subtopic_id] = subtopic.subtopic_name;
+            }
+          });
+        });
+      });
+
+      const questionTypeMap: Record<string, string> = {};
+      questionTypes.forEach((type) => {
+        if (type.id && type.name) {
+          questionTypeMap[type.id] = type.name;
+        }
+      });
+
+      setSubtopicNames(subtopicMap);
+      setQuestionTypeNames(questionTypeMap);
+    } catch (err) {
+      console.error("No se pudieron cargar los subtemas y tipos de pregunta", err);
+    }
+  };
+
+  void loadLookupData();
+
+  return () => {
+    active = false;
+  };
+}, []);
 
   const loadExams = useCallback(async () => {
+    if (!validatorReady) {
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
+      if (!validatorId) {
+        setExams([]);
+        setTotal(0);
+        return;
+      }
       const trimmedSearch = search.trim();
       const { data, meta } = await fetchPendingExams({
         title: trimmedSearch || undefined,
         subjectId: mapValue(filters.subjectId),
         authorId: mapValue(filters.professorId),
         examStatus: mapValue(filters.status),
+        validatorId,
         limit: pageSize,
         offset: (page - 1) * pageSize,
       });
@@ -190,7 +318,11 @@ export function usePendingExams(pageSize: number = DEFAULT_PAGE_SIZE): UsePendin
     } finally {
       setLoading(false);
     }
-  }, [filters, page, pageSize, search]);
+  }, [filters, page, pageSize, search, validatorId, validatorReady]);
+
+  useEffect(() => {
+    void resolveValidatorTeacher();
+  }, [resolveValidatorTeacher]);
 
   useEffect(() => {
     void loadExams();
@@ -242,28 +374,56 @@ export function usePendingExams(pageSize: number = DEFAULT_PAGE_SIZE): UsePendin
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [exams]);
 
-    const getExamDetail = useCallback(
-      async (examId: string, options: { force?: boolean } = {}) => {
-        if (!options.force) {
-          const cached = examDetailsRef.current[examId];
-          if (cached) {
-            return cached;
-          }
+  const getExamDetail = useCallback(
+    async (examId: string, options: { force?: boolean } = {}) => {
+      if (!options.force) {
+        const cached = examDetailsRef.current[examId];
+        if (cached) {
+          return cached;
         }
+      }
 
-        const rawDetail = await fetchPendingExamDetail(examId);
-        const detail = await enhanceExamDetailWithNames(rawDetail);
+      const rawDetail = await fetchPendingExamDetail(examId);
+      const detail = await enhanceExamDetailWithNames(rawDetail);
+      await ensurePendingQuestionDetails(detail.questions ?? []);
 
-        examDetailsRef.current[examId] = detail;
-        return detail;
-      },
-      [],
-    );
+      examDetailsRef.current[examId] = detail;
+      return detail;
+    },
+    [ensurePendingQuestionDetails],
+  );
 
+  const getExamQuestionsWithDetails = useCallback(
+    (exam: PendingExamDetail | null): ExamQuestionListItem[] => {
+      if (!exam) return [];
+      const questions = exam.questions ?? [];
+      return questions.map((question) => {
+        const questionId = question.questionId ?? question.id;
+        const detail = questionDetails[questionId];
+        const resolvedSubtopic =
+          detail?.subtopicId && subtopicNames[detail.subtopicId]
+            ? subtopicNames[detail.subtopicId]
+            : question.subtopic;
+        const resolvedType =
+          detail?.questionTypeId && questionTypeNames[detail.questionTypeId]
+            ? questionTypeNames[detail.questionTypeId]
+            : question.type;
+        return {
+          id: question.id,
+          subtopic: resolvedSubtopic,
+          difficulty: question.difficulty,
+          type: resolvedType,
+          body: detail?.body ?? question.body,
+        };
+      });
+    },
+    [questionDetails, questionTypeNames, subtopicNames],
+  );
 
   const approveExamHandler = useCallback(
     async (examId: string, payload: ApprovePendingExamPayload = {}) => {
       const detail = await approvePendingExam(examId, payload);
+      await ensurePendingQuestionDetails(detail.questions ?? []);
       setExams((prev) =>
         prev.map((exam) =>
           exam.id === examId
@@ -279,12 +439,13 @@ export function usePendingExams(pageSize: number = DEFAULT_PAGE_SIZE): UsePendin
       examDetailsRef.current[examId] = detail;
       return detail;
     },
-    [],
+    [ensurePendingQuestionDetails],
   );
 
   const rejectExamHandler = useCallback(
     async (examId: string, payload: RejectPendingExamPayload = {}) => {
       const detail = await rejectPendingExam(examId, payload);
+      await ensurePendingQuestionDetails(detail.questions ?? []);
       setExams((prev) =>
         prev.map((exam) =>
           exam.id === examId
@@ -298,7 +459,7 @@ export function usePendingExams(pageSize: number = DEFAULT_PAGE_SIZE): UsePendin
       examDetailsRef.current[examId] = detail;
       return detail;
     },
-    [],
+    [ensurePendingQuestionDetails],
   );
 
   return {
@@ -317,6 +478,7 @@ export function usePendingExams(pageSize: number = DEFAULT_PAGE_SIZE): UsePendin
     setSearch,
     refresh,
     getExamDetail,
+    getExamQuestionsWithDetails,
     approveExam: approveExamHandler,
     rejectExam: rejectExamHandler,
   };

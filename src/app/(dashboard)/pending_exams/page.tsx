@@ -23,6 +23,7 @@ export default function PendingExamsPage() {
     professorOptions,
     subjectOptions,
     getExamDetail,
+    getExamQuestionsWithDetails,
     approveExam,
     rejectExam,
   } = usePendingExams();
@@ -32,6 +33,10 @@ export default function PendingExamsPage() {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedExam, setSelectedExam] = useState<PendingExamDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const resolvedQuestions = useMemo(
+    () => getExamQuestionsWithDetails(selectedExam),
+    [getExamQuestionsWithDetails, selectedExam],
+  );
 
   useEffect(() => {
     setTempFilters(filters);
@@ -64,7 +69,7 @@ export default function PendingExamsPage() {
   const handleApproveExam = useCallback(
     async (examId: string, comment?: string) => {
       try {
-        const updated = await approveExam(examId, { comment });
+    const updated = await approveExam(examId, { comment });
         setSelectedExam(updated);
         showSuccess("Examen aprobado", "Se notificó al profesor.");
       } catch (err) {
@@ -79,7 +84,7 @@ export default function PendingExamsPage() {
   const handleRejectExam = useCallback(
     async (examId: string, comment?: string) => {
       try {
-        const updated = await rejectExam(examId, { comment });
+    const updated = await rejectExam(examId, { comment });
         setSelectedExam(updated);
         showSuccess("Examen rechazado", "El profesor recibirá tus comentarios.");
       } catch (err) {
@@ -181,6 +186,7 @@ export default function PendingExamsPage() {
         onOpenChange={handleDetailDialogChange}
         exam={selectedExam}
         loading={detailLoading}
+        questions={resolvedQuestions}
         onApprove={handleApproveExam}
         onReject={handleRejectExam}
       />

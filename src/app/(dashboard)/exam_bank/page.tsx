@@ -79,9 +79,18 @@ type SortableExamQuestionRowProps = {
   index: number
   onRemove: (questionId: string) => void
   disabled?: boolean
+  subtopicLabel?: string
+  topicLabel?: string
 }
 
-function SortableExamQuestionRow({ question, index, onRemove, disabled }: SortableExamQuestionRowProps) {
+function SortableExamQuestionRow({
+  question,
+  index,
+  onRemove,
+  disabled,
+  subtopicLabel,
+  topicLabel,
+}: SortableExamQuestionRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: question.key,
     disabled,
@@ -114,6 +123,8 @@ function SortableExamQuestionRow({ question, index, onRemove, disabled }: Sortab
       <span className="text-sm font-medium mt-1">{index + 1}.</span>
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center gap-2 flex-wrap">
+          {topicLabel ? <Badge variant="secondary">{topicLabel}</Badge> : null}
+          {subtopicLabel ? <Badge variant="outline">{subtopicLabel}</Badge> : null}
           {difficultyLabel ? <Badge variant="secondary">{difficultyLabel}</Badge> : null}
         </div>
         <p className="text-sm break-words text-muted-foreground">
@@ -166,7 +177,120 @@ export default function BancoExamenesView() {
     createAutomatic,
     creatingExam,
     saveExamQuestions,
+    getQuestionsWithDetails,
   } = useExams()
+
+  // ... (existing code)
+
+  const handleAutomaticSubmit = async () => {
+    if (creatingExam) return
+    if (!automaticForm.name || !automaticForm.subject) return
+    const difficultyDistribution = automaticForm.difficultyDistribution.map((item) => ({
+      difficulty: difficultyLabelToEnum[item.difficulty] ?? item.difficulty,
+      count: item.count,
+    }))
+
+    const questionTypeDistribution = automaticForm.questionTypeDistribution.map((item) => {
+      const backendName = QUESTION_TYPE_LABEL_TO_NAME[item.type] ?? item.type
+      const typeId =
+        questionTypeIdByName.get(backendName) ||
+        questionTypeIdByName.get(backendName.toUpperCase())
+      return {
+        type: typeId ?? item.type,
+        count: item.count,
+      }
+    })
+
+    const resolvedTopics = automaticForm.topicCoverage.map((subtopicName) => {
+      const id = subtopicNameToTopicId.get(subtopicName) ?? subtopicNameToTopicId.get(subtopicName.toLowerCase())
+      return id
+    })
+
+    if (resolvedTopics.some((id) => !id)) {
+      setExamActionError(
+        "No se pudieron resolver los tópicos de los subtópicos seleccionados. Refresca el catálogo e intenta de nuevo.",
+      )
+      return
+    }
+
+    const topicCoverage = Array.from(new Set(resolvedTopics.filter(Boolean) as string[]))
+
+    const subtopicDistribution = automaticForm.subtopicDistribution
+      .map((item) => {
+        const subtopicId =
+          subtopicIdByName.get(item.subtopic) ?? subtopicIdByName.get(item.subtopic.toLowerCase())
+        if (!subtopicId) return null
+        return { subtopic: subtopicId, count: item.count }
+      })
+      .filter(Boolean) as Array<{ subtopic: string; count: number }>
+
+    const hasMissingQuestionTypes = questionTypeDistribution.some(
+      (item, index) =>
+        !questionTypeIdByName.size || item.type === automaticForm.questionTypeDistribution[index].type,
+    )
+    if (hasMissingQuestionTypes) {
+      setExamActionError(
+        "No se pudieron resolver los tipos de pregunta seleccionados. Refresca el catálogo e intenta de nuevo.",
+      )
+      return
+    }
+
+    if (subtopicDistribution.length !== automaticForm.subtopicDistribution.length) {
+      setExamActionError(
+        "No se pudieron resolver los subtópicos seleccionados. Refresca el catálogo e intenta de nuevo.",
+      )
+      return
+    }
+
+    try {
+      const preview = await createAutomatic({
+        title: automaticForm.name,
+        subjectId: automaticForm.subject,
+        questionCount: automaticForm.totalQuestions,
+        questionTypeDistribution,
+        difficultyDistribution,
+        topicCoverage,
+        subtopicDistribution,
+      })
+
+      if (preview) {
+        const questionsWithDetails = getQuestionsWithDetails(preview.questions)
+
+        const mappedQuestions: SelectedQuestion[] = questionsWithDetails.map(q => {
+          const difficulty = getDifficultyLabel(q.detail?.difficulty) as "Fácil" | "Regular" | "Difícil"
+          // Find type name by ID
+          const typeName = questionTypes.find(t => t.id === q.detail?.questionTypeId)?.name || "Desconocido"
+
+          return {
+            id: q.questionId,
+            topic: "", // Topic name not strictly needed for the list view usually, or we can look it up
+            subtopic: subtopicIdToName.get(q.detail?.subtopicId ?? "") ?? "",
+            difficulty: difficulty || "Regular",
+            type: typeName,
+            body: q.detail?.body ?? "Pregunta sin cuerpo",
+            options: q.detail?.options?.map(o => o.text)
+          }
+        })
+
+        setManualForm({
+          name: preview.title,
+          subject: preview.subjectId,
+          selectedQuestions: mappedQuestions
+        })
+
+        setExamActionError(null)
+        setShowAutomaticDialog(false)
+        setIsAutomaticPreview(true)
+        setShowManualDialog(true)
+        // Do NOT reset automatic form yet, in case they want to go back? 
+        // Or reset it. The user flow implies they move forward.
+        resetAutomaticForm()
+      }
+
+    } catch (err) {
+      setExamActionError(err instanceof Error ? err.message : "No se pudo generar el examen")
+    }
+  }
 
   const [showFiltersDialog, setShowFiltersDialog] = useState(false)
   const [tempFilters, setTempFilters] = useState(filters)
@@ -177,6 +301,7 @@ export default function BancoExamenesView() {
   const [showCreationDialog, setShowCreationDialog] = useState(false)
   const [showManualDialog, setShowManualDialog] = useState(false)
   const [showAutomaticDialog, setShowAutomaticDialog] = useState(false)
+  const [isAutomaticPreview, setIsAutomaticPreview] = useState(false)
   const [draftQuestions, setDraftQuestions] = useState<ExamQuestionItem[]>([])
   const [questionsDirty, setQuestionsDirty] = useState(false)
   const [manualForm, setManualForm] = useState<ManualExamForm>({
@@ -231,9 +356,10 @@ export default function BancoExamenesView() {
     uniqueSubtopicNames,
     uniqueQuestionTypeNames,
     availableSubtopics,
+    questionTypes,
     refresh: refreshQuestionBank,
     topics,
-  } = useQuestionBank(10)
+  } = useQuestionBank(3)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -346,6 +472,49 @@ export default function BancoExamenesView() {
     [uniqueQuestionTypeNames],
   )
 
+  const questionTypeIdByName = useMemo(() => {
+    const map = new Map<string, string>()
+    questionTypes.forEach((type) => {
+      if (type.name && type.id) {
+        map.set(type.name, type.id)
+        map.set(type.name.toUpperCase(), type.id)
+      }
+    })
+    return map
+  }, [questionTypes])
+
+  const QUESTION_TYPE_LABEL_TO_NAME: Record<string, string> = {
+    "Ensayo": "ESSAY",
+    "Opción Múltiple": "MCQ",
+    "Verdadero/Falso": "TRUE_FALSE",
+  }
+
+  const subtopicIdByName = useMemo(() => {
+    const map = new Map<string, string>()
+    availableSubtopics.forEach((subtopic) => {
+      if (subtopic.name && subtopic.id) {
+        map.set(subtopic.name, subtopic.id)
+        map.set(subtopic.name.toLowerCase(), subtopic.id)
+      }
+    })
+    return map
+  }, [availableSubtopics])
+
+  const subtopicNameToTopicId = useMemo(() => {
+    const map = new Map<string, string>()
+    topics.forEach((topic: any) => {
+      const topicId = topic.topic_id ?? topic.id
+      topic.subtopics?.forEach((subtopic: any) => {
+        const name = subtopic.subtopic_name ?? subtopic.name
+        if (name && topicId) {
+          map.set(name, topicId)
+          map.set(name.toLowerCase(), topicId)
+        }
+      })
+    })
+    return map
+  }, [topics])
+
   const questionsTotalItems = questionsTotal ?? availableQuestions.length
   const questionsTotalPages = questionsTotalItems
     ? Math.max(1, Math.ceil(questionsTotalItems / questionPageSize))
@@ -385,6 +554,34 @@ export default function BancoExamenesView() {
     })
     return map
   }, [topics])
+
+  const subtopicIdToName = useMemo(() => {
+    const map = new Map<string, string>()
+    topics.forEach((topic: any) => {
+      topic.subtopics?.forEach((subtopic: any) => {
+        const id = subtopic.subtopic_id ?? subtopic.id
+        const name = subtopic.subtopic_name ?? subtopic.name
+        if (id && name) {
+          map.set(id, name)
+        }
+      })
+    })
+    return map
+  }, [topics])
+
+  const subtopicIdToTopicName = useMemo(() => {
+    const map = new Map<string, string>()
+    topics.forEach((topic: any) => {
+      const topicName = topicNamesMap.get(topic.topic_id) ?? topic.topic_name ?? topic.name ?? ""
+      topic.subtopics?.forEach((subtopic: any) => {
+        const id = subtopic.subtopic_id ?? subtopic.id
+        if (id) {
+          map.set(id, topicName)
+        }
+      })
+    })
+    return map
+  }, [topicNamesMap, topics])
 
   const handleApplyFilters = () => {
     setFilters(tempFilters)
@@ -433,36 +630,7 @@ export default function BancoExamenesView() {
     }
   }
 
-  const handleAutomaticSubmit = async () => {
-    if (creatingExam) return
-    if (!automaticForm.name || !automaticForm.subject) return
-    const difficultyDistribution = automaticForm.difficultyDistribution.map((item) => ({
-      difficulty: difficultyLabelToEnum[item.difficulty] ?? item.difficulty,
-      count: item.count,
-    }))
-    const questionTypeDistribution = automaticForm.questionTypeDistribution.map((item) => ({
-      type: item.type,
-      count: item.count,
-    }))
 
-    try {
-      await createAutomatic({
-        title: automaticForm.name,
-        subjectId: automaticForm.subject,
-        questionCount: automaticForm.totalQuestions,
-        questionTypeDistribution,
-        difficultyDistribution,
-        topicCoverage: automaticForm.topicCoverage,
-        subtopicDistribution: automaticForm.subtopicDistribution,
-      })
-      setExamActionError(null)
-      setShowAutomaticDialog(false)
-      setShowCreationDialog(false)
-      resetAutomaticForm()
-    } catch (err) {
-      setExamActionError(err instanceof Error ? err.message : "No se pudo generar el examen")
-    }
-  }
 
   useEffect(() => {
     if (showAddQuestionDialog) {
@@ -821,6 +989,16 @@ export default function BancoExamenesView() {
                                 index={index}
                                 onRemove={(id) => handleRemoveDraftQuestion(id)}
                                 disabled={savingExam || selectedExamLoading}
+                                subtopicLabel={
+                                  question.detail?.subtopicId
+                                    ? subtopicIdToName.get(question.detail.subtopicId)
+                                    : undefined
+                                }
+                                topicLabel={
+                                  question.detail?.subtopicId
+                                    ? subtopicIdToTopicName.get(question.detail.subtopicId)
+                                    : undefined
+                                }
                               />
                             ))
                           ) : (
@@ -881,6 +1059,7 @@ export default function BancoExamenesView() {
           setShowManualDialog(open)
           if (!open) {
             resetManualForm()
+            setIsAutomaticPreview(false)
           }
         }}
         form={manualForm}
@@ -893,7 +1072,8 @@ export default function BancoExamenesView() {
             )
             : selectableQuestions
         }
-        onSubmit={() => void handleManualSubmit()}
+        onSubmit={handleManualSubmit}
+        isAutomaticPreview={isAutomaticPreview}
       />
 
       <AutomaticExamFormDialog
@@ -911,12 +1091,12 @@ export default function BancoExamenesView() {
       />
 
       <Dialog open={showAddQuestionDialog} onOpenChange={setShowAddQuestionDialog}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>Agregar pregunta al examen</DialogTitle>
             <DialogDescription>Filtra por subtópico, tipo o dificultad y añade solo preguntas de tus asignaturas.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[80vh] overflow-hidden flex flex-col min-h-0">
             <div className="grid gap-3 md:grid-cols-3">
               <div className="space-y-1">
                 <Label>Subtópico</Label>
@@ -999,7 +1179,7 @@ export default function BancoExamenesView() {
               <p className="text-sm text-destructive">No se pudieron cargar las preguntas: {questionBankError.message}</p>
             ) : null}
 
-            <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+            <div className="space-y-2">
               {questionsLoading ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />

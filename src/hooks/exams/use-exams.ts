@@ -20,11 +20,13 @@ import type {
   CreateManualExamPayload,
   ExamDetail,
   ExamQuestionAssignment,
+  AutomaticExamPreview,
+  AutomaticExamPreviewQuestion,
 } from "@/types/exam-bank/exam";
 import type { QuestionDetail } from "@/types/question-bank/question";
 import type { SubjectDetail } from "@/types/question-administration/subject";
 
-const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 6;
 
 export const STATUS_LABELS: Record<string, string> = {
   valid: "Aprobado",
@@ -93,13 +95,14 @@ const withFallbackLabel = (value?: string | null, labels: Record<string, string>
   return labels[normalized] ?? labels[normalized.toUpperCase()] ?? normalized;
 };
 
-const normalizeExamQuestions = (questions: ExamQuestionAssignment[] = []): ExamQuestionAssignment[] => {
+const normalizeExamQuestions = (questions: ExamQuestionAssignment[] | AutomaticExamPreviewQuestion[] = []): ExamQuestionAssignment[] => {
   const sorted = [...questions].sort((a, b) => (a.questionIndex ?? 0) - (b.questionIndex ?? 0));
   return sorted.map((question, index) => ({
     ...question,
     questionIndex: index + 1,
-    id: question.id ?? `${question.questionId}-${index}`,
-  }));
+    id: (question as any).id ?? `${question.questionId}-${index}`,
+    examId: (question as any).examId ?? "",
+  })) as ExamQuestionAssignment[];
 };
 
 const toPatchPayloadQuestions = (questions: ExamQuestionAssignment[]) =>
@@ -134,7 +137,7 @@ export type UseExamsResult = {
   setPage: (page: number) => void;
   creatingExam: boolean;
   createManual: (payload: CreateManualExamPayload) => Promise<ExamDetail | null>;
-  createAutomatic: (payload: CreateAutomaticExamPayload) => Promise<ExamDetail | null>;
+  createAutomatic: (payload: CreateAutomaticExamPayload) => Promise<AutomaticExamPreview | null>;
   selectedExamId: string | null;
   selectedExam: ExamDetail | null;
   selectedExamQuestions: ExamQuestionItem[];
@@ -152,6 +155,7 @@ export type UseExamsResult = {
   deleteExam: (examId: string) => Promise<void>;
   sendExamForReview: (examId: string) => Promise<void>;
   clearSelection: () => void;
+  getQuestionsWithDetails: (assignments: ExamQuestionAssignment[] | AutomaticExamPreviewQuestion[]) => ExamQuestionItem[];
 };
 
 export function useExams(pageSize: number = DEFAULT_PAGE_SIZE): UseExamsResult {
@@ -391,7 +395,7 @@ export function useExams(pageSize: number = DEFAULT_PAGE_SIZE): UseExamsResult {
   }, [filters.authorId, filters.difficulty, filters.status, filters.subjectId, page, pageSize, search]);
 
   const ensureQuestionDetails = useCallback(
-    async (questions: ExamQuestionAssignment[] = []) => {
+    async (questions: ExamQuestionAssignment[] | AutomaticExamPreviewQuestion[] = []) => {
       const ids = questions.map((item) => item.questionId).filter(Boolean);
       const missing = Array.from(new Set(ids)).filter((id) => !questionDetails[id]);
       if (!missing.length) return;
@@ -631,10 +635,7 @@ export function useExams(pageSize: number = DEFAULT_PAGE_SIZE): UseExamsResult {
       setSelectedExamError(null);
       try {
         const created = await createAutomaticExam(payload);
-        setRawExams((prev) => [created, ...prev]);
-        setTotal((prev) => (typeof prev === "number" ? prev + 1 : prev));
-        setSelectedExam(created);
-        setSelectedExamId(created.id);
+        // No actualizamos rawExams ni selectedExam porque es solo una previsualización
         await ensureQuestionDetails(created.questions ?? []);
         return created;
       } catch (err) {
@@ -703,6 +704,41 @@ export function useExams(pageSize: number = DEFAULT_PAGE_SIZE): UseExamsResult {
     await loadExams();
   };
 
+  const getQuestionsWithDetails = useCallback(
+    (assignments: ExamQuestionAssignment[] | AutomaticExamPreviewQuestion[]): ExamQuestionItem[] => {
+      return normalizeExamQuestions(assignments as ExamQuestionAssignment[]).map((question) => {
+        const previewQuestion = assignments.find(a => a.questionId === question.questionId) as AutomaticExamPreviewQuestion | undefined;
+
+        // If we have preview details, use them as fallback for detail
+        const detail = questionDetails[question.questionId] ?? (previewQuestion ? {
+          id: previewQuestion.questionId,
+          body: previewQuestion.body,
+          difficulty: previewQuestion.difficulty as any, // Cast if needed
+          questionTypeId: previewQuestion.questionTypeId,
+          subtopicId: previewQuestion.subTopicId,
+          options: previewQuestion.options?.map(o => ({
+            id: "", // No ID in preview
+            text: o.text,
+            isCorrect: o.isCorrect,
+            questionId: previewQuestion.questionId
+          })) ?? [],
+          response: previewQuestion.response ?? "",
+          authorId: "", // Not in preview
+          createdAt: "",
+          updatedAt: "",
+          status: "APPROVED" // Assumed
+        } : undefined);
+
+        return {
+          ...question,
+          key: question.id ?? question.questionId,
+          detail,
+        };
+      });
+    },
+    [questionDetails],
+  );
+
   return {
     exams,
     rawExams,
@@ -741,5 +777,6 @@ export function useExams(pageSize: number = DEFAULT_PAGE_SIZE): UseExamsResult {
     sendExamForReview,
     saveExamQuestions,
     clearSelection,
+    getQuestionsWithDetails,
   };
 }

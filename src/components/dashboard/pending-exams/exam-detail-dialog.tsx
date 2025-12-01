@@ -11,11 +11,14 @@ import { Card } from "../../ui/card";
 import { Separator } from "../../ui/separator";
 import { ApproveExamDialog } from "./approve-exam-dialog";
 import { RejectExamDialog } from "./reject-exam-dialog";
+import { ExamQuestionList } from "@/components/dashboard/common/exam-question-list";
+import type { ExamQuestionListItem } from "@/types/exam-question-list";
 
 type ExamDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   exam: PendingExamDetail | null;
+  questions: ExamQuestionListItem[];
   loading?: boolean;
   onApprove: (examId: string, comment?: string) => Promise<void>;
   onReject: (examId: string, comment?: string) => Promise<void>;
@@ -47,6 +50,7 @@ export function ExamDetailDialog({
   loading = false,
   onApprove,
   onReject,
+  questions,
 }: ExamDetailDialogProps) {
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
@@ -82,6 +86,7 @@ export function ExamDetailDialog({
   };
 
   const isPending = exam?.status === "pendiente";
+  const questionCount = questions.length || exam?.questions.length || 0;
 
   return (
     <>
@@ -154,36 +159,14 @@ export function ExamDetailDialog({
                   ) : null}
 
                   <div>
-                    <h3 className="font-medium mb-3">Preguntas del Examen ({exam.questions.length})</h3>
-                    <div className="space-y-3">
-                      {exam.questions.map((question, index) => (
-                        <Card key={question.id} className="p-4">
-                          <div className="space-y-2">
-                            <div className="flex items-start gap-3">
-                              <span className="font-medium text-sm mt-1 flex-shrink-0">{index + 1}.</span>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                  <Badge variant="outline" className="text-xs">
-                                    {question.subtopic}
-                                  </Badge>
-                                  <Badge
-                                    className={`text-xs ${
-                                      DIFFICULTY_COLOR[question.difficulty] ?? "bg-gray-100 text-gray-700"
-                                    }`}
-                                  >
-                                    {question.difficulty}
-                                  </Badge>
-                                  <Badge variant="secondary" className="text-xs">
-                                    {question.type}
-                                  </Badge>
-                                </div>
-                                <p className="text-sm break-words">{question.body}</p>
-                              </div>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
+                    <h3 className="font-medium mb-3">Preguntas del Examen ({questionCount})</h3>
+                    {questions.length > 0 ? (
+                      <ExamQuestionList questions={questions} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        No se encontraron preguntas para este examen.
+                      </p>
+                    )}
                   </div>
                 </div>
               </ScrollArea>
