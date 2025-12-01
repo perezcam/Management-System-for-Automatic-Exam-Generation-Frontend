@@ -5,26 +5,12 @@ import { Card } from "../../ui/card"
 import { Badge } from "../../ui/badge"
 import { ScrollArea } from "../../ui/scroll-area"
 import { Exam } from "./types"
+import { ExamQuestionList } from "@/components/dashboard/common/exam-question-list"
 
 interface ExamViewDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   exam: Exam | null
-}
-
-function getDifficultyColor(difficulty: string) {
-  switch (difficulty) {
-    case "Fácil":
-      return "bg-green-100 text-green-700 hover:bg-green-100"
-    case "Regular":
-      return "bg-yellow-100 text-yellow-700 hover:bg-yellow-100"
-    case "Difícil":
-      return "bg-red-100 text-red-700 hover:bg-red-100"
-    case "Mixta":
-      return "bg-blue-100 text-blue-700 hover:bg-blue-100"
-    default:
-      return "bg-gray-100 text-gray-700 hover:bg-gray-100"
-  }
 }
 
 function getStatusColor(status: string) {
@@ -111,36 +97,7 @@ export function ExamViewDialog({ open, onOpenChange, exam }: ExamViewDialogProps
             <h4 className="font-medium">Preguntas del Examen</h4>
             <ScrollArea className="h-[400px]">
               <div className="space-y-4">
-                {exam.questions?.map((question, index) => (
-                  <Card key={question.id} className="p-4">
-                    <div className="flex items-start gap-3">
-                      <span className="font-medium">{index + 1}.</span>
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="outline" className="text-xs">
-                            {question.subtopic}
-                          </Badge>
-                          <Badge className={`text-xs ${getDifficultyColor(question.difficulty)}`}>
-                            {question.difficulty}
-                          </Badge>
-                          <Badge variant="secondary" className="text-xs">
-                            {question.type}
-                          </Badge>
-                        </div>
-                        <p className="text-sm">{question.body}</p>
-                        {question.options && question.options.length > 0 && (
-                          <ul className="space-y-1 pl-4">
-                            {question.options.map((option, i) => (
-                              <li key={i} className="text-sm text-muted-foreground">
-                                • {option}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                <ExamQuestionList questions={exam.questions ?? []} />
               </div>
             </ScrollArea>
           </div>

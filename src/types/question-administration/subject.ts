@@ -10,6 +10,7 @@ export type SubjectDetail = {
     topics: TopicDetail[];
 }
 
+
 export type CreateSubjectPayload = {
     subject_program: string;
     subject_name: string;

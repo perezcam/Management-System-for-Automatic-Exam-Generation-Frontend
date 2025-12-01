@@ -6,6 +6,7 @@ import type {
   CreateManualExamPayload,
   ExamDetail,
   UpdateExamPayload,
+  AutomaticExamPreview,
 } from "@/types/exam-bank/exam";
 
 export type ListExamsQuery = {
@@ -13,6 +14,7 @@ export type ListExamsQuery = {
   difficulty?: string;
   examStatus?: string;
   authorId?: string;
+  validatorId?: string;
   title?: string;
   limit?: number;
   offset?: number;
@@ -38,6 +40,7 @@ export const fetchExams = async (params: ListExamsQuery = {}): Promise<ExamListR
     difficulty: params.difficulty,
     examStatus: params.examStatus,
     authorId: params.authorId,
+    validatorId: params.validatorId,
     title: params.title,
     limit: params.limit,
     offset: params.offset,
@@ -86,13 +89,13 @@ export const createManualExam = async (payload: CreateManualExamPayload): Promis
   return resp.data;
 };
 
-export const createAutomaticExam = async (payload: CreateAutomaticExamPayload): Promise<ExamDetail> => {
-  const resp = await backendRequest<RetrieveExamResponse>(EXAMS_AUTOMATIC_ENDPOINT, {
+export const createAutomaticExam = async (payload: CreateAutomaticExamPayload): Promise<AutomaticExamPreview> => {
+  const resp = await backendRequest<RetrieveOneSchema<AutomaticExamPreview>>(EXAMS_AUTOMATIC_ENDPOINT, {
     method: "POST",
     body: JSON.stringify(payload),
   });
   if (!resp.data) {
-    throw new Error("El backend no devolvió el examen creado");
+    throw new Error("El backend no devolvió la previsualización del examen");
   }
   return resp.data;
 };
@@ -101,7 +104,7 @@ export const sendExamForReview = async (examId: string): Promise<ExamDetail> => 
   const resp = await backendRequest<RetrieveExamResponse>(
     `${EXAMS_ENDPOINT}/${examId}/request-review`,
     {
-      method: "POST",
+      method: "PATCH",
     }
   );
   if (!resp.data) {
