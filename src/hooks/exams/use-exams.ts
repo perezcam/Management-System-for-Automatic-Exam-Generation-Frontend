@@ -25,6 +25,7 @@ import type {
 } from "@/types/exam-bank/exam";
 import type { QuestionDetail } from "@/types/question-bank/question";
 import type { SubjectDetail } from "@/types/question-administration/subject";
+import { distributeScoreEvenly } from "@/utils/exam-scores";
 
 const DEFAULT_PAGE_SIZE = 6;
 
@@ -95,14 +96,27 @@ const withFallbackLabel = (value?: string | null, labels: Record<string, string>
   return labels[normalized] ?? labels[normalized.toUpperCase()] ?? normalized;
 };
 
+const ensureQuestionScores = (questions: ExamQuestionAssignment[]): ExamQuestionAssignment[] => {
+  if (!questions.length) return questions;
+  const missingScore = questions.some((question) => typeof question.questionScore !== "number");
+  if (!missingScore) return questions;
+  const defaultScores = distributeScoreEvenly(questions.length);
+  return questions.map((question, index) => ({
+    ...question,
+    questionScore:
+      typeof question.questionScore === "number" ? question.questionScore : defaultScores[index] ?? 0,
+  }));
+};
+
 const normalizeExamQuestions = (questions: ExamQuestionAssignment[] | AutomaticExamPreviewQuestion[] = []): ExamQuestionAssignment[] => {
   const sorted = [...questions].sort((a, b) => (a.questionIndex ?? 0) - (b.questionIndex ?? 0));
-  return sorted.map((question, index) => ({
+  const normalized = sorted.map((question, index) => ({
     ...question,
     questionIndex: index + 1,
     id: (question as any).id ?? `${question.questionId}-${index}`,
     examId: (question as any).examId ?? "",
   })) as ExamQuestionAssignment[];
+  return ensureQuestionScores(normalized);
 };
 
 const toPatchPayloadQuestions = (questions: ExamQuestionAssignment[]) =>
@@ -113,9 +127,10 @@ const toPatchPayloadQuestions = (questions: ExamQuestionAssignment[]) =>
       return {
         questionId,
         questionIndex: question.questionIndex ?? idx + 1,
+        questionScore: question.questionScore ?? 0,
       };
     })
-    .filter(Boolean) as Array<{ questionId: string; questionIndex: number }>;
+    .filter(Boolean) as Array<{ questionId: string; questionIndex: number; questionScore: number }>;
 
 export type UseExamsResult = {
   exams: ExamListItem[];

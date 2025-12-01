@@ -48,6 +48,13 @@ import { DIFFICULTY_LABELS, STATUS_LABELS, type ExamQuestionItem, useExams } fro
 import { useQuestionBank } from "@/hooks/questions/use-question-bank"
 import type { QuestionListItem } from "@/types/question-bank/view"
 import type { AutomaticExamForm, ManualExamForm, SelectedQuestion, Subject } from "@/components/dashboard/exam-bank/types"
+import {
+  distributeScoreEvenly,
+  isScoreSumValid,
+  sanitizeScoreValue,
+  sumScores,
+  TOTAL_EXAM_SCORE,
+} from "@/utils/exam-scores"
 
 const formatDateLabel = (value?: string | null) => {
   if (!value) return "—"
@@ -78,6 +85,7 @@ type SortableExamQuestionRowProps = {
   question: ExamQuestionItem
   index: number
   onRemove: (questionId: string) => void
+  onScoreChange: (questionId: string, nextValue: number) => void
   disabled?: boolean
   subtopicLabel?: string
   topicLabel?: string
@@ -87,6 +95,7 @@ function SortableExamQuestionRow({
   question,
   index,
   onRemove,
+  onScoreChange,
   disabled,
   subtopicLabel,
   topicLabel,
@@ -130,6 +139,21 @@ function SortableExamQuestionRow({
         <p className="text-sm break-words text-muted-foreground">
           {bodyText}
         </p>
+        <div className="flex items-center justify-between gap-2 mt-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Puntaje</span>
+            <Input
+              type="number"
+              min={0}
+              max={TOTAL_EXAM_SCORE}
+              step={0.5}
+              value={question.questionScore ?? 0}
+              onChange={(event) => onScoreChange(question.questionId, Number(event.target.value))}
+              className="w-20"
+              aria-label="Valor de la pregunta"
+            />
+          </div>
+        </div>
       </div>
       <Button
         variant="ghost"
@@ -255,8 +279,9 @@ export default function BancoExamenesView() {
 
       if (preview) {
         const questionsWithDetails = getQuestionsWithDetails(preview.questions)
+        const defaultScores = distributeScoreEvenly(questionsWithDetails.length)
 
-        const mappedQuestions: SelectedQuestion[] = questionsWithDetails.map(q => {
+        const mappedQuestions: SelectedQuestion[] = questionsWithDetails.map((q, index) => {
           const difficulty = getDifficultyLabel(q.detail?.difficulty) as "Fácil" | "Regular" | "Difícil"
           // Find type name by ID
           const typeName = questionTypes.find(t => t.id === q.detail?.questionTypeId)?.name || "Desconocido"
@@ -268,7 +293,8 @@ export default function BancoExamenesView() {
             difficulty: difficulty || "Regular",
             type: typeName,
             body: q.detail?.body ?? "Pregunta sin cuerpo",
-            options: q.detail?.options?.map(o => o.text)
+            options: q.detail?.options?.map(o => o.text),
+            score: typeof q.questionScore === "number" ? q.questionScore : defaultScores[index] ?? 0,
           }
         })
 
@@ -532,6 +558,7 @@ export default function BancoExamenesView() {
         type: question.type,
         body: question.body,
         options: question.options,
+        score: 0,
       })),
     [availableQuestions],
   )
@@ -611,9 +638,18 @@ export default function BancoExamenesView() {
   const handleManualSubmit = async () => {
     if (creatingExam) return
     if (!manualForm.name || !manualForm.subject || manualForm.selectedQuestions.length === 0) return
+    const questionScores = manualForm.selectedQuestions.map((question) => question.score ?? 0)
+    const totalScore = sumScores(questionScores)
+    if (!isScoreSumValid(questionScores)) {
+      setExamActionError(
+        `Los puntajes deben sumar ${TOTAL_EXAM_SCORE} (actualmente ${totalScore.toFixed(2)})`,
+      )
+      return
+    }
     const questionsPayload = manualForm.selectedQuestions.map((question, index) => ({
       questionId: question.id,
       questionIndex: index + 1,
+      questionScore: question.score ?? 0,
     }))
     try {
       await createManual({
@@ -671,6 +707,9 @@ export default function BancoExamenesView() {
     setDraftQuestions((prev) => {
       if (prev.some((item) => item.questionId === question.id)) return prev
       const key = `temp-${question.id}-${Date.now()}`
+      const currentScore = sumScores(prev.map((item) => item.questionScore ?? 0))
+      const remainingPoints = Math.max(0, TOTAL_EXAM_SCORE - currentScore)
+      const questionScore = remainingPoints > 0 ? remainingPoints : 0
       const next = [
         ...prev,
         {
@@ -683,6 +722,7 @@ export default function BancoExamenesView() {
           // datos de vista previa para mostrar algo mientras no hay detail
           previewBody: question.body,
           previewDifficulty: question.difficulty,
+          questionScore,
         } as ExamQuestionItem & { previewBody?: string; previewDifficulty?: string },
       ]
       return next
@@ -701,10 +741,29 @@ export default function BancoExamenesView() {
     setQuestionsDirty(true)
   }
 
+  const handleDraftQuestionScoreChange = (questionId: string, nextValue: number) => {
+    const sanitized = sanitizeScoreValue(nextValue)
+    setDraftQuestions((prev) =>
+      prev.map((question) =>
+        question.questionId === questionId ? { ...question, questionScore: sanitized } : question,
+      ),
+    )
+    setQuestionsDirty(true)
+    setExamActionError(null)
+  }
+
   const handleSaveDraftQuestions = async () => {
     const examId = selectedExamId ?? selectedExam?.id
     if (!examId) return
     try {
+      const questionScores = draftQuestions.map((q) => q.questionScore ?? 0)
+      const totalScore = sumScores(questionScores)
+      if (draftQuestions.length > 0 && !isScoreSumValid(questionScores)) {
+        setExamActionError(
+          `Los puntajes deben sumar ${TOTAL_EXAM_SCORE} (actualmente ${totalScore.toFixed(2)})`,
+        )
+        return
+      }
       const payload = draftQuestions.map((q, idx) => ({
         ...q,
         examId,
@@ -745,6 +804,11 @@ export default function BancoExamenesView() {
       setExamActionError(err instanceof Error ? err.message : "No se pudo enviar el examen a revisión")
     }
   }
+
+  const draftQuestionScores = draftQuestions.map((question) => question.questionScore ?? 0)
+  const hasDraftQuestions = draftQuestions.length > 0
+  const draftScoreTotal = sumScores(draftQuestionScores)
+  const isDraftScoreValid = !hasDraftQuestions || isScoreSumValid(draftQuestionScores)
 
   const isEmpty = !loading && exams.length === 0
 
@@ -955,11 +1019,26 @@ export default function BancoExamenesView() {
                     <Button
                       size="sm"
                       onClick={() => void handleSaveDraftQuestions()}
-                      disabled={!questionsDirty || savingExam || selectedExamLoading}
+                      disabled={
+                        !questionsDirty || savingExam || selectedExamLoading || !isDraftScoreValid
+                      }
                     >
                       Guardar cambios
                     </Button>
                   </div>
+                </div>
+                <div className="flex items-center justify-between pt-2 pb-3 text-sm">
+                  <span
+                    className={`font-medium ${isDraftScoreValid ? "text-muted-foreground" : "text-destructive"
+                      }`}
+                  >
+                    Puntaje total: {draftScoreTotal.toFixed(2)} / {TOTAL_EXAM_SCORE}
+                  </span>
+                  {!isDraftScoreValid && hasDraftQuestions ? (
+                    <span className="text-xs text-destructive">
+                      Ajusta los puntajes antes de guardar.
+                    </span>
+                  ) : null}
                 </div>
 
                 {selectedExamLoading ? (
@@ -988,6 +1067,7 @@ export default function BancoExamenesView() {
                                 question={question}
                                 index={index}
                                 onRemove={(id) => handleRemoveDraftQuestion(id)}
+                                onScoreChange={handleDraftQuestionScoreChange}
                                 disabled={savingExam || selectedExamLoading}
                                 subtopicLabel={
                                   question.detail?.subtopicId

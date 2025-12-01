@@ -10,6 +10,7 @@ export type ExamQuestionAssignment = {
   examId: string;
   questionId: string;
   questionIndex: number;
+  questionScore?: number;
 };
 
 export type ExamDetail = {
@@ -34,7 +35,7 @@ export type ExamDetail = {
 export type CreateManualExamPayload = {
   title: string;
   subjectId: string;
-  questions: Array<{ questionId: string; questionIndex: number }>;
+  questions: Array<{ questionId: string; questionIndex: number; questionScore: number }>;
 };
 
 export type CreateAutomaticExamPayload = {
@@ -48,7 +49,7 @@ export type CreateAutomaticExamPayload = {
 };
 
 export type UpdateExamPayload = {
-  questions: Array<{ questionId: string; questionIndex: number }>;
+  questions: Array<{ questionId: string; questionIndex: number; questionScore: number }>;
 };
 
 export type AutomaticExamPreviewQuestion = {
@@ -61,6 +62,7 @@ export type AutomaticExamPreviewQuestion = {
   body: string;
   options?: Array<{ text: string; isCorrect: boolean }>;
   response?: string | null;
+  questionScore?: number;
 };
 
 export type AutomaticExamPreview = {
