@@ -15,6 +15,7 @@ import { Badge } from "../../ui/badge"
 import { ScrollArea } from "../../ui/scroll-area"
 import { ManualExamForm, Subject, SelectedQuestion } from "./types"
 import { TOTAL_EXAM_SCORE, isScoreSumValid, sumScores, sanitizeScoreValue } from "@/utils/exam-scores"
+import { sanitizeDecimalInput, selectAllWhenZeroOrEmpty } from "@/utils/input-sanitizer"
 
 interface ManualExamFormDialogProps {
   open: boolean
@@ -91,7 +92,10 @@ function SortableQuestionItem({
               max={TOTAL_EXAM_SCORE}
               step={0.25}
               value={question.score ?? 0}
-              onChange={(event) => onScoreChange(question.id, Number(event.target.value))}
+              onChange={(event) =>
+                onScoreChange(question.id, sanitizeDecimalInput(event.target.value, 0))
+              }
+              onFocus={selectAllWhenZeroOrEmpty}
               className="w-20"
               aria-label="Valor de la pregunta"
             />

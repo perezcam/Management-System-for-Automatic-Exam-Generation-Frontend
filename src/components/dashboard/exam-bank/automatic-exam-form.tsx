@@ -8,6 +8,7 @@ import { Card } from "../../ui/card"
 import { Badge } from "../../ui/badge"
 import { Checkbox } from "../../ui/checkbox"
 import { AutomaticExamForm, Subject, QuestionType } from "./types"
+import { sanitizeIntegerInput, selectAllWhenZeroOrEmpty } from "@/utils/input-sanitizer"
 
 interface AutomaticExamFormDialogProps {
   open: boolean
@@ -174,10 +175,14 @@ export function AutomaticExamFormDialog({
               type="number"
               min="1"
               value={form.totalQuestions}
-              onChange={(e) => onFormChange({ 
-                ...form, 
-                totalQuestions: parseInt(e.target.value) || 1 
-              })}
+              onChange={(e) => {
+                const nextValue = sanitizeIntegerInput(e.target.value, 0)
+                onFormChange({
+                  ...form,
+                  totalQuestions: e.target.value === "" ? 0 : Math.max(nextValue, 1),
+                })
+              }}
+              onFocus={selectAllWhenZeroOrEmpty}
             />
           </div>
 
@@ -198,7 +203,8 @@ export function AutomaticExamFormDialog({
                       min="0"
                       max={form.totalQuestions}
                       value={getQuestionTypeCount(type)}
-                      onChange={(e) => updateQuestionTypeCount(type, parseInt(e.target.value) || 0)}
+                      onChange={(e) => updateQuestionTypeCount(type, sanitizeIntegerInput(e.target.value, 0))}
+                      onFocus={selectAllWhenZeroOrEmpty}
                       className="w-24"
                     />
                     <span className="text-sm text-muted-foreground w-16">preguntas</span>
@@ -230,7 +236,8 @@ export function AutomaticExamFormDialog({
                       min="0"
                       max={form.totalQuestions}
                       value={getDifficultyCount(difficulty)}
-                      onChange={(e) => updateDifficultyCount(difficulty, parseInt(e.target.value) || 0)}
+                      onChange={(e) => updateDifficultyCount(difficulty, sanitizeIntegerInput(e.target.value, 0))}
+                      onFocus={selectAllWhenZeroOrEmpty}
                       className="w-24"
                     />
                     <span className="text-sm text-muted-foreground w-16">preguntas</span>
@@ -306,7 +313,8 @@ export function AutomaticExamFormDialog({
                         min="0"
                         max={form.totalQuestions}
                         value={getSubtopicCount(subtopic)}
-                        onChange={(e) => updateSubtopicCount(subtopic, parseInt(e.target.value) || 0)}
+                        onChange={(e) => updateSubtopicCount(subtopic, sanitizeIntegerInput(e.target.value, 0))}
+                        onFocus={selectAllWhenZeroOrEmpty}
                         className="w-24"
                       />
                       <span className="text-sm text-muted-foreground w-16">preguntas</span>
