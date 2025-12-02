@@ -7,7 +7,6 @@ export enum Role {
 }
 
 export const FOLDER_TO_ROUTE = {
-  "messaging": "/messaging",
   "pending-exams": "/pending_exams",
   "statistics": "/statistics",
   "administration": "/administration",
@@ -23,19 +22,19 @@ const DASHBOARD_PREFIX = "";
 const ROLE_VALUES = Object.values(Role) as Role[];
 export const ROLE_ALLOWED_KEYS: Record<Role, FolderKey[]> = {
   [Role.Admin]: [
-    "messaging", "statistics", "administration",
+    "statistics", "administration",
   ],
   [Role.Teacher]: [
-    "messaging", "question-bank",
+    "question-bank",
   ],
   [Role.SubjectLeader]: [
-    "pending-exams", "messaging",
+    "pending-exams",
   ],
   [Role.Examiner]: [
-    "exam-bank", "pending-exams", "messaging", "regrade",
+    "exam-bank", "pending-exams", "regrade",
   ],
   [Role.Student]: [
-    "exams", "messaging",
+    "exams",
   ],
 };
 export function isRole(value: unknown): value is Role {
