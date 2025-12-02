@@ -13,7 +13,7 @@ export const FOLDER_TO_ROUTE = {
   "administration": "/administration",
   "exam-bank": "/exam_bank",
   "question-bank": "/question_bank",
-  "subjects": "/subjects",
+  "regrade": "/regrade",
   "exams": "/exams",
 } as const;
 
@@ -32,10 +32,10 @@ export const ROLE_ALLOWED_KEYS: Record<Role, FolderKey[]> = {
     "pending-exams", "messaging",
   ],
   [Role.Examiner]: [
-    "exam-bank", "pending-exams", "messaging",
+    "exam-bank", "pending-exams", "messaging", "regrade",
   ],
   [Role.Student]: [
-    "exams", "subjects", "messaging",
+    "exams", "messaging",
   ],
 };
 export function isRole(value: unknown): value is Role {

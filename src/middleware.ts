@@ -43,7 +43,7 @@ export const config = {
     "/administration","/administration/:path*",
     "/exam_bank","/exam_bank/:path*",
     "/question_bank","/question_bank/:path*",
-    "/subjects","/subjects/:path*",
+    "/regrade","/regrade/:path*",
     "/exams","/exams/:path*",
   ],
 };
