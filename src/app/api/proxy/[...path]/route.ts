@@ -80,6 +80,11 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ path?: string
   return proxy(req, path);
 }
 
+export async function PUT(req: Request, ctx: { params: Promise<{ path?: string[] }> }) {
+  const { path } = await ctx.params;
+  return proxy(req, path);
+}
+
 export async function DELETE(req: Request, ctx: { params: Promise<{ path?: string[] }> }) {
   const { path } = await ctx.params;
   return proxy(req, path);

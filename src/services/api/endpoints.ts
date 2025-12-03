@@ -30,6 +30,8 @@ export const EXAMS_ENDPOINT = API_ENDPOINTS.exams;
 export const EXAMS_MANUAL_ENDPOINT = `${EXAMS_ENDPOINT}/manual`;
 export const EXAMS_AUTOMATIC_ENDPOINT = `${EXAMS_ENDPOINT}/automatic`;
 export const PENDING_EXAMS_ENDPOINT = EXAMS_ENDPOINT;
+export const STUDENT_ASSIGNMENTS_ENDPOINT = `${EXAMS_ENDPOINT}/my-assignments`;
+export const EXAM_RESPONSES_ENDPOINT = `${EXAMS_ENDPOINT}/responses`;
 
 
 export type QueryParams = Record<string, string | number | boolean | undefined | null>;
