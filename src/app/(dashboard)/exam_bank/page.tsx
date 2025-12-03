@@ -148,7 +148,7 @@ function SortableExamQuestionRow({
               min={0}
               max={TOTAL_EXAM_SCORE}
               step={0.5}
-              value={question.questionScore ?? 0}
+              value={question.questionScore ?? ""}
               onChange={(event) => onScoreChange(question.questionId, Number(event.target.value))}
               className="w-20"
               aria-label="Valor de la pregunta"

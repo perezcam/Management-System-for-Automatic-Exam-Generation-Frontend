@@ -123,33 +123,49 @@ export default function PendingExamsPage() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="p-4 sm:p-6 border-b">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl font-semibold mb-1">Pruebas a Aprobar</h1>
-            <p className="text-sm text-muted-foreground">Revisa y gestiona las solicitudes de aprobación de exámenes</p>
-          </div>
-        </div>
+      {/* HEADER + BUSCADOR */}
+      <div className="border-b bg-background">
+        <div className="w-full px-4 sm:px-6 py-4 sm:py-6">
+          <div className="space-y-4 sm:space-y-5">
+            {/* Título */}
+            <div className="flex items-start sm:items-center justify-between">
+              <div className="flex-1 min-w-0 text-left">
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  Pruebas a Aprobar
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Revisa y gestiona las solicitudes de aprobación de exámenes
+                </p>
+              </div>
+            </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por asignatura, examen o profesor..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
+            {/* Barra de búsqueda + botón Filtros */}
+            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por asignatura, examen o profesor..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10 w-full"
+                />
+              </div>
+
+              <Button
+                variant="outline"
+                onClick={() => setShowFiltersDialog(true)}
+                className="w-full md:w-auto relative flex items-center justify-center"
+              >
+                <Filter className="mr-2 h-4 w-4" />
+                Filtros
+                {activeFiltersCount > 0 && (
+                  <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </Button>
+            </div>
           </div>
-          <Button variant="outline" onClick={() => setShowFiltersDialog(true)} className="w-full sm:w-auto relative">
-            <Filter className="mr-2 h-4 w-4" />
-            Filtros
-            {activeFiltersCount > 0 && (
-              <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                {activeFiltersCount}
-              </span>
-            )}
-          </Button>
         </div>
       </div>
 
