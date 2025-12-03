@@ -19,20 +19,20 @@ export const FOLDER_TO_ROUTE = {
 
 export type FolderKey = keyof typeof FOLDER_TO_ROUTE;
 
-const DASHBOARD_PREFIX = ""; 
+const DASHBOARD_PREFIX = "";
 const ROLE_VALUES = Object.values(Role) as Role[];
 export const ROLE_ALLOWED_KEYS: Record<Role, FolderKey[]> = {
   [Role.Admin]: [
     "messaging", "statistics", "administration",
   ],
   [Role.Teacher]: [
-    "messaging", "question-bank",
+    "messaging", "question-bank", "pending-exams", "exam-bank",
   ],
   [Role.SubjectLeader]: [
-    "pending-exams", "messaging",
+    "pending-exams", "messaging", "question-bank",
   ],
   [Role.Examiner]: [
-    "exam-bank", "pending-exams", "messaging",
+    "exam-bank", "messaging", "question-bank",
   ],
   [Role.Student]: [
     "exams", "subjects", "messaging",
