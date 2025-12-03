@@ -26,6 +26,7 @@ import { EmptyState } from "@/components/dashboard/exam-bank/empty-state"
 import { ExamCreationDialog } from "@/components/dashboard/exam-bank/exam-creation-dialog"
 import { ManualExamFormDialog } from "@/components/dashboard/exam-bank/manual-exam-form"
 import { AutomaticExamFormDialog } from "@/components/dashboard/exam-bank/automatic-exam-form"
+import { ExamAssignDialog } from "@/components/dashboard/exam-bank/exam-assign-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -323,6 +324,7 @@ export default function BancoExamenesView() {
   const [showAddQuestionDialog, setShowAddQuestionDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showSendForReviewDialog, setShowSendForReviewDialog] = useState(false)
+  const [showAssignDialog, setShowAssignDialog] = useState(false)
   const [examActionError, setExamActionError] = useState<string | null>(null)
   const [showCreationDialog, setShowCreationDialog] = useState(false)
   const [showManualDialog, setShowManualDialog] = useState(false)
@@ -447,6 +449,10 @@ export default function BancoExamenesView() {
   const difficultyLabel = selectedExam
     ? getDifficultyLabel(selectedExam.difficulty) || selectedExamListItem?.difficultyLabel || selectedExam.difficulty
     : selectedExamListItem?.difficultyLabel ?? ""
+
+  const normalizedExamStatus = (selectedExam?.examStatus ?? selectedExamListItem?.status ?? "").toLowerCase()
+  const isApprovedExam = ["valid", "approved", "aprobado"].includes(normalizedExamStatus)
+  const assignableExamId = selectedExamId ?? selectedExam?.id ?? ""
 
   const subjectsForForms: Subject[] = useMemo(
     () =>
@@ -929,6 +935,16 @@ export default function BancoExamenesView() {
                         Enviar a Revisión
                       </Button>
                     )}
+                    {isApprovedExam && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => setShowAssignDialog(true)}
+                        disabled={!assignableExamId}
+                      >
+                        Asignar
+                      </Button>
+                    )}
                     <Button
                       variant="destructive"
                       size="sm"
@@ -1168,6 +1184,18 @@ export default function BancoExamenesView() {
         onFormChange={setAutomaticForm}
         subjects={subjectsForForms}
         onGenerate={() => void handleAutomaticSubmit()}
+      />
+
+      <ExamAssignDialog
+        open={showAssignDialog}
+        onOpenChange={setShowAssignDialog}
+        examId={assignableExamId}
+        examTitle={selectedExam?.title ?? selectedExamListItem?.title}
+        onAssigned={() => {
+          if (assignableExamId) {
+            void refreshSelectedExam()
+          }
+        }}
       />
 
       <Dialog open={showAddQuestionDialog} onOpenChange={setShowAddQuestionDialog}>
