@@ -22,8 +22,7 @@ import {
 import { useActiveExam } from "@/hooks/exam-application/use-active-exam"
 import { DIFFICULTY_LABELS, STATUS_LABELS } from "@/hooks/exams/use-exams"
 import { ExamAssignment, ExamResponse } from "@/types/exam-application/exam"
-import { fetchQuestionById } from "@/services/question-bank/questions"
-import { ExamApplicationService } from "@/services/exam-application/exam-application-service"
+import { ExamApplicationService, ExamEndpointError } from "@/services/exam-application/exam-application-service"
 import { fetchTopics } from "@/services/question-administration/topics"
 import type { QuestionDetail } from "@/types/question-bank/question"
 
@@ -70,6 +69,7 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
   const [localAnswers, setLocalAnswers] = useState<Record<string, AnswerDraft>>({})
   const [questionDetails, setQuestionDetails] = useState<Record<string, QuestionDetail | null>>({})
   const [questionResponses, setQuestionResponses] = useState<Record<string, ExamResponse | null>>({})
+  const [questionError, setQuestionError] = useState<string | null>(null)
   const [loadingQuestionAssets, setLoadingQuestionAssets] = useState(false)
   const [topicNames, setTopicNames] = useState<Record<string, string>>({})
   const [hasExpired, setHasExpired] = useState(false)
@@ -149,19 +149,34 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
     let cancelled = false
 
     const loadQuestionAssets = async () => {
-      if (!activeQuestion) return
-      setLoadingQuestionAssets(true)
+      if (!activeQuestion) {
+        setQuestionError(null)
+        return
+      }
 
+      setLoadingQuestionAssets(true)
+      setQuestionError(null)
       try {
-        const [detail, response] = await Promise.all([
-          fetchQuestionById(activeQuestion.questionId),
-          ExamApplicationService.getResponseByIndex(examId, activeQuestion.questionIndex)
+        const [detailResponse, response] = await Promise.all([
+          ExamApplicationService.getQuestionByIndex(examId, activeQuestion.questionIndex),
+          ExamApplicationService.getResponseByIndex(examId, activeQuestion.questionIndex),
         ])
 
         if (cancelled) return
 
-        setQuestionDetails((prev) => ({ ...prev, [activeQuestion.questionId]: detail }))
-        setQuestionResponses((prev) => ({ ...prev, [activeQuestion.questionId]: response }))
+        const normalizedDetail: QuestionDetail = {
+          ...detailResponse,
+          questionId: activeQuestion.questionId,
+        }
+
+        setQuestionDetails((prev) => ({
+          ...prev,
+          [activeQuestion.questionId]: normalizedDetail,
+        }))
+        setQuestionResponses((prev) => ({
+          ...prev,
+          [activeQuestion.questionId]: response,
+        }))
         setLocalAnswers((prev) => ({
           ...prev,
           [activeQuestion.questionId]: {
@@ -175,11 +190,35 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
               prev[activeQuestion.questionId]?.textAnswer ??
               "",
             submitted: Boolean(response),
-            responseId: response?.id ?? prev[activeQuestion.questionId]?.responseId
-          }
+            responseId: response?.id ?? prev[activeQuestion.questionId]?.responseId,
+          },
         }))
-      } catch {
+      } catch (err) {
         if (cancelled) return
+
+        setQuestionDetails((prev) => ({
+          ...prev,
+          [activeQuestion.questionId]: null,
+        }))
+        setQuestionResponses((prev) => ({
+          ...prev,
+          [activeQuestion.questionId]: null,
+        }))
+
+        let message = "No fue posible cargar la pregunta."
+        if (err instanceof ExamEndpointError) {
+          if (err.status === 403) {
+            message = "No tienes permiso para acceder a esta pregunta."
+          } else if (err.status === 404) {
+            message = "No se encontró la pregunta solicitada."
+          } else {
+            message = err.message
+          }
+        } else if (err instanceof Error && err.message) {
+          message = err.message
+        }
+
+        setQuestionError(message)
       } finally {
         if (!cancelled) {
           setLoadingQuestionAssets(false)
@@ -203,6 +242,7 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
   const currentAnswer = selectedQuestionId ? localAnswers[selectedQuestionId] : undefined
   const currentResponse = selectedQuestionId ? questionResponses[selectedQuestionId] : null
   const selectedQuestionDetail = selectedQuestionId ? questionDetails[selectedQuestionId] : null
+  const questionDetailKey = selectedQuestionDetail?.questionId ?? selectedQuestionId ?? "question"
   const answeredCount = Object.values(localAnswers).filter((answer) => answer.submitted).length
 
   const isMultipleChoice = (detail?: QuestionDetail | null) => (detail?.options?.length ?? 0) > 0
@@ -493,10 +533,18 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
           </Card>
 
           <div className="flex-1 overflow-hidden flex flex-col">
-            {loadingQuestionAssets && !selectedQuestionDetail ? (
+            {loadingQuestionAssets && !selectedQuestionDetail && !questionError ? (
               <Card className="flex-1 flex items-center justify-center gap-3">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 <p className="text-muted-foreground">Cargando pregunta...</p>
+              </Card>
+            ) : questionError ? (
+              <Card className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
+                <FileText className="h-12 w-12 text-destructive opacity-60" />
+                <p className="text-sm font-semibold text-destructive">{questionError}</p>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  Si el problema persiste, intenta volver a cargar la página o ponte en contacto con tu docente.
+                </p>
               </Card>
             ) : selectedQuestionDetail ? (
               <Card className="flex-1 overflow-hidden flex flex-col">
@@ -536,14 +584,14 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
                           className="flex items-start space-x-3 p-4 rounded-lg border-2 hover:border-primary/50 transition-colors"
                         >
                           <Checkbox
-                            id={`option-${selectedQuestionDetail.questionId}-${index}`}
+                            id={`option-${questionDetailKey}-${index}`}
                             checked={currentAnswer?.selectedOptions.includes(option.text) || false}
                             onCheckedChange={(checked) =>
                               handleCheckboxChange(selectedQuestionDetail.questionId, option.text, checked as boolean)
                             }
                           />
                           <Label
-                            htmlFor={`option-${selectedQuestionDetail.questionId}-${index}`}
+                            htmlFor={`option-${questionDetailKey}-${index}`}
                             className="flex-1 cursor-pointer leading-relaxed"
                           >
                             {option.text}

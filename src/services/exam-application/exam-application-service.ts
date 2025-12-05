@@ -7,6 +7,7 @@ import {
     ExamResponseUpdateInput
 } from "@/types/exam-application/exam";
 import { StudentExamFilters } from "@/types/exam-application/filters";
+import type { QuestionDetail } from "@/types/question-bank/question";
 import { BaseResponse } from "@/types/backend-responses";
 import {
     EXAMS_ENDPOINT,
@@ -51,6 +52,43 @@ type ListStudentExamsParams = StudentExamFilters & {
     page: number;
     limit: number;
     examTitle?: string;
+};
+
+export class ExamEndpointError extends Error {
+    readonly status: number;
+
+    constructor(status: number, message: string) {
+        super(message);
+        this.status = status;
+        Object.setPrototypeOf(this, ExamEndpointError.prototype);
+    }
+}
+
+const parseResponseJson = async (response: Response) => {
+    try {
+        return await response.json();
+    } catch {
+        return null;
+    }
+};
+
+const performExamGet = async (url: string): Promise<Response> => {
+    let response: Response;
+    try {
+        response = await fetch(url, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            credentials: "include",
+        });
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "No fue posible contactar al backend";
+        showErrorToast(message);
+        throw err;
+    }
+
+    return response;
 };
 
 export const ExamApplicationService = {
@@ -101,24 +139,9 @@ export const ExamApplicationService = {
 
     getResponseByIndex: async (examId: string, questionIndex: number) => {
         const url = `${EXAMS_ENDPOINT}/${examId}/responses/${questionIndex}`;
-        let response: Response;
-
-        try {
-            response = await fetch(url, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                credentials: "include",
-            });
-        } catch (err) {
-            const message = err instanceof Error ? err.message : "No fue posible contactar al backend";
-            showErrorToast(message);
-            throw err;
-        }
+        const response = await performExamGet(url);
 
         if (response.status === 404) {
-            // Si no existe respuesta todavía, no es un error: simplemente no mostrarla como respondida.
             return null;
         }
 
@@ -126,18 +149,42 @@ export const ExamApplicationService = {
 
         if (!response.ok) {
             const message = extractBackendMessage(payload) ?? response.statusText ?? `Error ${response.status}`;
-            showErrorToast(message);
-            throw new Error(message);
+            if (response.status !== 403) {
+                showErrorToast(message);
+            }
+            throw new ExamEndpointError(response.status, message);
         }
 
         return payload?.data ?? null;
     },
-};
 
-const parseResponseJson = async (response: Response) => {
-    try {
-        return await response.json();
-    } catch {
-        return null;
-    }
+    getQuestionByIndex: async (examId: string, questionIndex: number): Promise<QuestionDetail> => {
+        const url = `${EXAMS_ENDPOINT}/${examId}/questions/${questionIndex}`;
+        const response = await performExamGet(url);
+        const payload = await parseResponseJson(response);
+
+        if (response.status === 404) {
+            const message = extractBackendMessage(payload) ?? "La pregunta solicitada no existe";
+            throw new ExamEndpointError(response.status, message);
+        }
+
+        if (!response.ok) {
+            const message = extractBackendMessage(payload) ?? response.statusText ?? `Error ${response.status}`;
+            if (response.status !== 403) {
+                showErrorToast(message);
+            }
+            throw new ExamEndpointError(response.status, message);
+        }
+
+        const question = payload?.data;
+
+        if (!question) {
+            throw new ExamEndpointError(
+                response.status,
+                "El backend no devolvió la pregunta solicitada"
+            );
+        }
+
+        return question;
+    },
 };
