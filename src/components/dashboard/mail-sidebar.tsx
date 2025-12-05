@@ -1,6 +1,6 @@
 import { Button } from "../ui/button";
 import {
-  ClipboardCheck, MessageSquare, BarChart3, Database, FileText, FileStack, FileCheck, BookOpen, Shield
+  ClipboardCheck, MessageSquare, Database, FileText, FileStack, FileCheck, Shield
 } from "lucide-react";
 import type { FolderKey } from "@/utils/access";
 
@@ -13,14 +13,11 @@ interface MailSidebarProps {
 
 export function MailSidebar({ selectedFolder, onFolderSelect, allowedKeys }: MailSidebarProps) {
   const folders: { id: FolderKey; name: string; icon: typeof MessageSquare }[] = [
-    { id: "messaging", name: "Mensajería", icon: MessageSquare },
     { id: "exams", name: "Pruebas", icon: FileCheck },
-    { id: "subjects", name: "Asignaturas", icon: BookOpen },
+    { id: "regrade", name: "Revisiones", icon: FileText },
     { id: "question-bank", name: "Banco de Preguntas", icon: Database },
     { id: "exam-bank", name: "Banco de Exámenes", icon: FileStack },
-    { id: "exam-generator", name: "Generador de Exámenes", icon: FileText },
     { id: "pending-exams", name: "Pruebas a Aprobar", icon: ClipboardCheck },
-    { id: "statistics", name: "Estadísticas de Curso", icon: BarChart3 },
     { id: "administration", name: "Administración", icon: Shield },
   ];
 

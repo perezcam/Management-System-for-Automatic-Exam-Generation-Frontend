@@ -7,13 +7,11 @@ export enum Role {
 }
 
 export const FOLDER_TO_ROUTE = {
-  "messaging": "/messaging",
   "pending-exams": "/pending_exams",
-  "statistics": "/statistics",
   "administration": "/administration",
   "exam-bank": "/exam_bank",
   "question-bank": "/question_bank",
-  "subjects": "/subjects",
+  "regrade": "/regrade",
   "exams": "/exams",
 } as const;
 
@@ -23,19 +21,19 @@ const DASHBOARD_PREFIX = "";
 const ROLE_VALUES = Object.values(Role) as Role[];
 export const ROLE_ALLOWED_KEYS: Record<Role, FolderKey[]> = {
   [Role.Admin]: [
-    "messaging", "statistics", "administration",
+    "administration",
   ],
   [Role.Teacher]: [
-    "messaging", "question-bank", "pending-exams", "exam-bank",
+    "question-bank",
   ],
   [Role.SubjectLeader]: [
-    "pending-exams", "messaging", "question-bank",
+    "question-bank", "pending-exams", "regrade",
   ],
   [Role.Examiner]: [
-    "exam-bank", "messaging", "question-bank",
+    "question-bank", "exam-bank", "pending-exams", "regrade",
   ],
   [Role.Student]: [
-    "exams", "subjects", "messaging",
+    "exams",
   ],
 };
 export function isRole(value: unknown): value is Role {
@@ -71,4 +69,10 @@ export function canAccess(pathname: string, roles: Role[]) {
   const path = normalize(pathname);
   const allowed = allowedRoutesFor(roles);
   return allowed.some((p) => path === p || path.startsWith(p + "/"));
+}
+
+export function firstAllowedRouteFor(roles: Role[]): string {
+  const routes = allowedRoutesFor(roles);
+  if (!routes.length) return "/login"; 
+  return routes[0];
 }

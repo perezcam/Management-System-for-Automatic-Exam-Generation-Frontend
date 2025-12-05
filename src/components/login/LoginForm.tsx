@@ -25,8 +25,20 @@ export function LoginForm() {
       email: formData.email,
       password: formData.password,
     });
+
     if (success) {
-      router.push("/messaging");
+      try {
+        const res = await fetch("/api/auth/first-allowed-route");
+        if (!res.ok) {
+          router.push("/");
+          return;
+        }
+
+        const data: { path?: string } = await res.json();
+        router.push(data.path || "/");
+      } catch {
+        router.push("/"); 
+      }
     }
   };
 
