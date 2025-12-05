@@ -38,7 +38,6 @@ export default async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     "/pending_exams","/pending_exams/:path*",
-    "/statistics","/statistics/:path*",
     "/administration","/administration/:path*",
     "/exam_bank","/exam_bank/:path*",
     "/question_bank","/question_bank/:path*",

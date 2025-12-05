@@ -101,6 +101,7 @@ export function QuestionFormDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {availableSubtopics.map((subtopic) => (
+                    //TODO:haz que la clave sea unica para cualquier subtopic
                     <SelectItem key={subtopic} value={subtopic}>
                       {subtopic}
                     </SelectItem>
