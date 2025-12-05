@@ -17,7 +17,7 @@ export const FOLDER_TO_ROUTE = {
 
 export type FolderKey = keyof typeof FOLDER_TO_ROUTE;
 
-const DASHBOARD_PREFIX = ""; 
+const DASHBOARD_PREFIX = "";
 const ROLE_VALUES = Object.values(Role) as Role[];
 export const ROLE_ALLOWED_KEYS: Record<Role, FolderKey[]> = {
   [Role.Admin]: [

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from "react"
 import { XCircle, MessageSquare } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../ui/dialog"
@@ -8,20 +10,25 @@ import { Button } from "../../ui/button"
 interface RejectExamDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  examId: string
-  onReject: (comment?: string) => void
+  onReject: (comment?: string) => Promise<void> | void
+  loading?: boolean
 }
 
 export function RejectExamDialog({
   open,
   onOpenChange,
-  onReject
+  onReject,
+  loading = false,
 }: RejectExamDialogProps) {
   const [comment, setComment] = useState("")
 
-  const handleReject = () => {
-    onReject(comment.trim() || undefined)
-    setComment("")
+  const handleReject = async () => {
+    try {
+      await onReject(comment.trim() || undefined)
+      setComment("")
+    } catch {
+      // el manejador superior mostrará el error
+    }
   }
 
   return (
@@ -57,12 +64,13 @@ export function RejectExamDialog({
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
           <Button
             variant="destructive"
             onClick={handleReject}
+            disabled={loading}
           >
             <XCircle className="mr-2 h-4 w-4" />
             Rechazar Examen

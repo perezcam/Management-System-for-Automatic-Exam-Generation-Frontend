@@ -27,6 +27,7 @@ export type SelectedQuestion = {
   type: string
   body: string
   options?: string[]
+  score?: number
 }
 
 // Payload para actualizar un examen (reordenar/agregar/quitar preguntas)

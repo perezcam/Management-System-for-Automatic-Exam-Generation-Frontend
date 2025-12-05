@@ -14,6 +14,8 @@ import { Card } from "../../ui/card"
 import { Badge } from "../../ui/badge"
 import { ScrollArea } from "../../ui/scroll-area"
 import { ManualExamForm, Subject, SelectedQuestion } from "./types"
+import { TOTAL_EXAM_SCORE, isScoreSumValid, sumScores, sanitizeScoreValue } from "@/utils/exam-scores"
+import { sanitizeDecimalInput, selectAllWhenZeroOrEmpty } from "@/utils/input-sanitizer"
 
 interface ManualExamFormDialogProps {
   open: boolean
@@ -30,10 +32,19 @@ interface SortableQuestionItemProps {
   question: SelectedQuestion
   index: number
   onRemove: (questionId: string) => void
+  onScoreChange: (questionId: string, nextValue: number) => void
   getDifficultyColor: (difficulty: string) => string
+  isReadOnly?: boolean
 }
 
-function SortableQuestionItem({ question, index, onRemove, getDifficultyColor }: SortableQuestionItemProps) {
+function SortableQuestionItem({
+  question,
+  index,
+  onRemove,
+  onScoreChange,
+  getDifficultyColor,
+  isReadOnly,
+}: SortableQuestionItemProps) {
   const {
     attributes,
     listeners,
@@ -50,8 +61,8 @@ function SortableQuestionItem({ question, index, onRemove, getDifficultyColor }:
   }
 
   return (
-    <div 
-      ref={setNodeRef} 
+    <div
+      ref={setNodeRef}
       style={style}
       className="p-3 border rounded-lg flex items-start gap-3 bg-background"
     >
@@ -72,14 +83,34 @@ function SortableQuestionItem({ question, index, onRemove, getDifficultyColor }:
           <Badge variant="secondary" className="text-xs">{question.type}</Badge>
         </div>
         <p className="text-sm break-words">{question.body}</p>
+        <div className="flex items-center justify-between gap-2 mt-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Puntaje</span>
+            <Input
+              type="number"
+              min={0}
+              max={TOTAL_EXAM_SCORE}
+              step={0.25}
+              value={question.score ?? 0}
+              onChange={(event) =>
+                onScoreChange(question.id, sanitizeDecimalInput(event.target.value, 0))
+              }
+              onFocus={selectAllWhenZeroOrEmpty}
+              className="w-20"
+              aria-label="Valor de la pregunta"
+            />
+          </div>
+        </div>
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => onRemove(question.id)}
-      >
-        <X className="h-4 w-4 text-destructive" />
-      </Button>
+      {!isReadOnly && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onRemove(question.id)}
+        >
+          <X className="h-4 w-4 text-destructive" />
+        </Button>
+      )}
     </div>
   )
 }
@@ -92,8 +123,9 @@ export function ManualExamFormDialog({
   subjects,
   availableQuestions,
   onSubmit,
-  isEditMode
-}: ManualExamFormDialogProps) {
+  isEditMode,
+  isAutomaticPreview
+}: ManualExamFormDialogProps & { isAutomaticPreview?: boolean }) {
   const [showQuestionSelector, setShowQuestionSelector] = useState(false)
   const [selectedSubtopic, setSelectedSubtopic] = useState<string>("all")
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all")
@@ -107,6 +139,10 @@ export function ManualExamFormDialog({
 
   const selectedSubject = subjects.find(s => s.id === form.subject)
   const allSubtopics = selectedSubject?.topics.flatMap(t => t.subtopics) || []
+  const questionScores = form.selectedQuestions.map((question) => question.score ?? 0)
+  const totalScore = sumScores(questionScores)
+  const hasQuestions = form.selectedQuestions.length > 0
+  const isScoreValid = hasQuestions && isScoreSumValid(questionScores)
 
   // Filtrar preguntas disponibles
   const filteredQuestions = availableQuestions.filter(q => {
@@ -120,7 +156,10 @@ export function ManualExamFormDialog({
   const addQuestion = (question: SelectedQuestion) => {
     onFormChange({
       ...form,
-      selectedQuestions: [...form.selectedQuestions, question]
+      selectedQuestions: [
+        ...form.selectedQuestions,
+        { ...question, score: question.score ?? 0 },
+      ],
     })
   }
 
@@ -130,6 +169,18 @@ export function ManualExamFormDialog({
       selectedQuestions: form.selectedQuestions.filter(q => q.id !== questionId)
     })
   }
+
+  const handleQuestionScoreChange = (questionId: string, nextValue: number) => {
+    const sanitized = sanitizeScoreValue(nextValue)
+    onFormChange({
+      ...form,
+      selectedQuestions: form.selectedQuestions.map((question) =>
+        question.id === questionId ? { ...question, score: sanitized } : question,
+      ),
+    })
+  }
+
+  const canSubmit = Boolean(form.name && form.subject && isScoreValid)
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
@@ -163,9 +214,19 @@ export function ManualExamFormDialog({
       {/* Igual que en el automático: altura máx + overflow oculto */}
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? "Editar Examen Manual" : "Crear Examen Manual"}</DialogTitle>
+          <DialogTitle>
+            {isAutomaticPreview
+              ? "Revisar Examen Automático"
+              : isEditMode
+                ? "Editar Examen Manual"
+                : "Crear Examen Manual"}
+          </DialogTitle>
           <DialogDescription>
-            {isEditMode ? "Modifica las preguntas y datos del examen. Arrastra las preguntas para reordenarlas." : "Selecciona manualmente las preguntas para tu examen. Arrastra para reordenar."}
+            {isAutomaticPreview
+              ? "Revisa la propuesta de examen generada. Puedes reordenar las preguntas antes de confirmar."
+              : isEditMode
+                ? "Modifica las preguntas y datos del examen. Arrastra las preguntas para reordenarlas."
+                : "Selecciona manualmente las preguntas para tu examen. Arrastra para reordenar."}
           </DialogDescription>
         </DialogHeader>
 
@@ -186,6 +247,7 @@ export function ManualExamFormDialog({
               <Select
                 value={form.subject}
                 onValueChange={(value) => onFormChange({ ...form, subject: value, selectedQuestions: [] })}
+                disabled={isAutomaticPreview}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona una asignatura" />
@@ -206,7 +268,7 @@ export function ManualExamFormDialog({
               <Label>
                 Preguntas Seleccionadas ({form.selectedQuestions.length})
               </Label>
-              {form.subject && (
+              {form.subject && !isAutomaticPreview && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -215,6 +277,16 @@ export function ManualExamFormDialog({
                   <Plus className="mr-2 h-4 w-4" />
                   Agregar Pregunta
                 </Button>
+              )}
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className={`font-medium ${isScoreValid ? "text-muted-foreground" : "text-destructive"}`}>
+                Puntaje total: {totalScore.toFixed(2)} / {TOTAL_EXAM_SCORE}
+              </span>
+              {hasQuestions && !isScoreValid && (
+                <span className="text-xs text-destructive">
+                  Los puntajes deben sumar {TOTAL_EXAM_SCORE}
+                </span>
               )}
             </div>
 
@@ -237,7 +309,9 @@ export function ManualExamFormDialog({
                             question={question}
                             index={index}
                             onRemove={removeQuestion}
+                            onScoreChange={handleQuestionScoreChange}
                             getDifficultyColor={getDifficultyColor}
+                            isReadOnly={isAutomaticPreview}
                           />
                         ))}
                       </div>
@@ -254,7 +328,7 @@ export function ManualExamFormDialog({
             )}
           </div>
 
-          {showQuestionSelector && form.subject && (
+          {showQuestionSelector && form.subject && !isAutomaticPreview && (
             <Card className="p-4 border-primary">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -335,11 +409,11 @@ export function ManualExamFormDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button 
+          <Button
             onClick={onSubmit}
-            disabled={!form.name || !form.subject || form.selectedQuestions.length === 0}
+            disabled={!canSubmit}
           >
-            {isEditMode ? "Actualizar Examen" : "Crear Examen"}
+            {isAutomaticPreview ? "Confirmar y Crear" : (isEditMode ? "Actualizar Examen" : "Crear Examen")}
           </Button>
         </div>
       </DialogContent>

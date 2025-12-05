@@ -10,20 +10,25 @@ import { Button } from "../../ui/button"
 interface ApproveExamDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  examId: string
-  onApprove: (comment?: string) => void
+  onApprove: (comment?: string) => Promise<void> | void
+  loading?: boolean
 }
 
 export function ApproveExamDialog({
   open,
   onOpenChange,
-  onApprove
+  onApprove,
+  loading = false,
 }: ApproveExamDialogProps) {
   const [comment, setComment] = useState("")
 
-  const handleApprove = () => {
-    onApprove(comment.trim() || undefined)
-    setComment("")
+  const handleApprove = async () => {
+    try {
+      await onApprove(comment.trim() || undefined)
+      setComment("")
+    } catch {
+      // el manejador superior mostrarA? el error
+    }
   }
 
   return (
@@ -59,10 +64,10 @@ export function ApproveExamDialog({
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
-          <Button onClick={handleApprove}>
+          <Button onClick={handleApprove} disabled={loading}>
             <CheckCircle className="mr-2 h-4 w-4" />
             Aprobar Examen
           </Button>

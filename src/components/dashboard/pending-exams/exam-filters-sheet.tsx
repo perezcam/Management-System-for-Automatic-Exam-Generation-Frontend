@@ -1,74 +1,65 @@
-import { Button } from "../../ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../ui/dialog"
-import { Label } from "../../ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select"
+import type { PendingExamFilterOption, PendingExamFilters } from "@/types/pending-exams/exam";
+import { ALL_PENDING_EXAMS_FILTER } from "@/hooks/exams/use-pending-exams";
+import { Button } from "../../ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../ui/dialog";
+import { Label } from "../../ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 
-export interface ExamFilters {
-  profesor: string
-  asignatura: string
-  estado: string
-  nombreExamen: string
-}
+type ExamFiltersSheetProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  filters: PendingExamFilters;
+  onFiltersChange: (filters: PendingExamFilters) => void;
+  professors: PendingExamFilterOption[];
+  subjects: PendingExamFilterOption[];
+  onApplyFilters?: () => void;
+};
 
-interface ExamFiltersSheetProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  filters: ExamFilters
-  onFiltersChange: (filters: ExamFilters) => void
-  profesores: string[]
-  asignaturas: string[]
-  onApplyFilters?: () => void
-}
+const getDefaultFilters = (): PendingExamFilters => ({
+  professorId: ALL_PENDING_EXAMS_FILTER,
+  subjectId: ALL_PENDING_EXAMS_FILTER,
+  status: ALL_PENDING_EXAMS_FILTER,
+});
 
-export function ExamFiltersSheet({ 
+export function ExamFiltersSheet({
   open,
   onOpenChange,
-  filters, 
-  onFiltersChange, 
-  profesores, 
-  asignaturas,
-  onApplyFilters
+  filters,
+  onFiltersChange,
+  professors,
+  subjects,
+  onApplyFilters,
 }: ExamFiltersSheetProps) {
-  const handleFilterChange = (key: keyof ExamFilters, value: string) => {
+  const handleFilterChange = (key: keyof PendingExamFilters, value: string) => {
     onFiltersChange({
       ...filters,
-      [key]: value
-    })
-  }
+      [key]: value,
+    });
+  };
 
   const handleClearFilters = () => {
-    onFiltersChange({
-      profesor: "todos",
-      asignatura: "todas",
-      estado: "todos",
-      nombreExamen: "todos"
-    })
-  }
+    onFiltersChange(getDefaultFilters());
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Filtros de Exámenes</DialogTitle>
-          <DialogDescription>
-            Filtra los exámenes por diferentes criterios
-          </DialogDescription>
+          <DialogDescription>Filtra los exámenes por diferentes criterios</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="profesor-filter">Profesor</Label>
-            <Select 
-              value={filters.profesor} 
-              onValueChange={(value) => handleFilterChange("profesor", value)}
-            >
+            <Label htmlFor="professor-filter">Profesor</Label>
+            <Select value={filters.professorId} onValueChange={(value) => handleFilterChange("professorId", value)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {profesores.map((profesor) => (
-                  <SelectItem key={profesor} value={profesor}>
-                    {profesor}
+                <SelectItem value={ALL_PENDING_EXAMS_FILTER}>Todos</SelectItem>
+                {professors.map((professor) => (
+                  <SelectItem key={professor.value} value={professor.value}>
+                    {professor.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -76,19 +67,16 @@ export function ExamFiltersSheet({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="asignatura-filter">Asignatura</Label>
-            <Select 
-              value={filters.asignatura} 
-              onValueChange={(value) => handleFilterChange("asignatura", value)}
-            >
+            <Label htmlFor="subject-filter">Asignatura</Label>
+            <Select value={filters.subjectId} onValueChange={(value) => handleFilterChange("subjectId", value)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todas">Todas</SelectItem>
-                {asignaturas.map((asignatura) => (
-                  <SelectItem key={asignatura} value={asignatura}>
-                    {asignatura}
+                <SelectItem value={ALL_PENDING_EXAMS_FILTER}>Todas</SelectItem>
+                {subjects.map((subject) => (
+                  <SelectItem key={subject.value} value={subject.value}>
+                    {subject.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -96,16 +84,13 @@ export function ExamFiltersSheet({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="estado-filter">Estado</Label>
-            <Select 
-              value={filters.estado} 
-              onValueChange={(value) => handleFilterChange("estado", value)}
-            >
+            <Label htmlFor="status-filter">Estado</Label>
+            <Select value={filters.status} onValueChange={(value) => handleFilterChange("status", value)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value={ALL_PENDING_EXAMS_FILTER}>Todos</SelectItem>
                 <SelectItem value="pendiente">Pendiente</SelectItem>
                 <SelectItem value="aprobado">Aprobado</SelectItem>
                 <SelectItem value="rechazado">Rechazado</SelectItem>
@@ -117,17 +102,19 @@ export function ExamFiltersSheet({
           <Button variant="outline" onClick={handleClearFilters}>
             Limpiar Filtros
           </Button>
-          <Button onClick={() => {
-            if (onApplyFilters) {
-              onApplyFilters()
-            } else {
-              onOpenChange(false)
-            }
-          }}>
+          <Button
+            onClick={() => {
+              if (onApplyFilters) {
+                onApplyFilters();
+              } else {
+                onOpenChange(false);
+              }
+            }}
+          >
             Aplicar
           </Button>
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

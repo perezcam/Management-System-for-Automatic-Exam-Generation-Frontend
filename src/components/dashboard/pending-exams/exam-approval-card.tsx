@@ -1,45 +1,35 @@
-import { FileCheck, Clock, User, BookOpen } from "lucide-react"
-import { Card } from "../../ui/card"
-import { Badge } from "../../ui/badge"
-
-export type ExamApproval = {
-  id: string
-  subject: string
-  examName: string
-  creator: string
-  createdDate: string
-  totalQuestions: number
-  status: "pendiente" | "aprobado" | "rechazado"
-  difficulty: "Fácil" | "Regular" | "Difícil" | "Mixta"
-}
+import { FileCheck, Clock, User, BookOpen } from "lucide-react";
+import type { PendingExamListItem } from "@/types/pending-exams/exam";
+import { Card } from "../../ui/card";
+import { Badge } from "../../ui/badge";
 
 interface ExamApprovalCardProps {
-  exam: ExamApproval
-  onClick: (exam: ExamApproval) => void
+  exam: PendingExamListItem;
+  onClick: (exam: PendingExamListItem) => void;
 }
 
 export function ExamApprovalCard({ exam, onClick }: ExamApprovalCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "aprobado":
-        return "bg-green-100 text-green-700 hover:bg-green-100"
+        return "bg-green-100 text-green-700 hover:bg-green-100";
       case "rechazado":
-        return "bg-red-100 text-red-700 hover:bg-red-100"
+        return "bg-red-100 text-red-700 hover:bg-red-100";
       default:
-        return "bg-yellow-100 text-yellow-700 hover:bg-yellow-100"
+        return "bg-yellow-100 text-yellow-700 hover:bg-yellow-100";
     }
-  }
+  };
 
   const getStatusText = (status: string) => {
     switch (status) {
       case "aprobado":
-        return "Aprobado"
+        return "Aprobado";
       case "rechazado":
-        return "Rechazado"
+        return "Rechazado";
       default:
-        return "Pendiente"
+        return "Pendiente";
     }
-  }
+  };
 
   return (
     <Card
@@ -63,7 +53,7 @@ export function ExamApprovalCard({ exam, onClick }: ExamApprovalCardProps) {
             {getStatusText(exam.status)}
           </Badge>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <FileCheck className="h-4 w-4 flex-shrink-0" />
@@ -76,5 +66,5 @@ export function ExamApprovalCard({ exam, onClick }: ExamApprovalCardProps) {
         </div>
       </div>
     </Card>
-  )
+  );
 }

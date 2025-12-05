@@ -29,6 +29,18 @@ export type SubjectQueryParams = {
   program?: string;
 };
 
+export const fetchSubjectDetail = async (subjectId: string): Promise<SubjectDetail> => {
+  const resp = await backendRequest<RetrieveOneSchema<SubjectDetail>>(
+    `${QUESTION_SUBJECTS_ENDPOINT}/${subjectId}`,
+  );
+  const data = resp.data;
+  if (!data) {
+    throw new Error("El backend no devolvió la materia solicitada");
+  }
+  return normalizeSubject(data);
+};
+
+
 export const fetchSubjects = async (params?: SubjectQueryParams): Promise<SubjectDetail[]> => {
   const url = withQueryParams(QUESTION_SUBJECTS_ENDPOINT, {
     q: params?.q,
