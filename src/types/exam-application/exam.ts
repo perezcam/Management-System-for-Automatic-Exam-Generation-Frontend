@@ -83,3 +83,18 @@ export interface ActiveExam {
     updatedAt: string;
     questions: ActiveExamQuestion[];
 }
+
+export interface RegradeRequestPayload {
+    examId: string;
+    professorId: string;
+    reason: string;
+}
+
+export interface RegradeRequestResponse {
+    id: string;
+    examId: string;
+    professorId: string;
+    reason: string;
+    status: string;
+    createdAt: string;
+}

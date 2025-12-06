@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Clock, Calendar, BookOpen, GraduationCap, Filter, Search } from "lucide-react"
 import { StudentExamFiltersDialog } from "@/components/dashboard/exams/exam-filters-dialog"
 import { ExamTakingView } from "@/components/dashboard/exams/exam-taking-view"
+import { RegradeRequestDialog } from "@/components/dashboard/exams/regrade-request-dialog"
 import { useStudentExams } from "@/hooks/exam-application/use-student-exams"
 import { AssignedExamStatus, ExamAssignment } from "@/types/exam-application/exam"
 import { StudentExamFilters } from "@/types/exam-application/filters"
@@ -37,6 +38,8 @@ export default function PruebasView() {
   const { exams, loading, filters, setFilters, refresh, search, setSearch } = useStudentExams()
   const [showFiltersDialog, setShowFiltersDialog] = useState(false)
   const [selectedExamAssignment, setSelectedExamAssignment] = useState<ExamAssignment | null>(null)
+  const [regradeExam, setRegradeExam] = useState<ExamAssignment | null>(null)
+  const [showRegradeDialog, setShowRegradeDialog] = useState(false)
 
   // Filtros temporales que no se aplican hasta presionar "Aplicar"
   const [tempFilters, setTempFilters] = useState<StudentExamFilters>(filters)
@@ -62,12 +65,19 @@ export default function PruebasView() {
   const handleExamClick = (exam: ExamAssignment) => {
     if (exam.status === AssignedExamStatus.ENABLED) {
       setSelectedExamAssignment(exam)
+    } else if (exam.status === AssignedExamStatus.GRADED && exam.grade !== null) {
+      setRegradeExam(exam)
+      setShowRegradeDialog(true)
     }
   }
 
   const handleBackFromExam = () => {
     setSelectedExamAssignment(null)
     refresh() // Refresh list to update status if changed
+  }
+
+  const handleRegradeSuccess = () => {
+    refresh() // Refresh list after successful regrade submission
   }
 
   const activeFiltersCount = Object.values(filters).filter(
@@ -141,7 +151,15 @@ export default function PruebasView() {
               {exams.map((exam) => (
                 <Card
                   key={exam.id}
-                  className="p-5 transition-colors"
+                  className={`p-5 transition-colors ${exam.status === AssignedExamStatus.GRADED && exam.grade !== null
+                    ? "cursor-pointer hover:bg-accent/50"
+                    : ""
+                    }`}
+                  onClick={() => {
+                    if (exam.status === AssignedExamStatus.GRADED && exam.grade !== null) {
+                      handleExamClick(exam)
+                    }
+                  }}
                 >
                   <div className="space-y-4">
                     <div className="flex items-start justify-between gap-4">
@@ -205,6 +223,15 @@ export default function PruebasView() {
           </ScrollArea>
         )}
       </div>
+
+      {regradeExam && (
+        <RegradeRequestDialog
+          open={showRegradeDialog}
+          onOpenChange={setShowRegradeDialog}
+          exam={regradeExam}
+          onSuccess={handleRegradeSuccess}
+        />
+      )}
 
       <StudentExamFiltersDialog
         open={showFiltersDialog}
