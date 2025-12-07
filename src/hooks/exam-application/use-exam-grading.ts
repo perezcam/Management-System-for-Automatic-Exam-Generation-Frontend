@@ -5,7 +5,7 @@ import { ExamApplicationService } from "@/services/exam-application/exam-applica
 import { ActiveExam, ExamResponse } from "@/types/exam-application/exam";
 import type { QuestionDetail } from "@/types/question-bank/question";
 
-export function useExamGrading(assignmentId?: string, examId?: string) {
+export function useExamGrading(assignmentId?: string, examId?: string, studentId?: string) {
   const [exam, setExam] = useState<ActiveExam | null>(null);
   const [responses, setResponses] = useState<Record<string, ExamResponse | null>>({});
   const [questionDetails, setQuestionDetails] = useState<Record<string, QuestionDetail | null>>({});
@@ -56,7 +56,7 @@ export function useExamGrading(assignmentId?: string, examId?: string) {
       try {
         const [detail, response] = await Promise.all([
           ExamApplicationService.getQuestionByIndex(examId, questionIndex),
-          ExamApplicationService.getResponseByIndex(examId, questionIndex),
+          ExamApplicationService.getResponseByIndex(examId, questionIndex, studentId),
         ]);
 
         const normalizedDetail: QuestionDetail = {
@@ -89,7 +89,7 @@ export function useExamGrading(assignmentId?: string, examId?: string) {
         setLoadingQuestionId(null);
       }
     },
-    [examId, questionDetails, responses]
+    [examId, questionDetails, responses, studentId]
   );
 
   const setManualPoints = useCallback(
