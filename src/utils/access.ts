@@ -24,7 +24,7 @@ export const ROLE_ALLOWED_KEYS: Record<Role, FolderKey[]> = {
     "administration",
   ],
   [Role.Teacher]: [
-    "question-bank",
+    "question-bank", "pending-exams", "regrade",
   ],
   [Role.SubjectLeader]: [
     "question-bank", "pending-exams", "regrade",
@@ -73,6 +73,6 @@ export function canAccess(pathname: string, roles: Role[]) {
 
 export function firstAllowedRouteFor(roles: Role[]): string {
   const routes = allowedRoutesFor(roles);
-  if (!routes.length) return "/login"; 
+  if (!routes.length) return "/login";
   return routes[0];
 }

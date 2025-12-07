@@ -4,11 +4,12 @@ import type {
   PaginatedSchema,
   RetrieveOneSchema,
 } from "@/types/backend-responses";
-import { backendRequest } from "@/services/api-client";
+import { backendRequest, backendRequestRaw } from "@/services/api-client";
 import {
   PaginatedResult,
   PaginationParams,
   TEACHER_ENDPOINT,
+  TEACHERS_BY_SUBJECT_ENDPOINT,
   withQueryParams,
 } from "@/services/api/endpoints";
 import { CreateTeacherPayload, TeacherDetail, TeacherUser, UpdateTeacherPayload } from "@/types/users/teacher";
@@ -72,4 +73,9 @@ export const updateTeacher = async (teacherId: string, payload: UpdateTeacherPay
 
 export const deleteTeacher = async (teacherId: string): Promise<void> => {
   await backendRequest<BaseResponse>(`${TEACHER_ENDPOINT}/${teacherId}`, { method: "DELETE" });
+};
+
+export const getTeachersBySubject = async (subjectId: string): Promise<TeacherUser[]> => {
+  const resp = await backendRequestRaw<TeacherDetail[]>(`${TEACHERS_BY_SUBJECT_ENDPOINT}/${subjectId}`);
+  return resp.map(toTeacherUser);
 };

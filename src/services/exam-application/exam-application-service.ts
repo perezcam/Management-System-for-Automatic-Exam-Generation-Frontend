@@ -4,15 +4,25 @@ import {
     ExamAssignment,
     ExamResponse,
     ExamResponseCreateInput,
-    ExamResponseUpdateInput
+    ExamResponseUpdateInput,
+    RegradeRequestPayload,
+    RegradeRequestResponse
 } from "@/types/exam-application/exam";
+import {
+    EvaluatorAssignment,
+    PendingRegradeRequest
+} from "@/types/exam-application/evaluation";
 import { StudentExamFilters } from "@/types/exam-application/filters";
 import type { QuestionDetail } from "@/types/question-bank/question";
 import { BaseResponse } from "@/types/backend-responses";
 import {
+    EVALUATOR_ASSIGNMENTS_ENDPOINT,
+    EXAM_ASSIGNMENTS_ENDPOINT,
     EXAMS_ENDPOINT,
-    STUDENT_ASSIGNMENTS_ENDPOINT,
-    EXAM_RESPONSES_ENDPOINT
+    EXAM_RESPONSES_ENDPOINT,
+    PENDING_REGRADE_REQUESTS_ENDPOINT,
+    REGRADE_REQUESTS_ENDPOINT,
+    STUDENT_ASSIGNMENTS_ENDPOINT
 } from "@/services/api/endpoints";
 import { extractBackendMessage } from "@/utils/backend-response";
 import { showErrorToast } from "@/utils/toast";
@@ -34,6 +44,26 @@ interface GetExamResponse extends BaseResponse {
 
 interface ExamResponseSuccessResponse extends BaseResponse {
     data: ExamResponse;
+}
+
+interface ListEvaluatorAssignmentsResponse extends BaseResponse {
+    data: EvaluatorAssignment[];
+    meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+}
+
+interface ListPendingRegradeRequestsResponse extends BaseResponse {
+    data: PendingRegradeRequest[];
+    meta?: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
 }
 
 export type AssignExamToCoursePayload = {
@@ -186,5 +216,57 @@ export const ExamApplicationService = {
         }
 
         return question;
+    },
+
+    listEvaluatorAssignments: async (params: { page?: number; limit?: number; search?: string } = {}) => {
+        const queryParams = new URLSearchParams();
+        queryParams.append("page", String(params.page ?? 1));
+        queryParams.append("limit", String(params.limit ?? 10));
+        if (params.search?.trim()) {
+            queryParams.append("search", params.search.trim());
+        }
+
+        return backendRequest<ListEvaluatorAssignmentsResponse>(
+            `${EVALUATOR_ASSIGNMENTS_ENDPOINT}?${queryParams.toString()}`
+        );
+    },
+
+    listPendingRegradeRequests: async (params: { page?: number; limit?: number; search?: string } = {}) => {
+        const queryParams = new URLSearchParams();
+        queryParams.append("page", String(params.page ?? 1));
+        queryParams.append("limit", String(params.limit ?? 10));
+        if (params.search?.trim()) {
+            queryParams.append("search", params.search.trim());
+        }
+
+        return backendRequest<ListPendingRegradeRequestsResponse>(
+            `${PENDING_REGRADE_REQUESTS_ENDPOINT}?${queryParams.toString()}`
+        );
+    },
+
+    setManualPoints: async (responseId: string, manualPoints: number) => {
+        return backendRequest<ExamResponseSuccessResponse>(
+            `${EXAM_RESPONSES_ENDPOINT}/${responseId}/manual-points`,
+            {
+                method: "PATCH",
+                body: JSON.stringify({ manualPoints }),
+            }
+        );
+    },
+
+    finalizeAssignmentGrade: async (assignmentId: string) => {
+        return backendRequest<BaseResponse>(`${EXAM_ASSIGNMENTS_ENDPOINT}/${assignmentId}/grade`, {
+            method: "PATCH",
+        });
+    },
+
+    submitRegradeRequest: async (payload: RegradeRequestPayload) => {
+        return backendRequest<BaseResponse & { data: RegradeRequestResponse }>(
+            REGRADE_REQUESTS_ENDPOINT,
+            {
+                method: "POST",
+                body: JSON.stringify(payload),
+            }
+        );
     },
 };

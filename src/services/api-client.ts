@@ -47,6 +47,43 @@ export async function backendRequest<TSchema extends BaseResponse>(
   return decodeBackendSchema<TSchema>(payload);
 }
 
+export async function backendRequestRaw<T>(url: string, init?: RequestInit): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+      credentials: "include",
+    });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "No fue posible contactar al backend";
+    showErrorToast(message);
+    throw err;
+  }
+
+  if (response.status === 204) {
+    return undefined as unknown as T;
+  }
+
+  const payload = await parseResponseJson(response);
+
+  if (!response.ok) {
+    if (shouldForceLogin(response.status)) {
+      await handleExpiredSession();
+    }
+    const fallbackMessage = response.statusText || `Error ${response.status}`;
+    const message = extractBackendMessage(payload) ?? fallbackMessage;
+    showErrorToast(message);
+    throw new Error(message);
+  }
+
+  return payload as T;
+}
+
 const parseResponseJson = async (response: Response) => {
   try {
     return await response.json();

@@ -19,6 +19,7 @@ export const getEndpoint = (key: ApiEndpointKey): string => API_ENDPOINTS[key];
 export const USERS_ENDPOINT = API_ENDPOINTS.users;
 export const STUDENT_ENDPOINT = API_ENDPOINTS.student;
 export const TEACHER_ENDPOINT = API_ENDPOINTS.teacher;
+export const TEACHERS_BY_SUBJECT_ENDPOINT = `${TEACHER_ENDPOINT}/subject`;
 export const CURRENT_USER_ENDPOINT = `${USERS_ENDPOINT}/me`;
 export const QUESTION_TYPES_ENDPOINT = API_ENDPOINTS.questionTypes;
 export const QUESTION_BANK_QUESTIONS_ENDPOINT = API_ENDPOINTS.questionBankQuestions;
@@ -31,7 +32,11 @@ export const EXAMS_MANUAL_ENDPOINT = `${EXAMS_ENDPOINT}/manual`;
 export const EXAMS_AUTOMATIC_ENDPOINT = `${EXAMS_ENDPOINT}/automatic`;
 export const PENDING_EXAMS_ENDPOINT = EXAMS_ENDPOINT;
 export const STUDENT_ASSIGNMENTS_ENDPOINT = `${EXAMS_ENDPOINT}/my-assignments`;
+export const EXAM_ASSIGNMENTS_ENDPOINT = `${EXAMS_ENDPOINT}/assignments`;
 export const EXAM_RESPONSES_ENDPOINT = `${EXAMS_ENDPOINT}/responses`;
+export const REGRADE_REQUESTS_ENDPOINT = `${EXAMS_ENDPOINT}/regrade-requests`;
+export const PENDING_REGRADE_REQUESTS_ENDPOINT = `${REGRADE_REQUESTS_ENDPOINT}/pending`;
+export const EVALUATOR_ASSIGNMENTS_ENDPOINT = `${EXAMS_ENDPOINT}/evaluator/my-assignments`;
 
 
 export type QueryParams = Record<string, string | number | boolean | undefined | null>;
