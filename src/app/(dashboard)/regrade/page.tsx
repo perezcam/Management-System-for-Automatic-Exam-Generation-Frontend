@@ -38,11 +38,21 @@ const STATUS_LABELS: Record<string, string> = {
 const mapStatusLabel = (status: string) => STATUS_LABELS[status] ?? status
 
 export default function RevisionesView() {
-  const { assignments, regradeRequests, loading, error, search, setSearch, refresh } = useRegradeQueues()
+  const { assignments, regradeRequests, loading, error, search, setSearch, refresh, studentNames } = useRegradeQueues()
   const [filters, setFilters] = useState<RevisionFilters>(DEFAULT_FILTERS)
   const [tempFilters, setTempFilters] = useState<RevisionFilters>(DEFAULT_FILTERS)
   const [showFiltersDialog, setShowFiltersDialog] = useState(false)
-  const [selectedRevision, setSelectedRevision] = useState<RevisionItem | null>(null)
+  const [selectedRevisionId, setSelectedRevisionId] = useState<string | null>(null)
+
+  const resolveStudentName = useCallback(
+    (studentId?: string, fallback?: string) => {
+      if (!studentId) {
+        return fallback ?? "Estudiante desconocido"
+      }
+      return studentNames[studentId] ?? fallback ?? "Estudiante desconocido"
+    },
+    [studentNames]
+  )
 
   const assignmentItems: RevisionItem[] = useMemo(() => (
     assignments.map((assignment) => ({
@@ -53,33 +63,39 @@ export default function RevisionesView() {
       subjectId: assignment.subjectId,
       subjectName: assignment.subjectName ?? "Sin asignatura",
       studentId: assignment.studentId,
-      studentName: assignment.studentName,
+      studentName: resolveStudentName(assignment.studentId, assignment.studentName),
       status: assignment.status ?? AssignedExamStatus.IN_EVALUATION,
       grade: assignment.grade ?? null,
       createdAt: assignment.applicationDate,
       kind: "GRADE" as const,
     }))
-  ), [assignments])
+  ), [assignments, resolveStudentName])
 
   const regradeItems: RevisionItem[] = useMemo(() => (
     regradeRequests.map((request) => ({
       id: request.id,
-      assignmentId: request.examAssignmentId ?? request.assignmentId,
+      assignmentId: request.assignmentId ?? request.examAssignmentId,
       examId: request.examId,
       examTitle: request.examTitle ?? "Revisión de examen",
       subjectId: request.subjectId,
       subjectName: request.subjectName,
       studentId: request.studentId,
-      studentName: request.studentName,
+      studentName: resolveStudentName(request.studentId, request.studentName),
       status: request.status,
       grade: request.grade ?? null,
       createdAt: request.createdAt ?? request.requestedAt,
       requestReason: request.reason,
       kind: "REGRADE" as const,
     }))
-  ), [regradeRequests])
+  ), [regradeRequests, resolveStudentName])
 
   const allItems = useMemo(() => [...assignmentItems, ...regradeItems], [assignmentItems, regradeItems])
+  const selectedRevision = useMemo(() => {
+    if (!selectedRevisionId) {
+      return null
+    }
+    return allItems.find((item) => item.id === selectedRevisionId) ?? null
+  }, [allItems, selectedRevisionId])
 
   const filterItem = useCallback((item: RevisionItem) => {
     const text = search.trim().toLowerCase()
@@ -174,11 +190,11 @@ export default function RevisionesView() {
 
   const handleRevisionClick = (revision: RevisionItem) => {
     if (!revision.examId) return
-    setSelectedRevision(revision)
+    setSelectedRevisionId(revision.id)
   }
 
   const handleBackFromGrading = () => {
-    setSelectedRevision(null)
+    setSelectedRevisionId(null)
     refresh()
   }
 

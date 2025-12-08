@@ -22,6 +22,7 @@ import {
 import { RevisionItem } from "./revision-card"
 import { showError, showSuccess } from "../../../utils/toast"
 import { useExamGrading } from "@/hooks/exam-application/use-exam-grading"
+import { dispatchAssignmentGradedEvent } from "@/utils/events"
 import type { ExamResponse } from "@/types/exam-application/exam"
 import type { QuestionDetail } from "@/types/question-bank/question"
 
@@ -235,6 +236,9 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
       }
 
       await finalizeAssignment()
+      if (revision.assignmentId) {
+        dispatchAssignmentGradedEvent(revision.assignmentId)
+      }
       showSuccess(finishNotification, `Nota final: ${calculatedGrade.toFixed(1)}/10`)
       if (onFinished) onFinished()
       onBack()

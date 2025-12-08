@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ExamApplicationService } from "@/services/exam-application/exam-application-service";
 import { ExamAssignment, AssignedExamStatus } from "@/types/exam-application/exam";
 import { StudentExamFilters } from "@/types/exam-application/filters";
+import { ASSIGNMENT_GRADED_EVENT } from "@/utils/events";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -58,12 +59,27 @@ export function useStudentExams() {
     }, []);
 
     const refresh = useCallback(async () => {
-        await fetchExams();
-    }, [fetchExams]);
+    await fetchExams();
+  }, [fetchExams]);
 
-    return {
-        exams,
-        loading,
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleAssignmentGraded = () => {
+      void refresh();
+    };
+
+    window.addEventListener(ASSIGNMENT_GRADED_EVENT, handleAssignmentGraded);
+    return () => {
+      window.removeEventListener(ASSIGNMENT_GRADED_EVENT, handleAssignmentGraded);
+    };
+  }, [refresh]);
+
+  return {
+    exams,
+    loading,
         error,
         total,
         page,
