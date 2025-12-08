@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ExamApplicationService } from "@/services/exam-application/exam-application-service";
 import { EvaluatorAssignment, PendingRegradeRequest } from "@/types/exam-application/evaluation";
 import { fetchStudentDetail } from "@/services/users/student";
+import { fetchExamById } from "@/services/exam-bank/exams";
 
 const DEFAULT_PAGE_SIZE = 50;
 
@@ -14,6 +15,7 @@ export function useRegradeQueues() {
   const [error, setError] = useState<Error | null>(null);
   const [search, setSearch] = useState("");
   const [studentNames, setStudentNames] = useState<Record<string, string>>({});
+  const [examTitles, setExamTitles] = useState<Record<string, string>>({});
 
   const fetchQueues = useCallback(async () => {
     setLoading(true);
@@ -50,11 +52,11 @@ export function useRegradeQueues() {
     await fetchQueues();
   }, [fetchQueues]);
 
-useEffect(() => {
-  const studentIds = Array.from(
-    new Set(
-      [
-        ...assignments.map((assignment) => assignment.studentId),
+  useEffect(() => {
+    const studentIds = Array.from(
+      new Set(
+        [
+          ...assignments.map((assignment) => assignment.studentId),
         ...regradeRequests.map((request) => request.studentId),
       ].filter((id): id is string => Boolean(id))
     )
@@ -93,7 +95,51 @@ useEffect(() => {
   return () => {
     isCancelled = true;
   };
-}, [assignments, regradeRequests, studentNames]);
+  }, [assignments, regradeRequests, studentNames]);
+
+  useEffect(() => {
+    const examIds = Array.from(
+      new Set(
+        [
+          ...assignments.map((assignment) => assignment.examId),
+          ...regradeRequests.map((request) => request.examId),
+        ].filter((id): id is string => Boolean(id))
+      )
+    );
+
+    const missingExamIds = examIds.filter((id) => !examTitles[id]);
+    if (!missingExamIds.length) return;
+
+    let isCancelled = false;
+
+    const loadExamTitles = async () => {
+      const nextTitles: Record<string, string> = {};
+
+      await Promise.all(
+        missingExamIds.map(async (examId) => {
+          try {
+            const exam = await fetchExamById(examId);
+            nextTitles[examId] = exam.title ?? exam.id;
+          } catch (err) {
+            console.error("No se pudo cargar el nombre del examen", err);
+          }
+        })
+      );
+
+      if (isCancelled || !Object.keys(nextTitles).length) return;
+
+      setExamTitles((prev) => ({
+        ...prev,
+        ...nextTitles,
+      }));
+    };
+
+    void loadExamTitles();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [assignments, regradeRequests, examTitles]);
 
 
 
@@ -106,5 +152,6 @@ useEffect(() => {
     search,
     setSearch,
     refresh,
+    examTitles,
   };
 }

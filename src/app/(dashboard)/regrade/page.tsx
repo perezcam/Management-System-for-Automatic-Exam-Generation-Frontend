@@ -38,7 +38,17 @@ const STATUS_LABELS: Record<string, string> = {
 const mapStatusLabel = (status: string) => STATUS_LABELS[status] ?? status
 
 export default function RevisionesView() {
-  const { assignments, regradeRequests, loading, error, search, setSearch, refresh, studentNames } = useRegradeQueues()
+  const {
+    assignments,
+    regradeRequests,
+    loading,
+    error,
+    search,
+    setSearch,
+    refresh,
+    studentNames,
+    examTitles,
+  } = useRegradeQueues()
   const [filters, setFilters] = useState<RevisionFilters>(DEFAULT_FILTERS)
   const [tempFilters, setTempFilters] = useState<RevisionFilters>(DEFAULT_FILTERS)
   const [showFiltersDialog, setShowFiltersDialog] = useState(false)
@@ -54,12 +64,25 @@ export default function RevisionesView() {
     [studentNames]
   )
 
+  const resolveExamTitle = useCallback(
+    (examId?: string, fallback?: string, defaultLabel?: string) => {
+      if (examId && examTitles[examId]) {
+        return examTitles[examId]
+      }
+      if (fallback) {
+        return fallback
+      }
+      return defaultLabel ?? "Examen"
+    },
+    [examTitles]
+  )
+
   const assignmentItems: RevisionItem[] = useMemo(() => (
     assignments.map((assignment) => ({
       id: assignment.id,
       assignmentId: assignment.id,
       examId: assignment.examId,
-      examTitle: assignment.examTitle ?? "Examen asignado",
+      examTitle: resolveExamTitle(assignment.examId, assignment.examTitle, "Examen asignado"),
       subjectId: assignment.subjectId,
       subjectName: assignment.subjectName ?? "Sin asignatura",
       studentId: assignment.studentId,
@@ -69,14 +92,14 @@ export default function RevisionesView() {
       createdAt: assignment.applicationDate,
       kind: "GRADE" as const,
     }))
-  ), [assignments, resolveStudentName])
+  ), [assignments, resolveStudentName, resolveExamTitle])
 
   const regradeItems: RevisionItem[] = useMemo(() => (
     regradeRequests.map((request) => ({
       id: request.id,
       assignmentId: request.assignmentId ?? request.examAssignmentId,
       examId: request.examId,
-      examTitle: request.examTitle ?? "Revisión de examen",
+      examTitle: resolveExamTitle(request.examId, request.examTitle, "Revisión de examen"),
       subjectId: request.subjectId,
       subjectName: request.subjectName,
       studentId: request.studentId,
@@ -87,7 +110,7 @@ export default function RevisionesView() {
       requestReason: request.reason,
       kind: "REGRADE" as const,
     }))
-  ), [regradeRequests, resolveStudentName])
+  ), [regradeRequests, resolveStudentName,resolveExamTitle ])
 
   const allItems = useMemo(() => [...assignmentItems, ...regradeItems], [assignmentItems, regradeItems])
   const selectedRevision = useMemo(() => {

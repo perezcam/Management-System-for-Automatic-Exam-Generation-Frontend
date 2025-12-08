@@ -582,85 +582,74 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
                     </div>
 
                     <Separator />
-
                     <div>
-                      <Label className="text-base font-medium mb-3 block">Calificación:</Label>
-                      {manualQuestionSelected ? (
-                        manualEditable ? (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-4">
-                              <div className="flex-1 max-w-xs">
-                                <div className="flex items-center gap-2">
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    max={maxScore}
-                                    step="0.5"
-                                    value={manualValue ?? ""}
-                                    onChange={(e) => handleManualPointsChange(e.target.value)}
-                                    placeholder="0.0"
-                                    className="text-center text-lg font-semibold"
-                                  />
-                                  <span className="text-muted-foreground">/ {maxScore}</span>
+                      {manualQuestionSelected && (
+                        <>
+                          <Label className="text-base font-medium mb-3 block">Calificación:</Label>
+                          {manualEditable ? (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-4">
+                                <div className="flex-1 max-w-xs">
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      max={maxScore}
+                                      step="0.5"
+                                      value={manualValue ?? ""}
+                                      onChange={(e) => handleManualPointsChange(e.target.value)}
+                                      placeholder="0.0"
+                                      className="text-center text-lg font-semibold"
+                                    />
+                                    <span className="text-muted-foreground">/ {maxScore}</span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    Ingresa la puntuación obtenida (máximo {maxScore} puntos)
+                                  </p>
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-2">
-                                  Ingresa la puntuación obtenida (máximo {maxScore} puntos)
-                                </p>
                               </div>
+                              {isRecalification && (
+                                <p className="text-xs text-muted-foreground">
+                                  {manualPointsAssigned !== null
+                                    ? `La calificación manual actual es ${manualPointsAssigned}/${maxScore} y se puede ajustar en esta recalificación.`
+                                    : "Esta recalificación permite asignar o ajustar la calificación manual sin modificar las automáticas."
+                                  }
+                                </p>
+                              )}
                             </div>
-                            {isRecalification && (
+                          ) : (
+                            <div className="space-y-3">
+                              <div className="p-4 bg-muted rounded-lg flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                  <div>
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                                      Calificación manual
+                                    </p>
+                                    <p className="text-2xl font-mono">
+                                      {manualPointsAssigned !== null ? `${manualPointsAssigned}/${maxScore}` : "Sin registrar"}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                                      Calificación automática
+                                    </p>
+                                    <p className="text-2xl font-mono">
+                                      {autoPointsAssigned !== null ? `${autoPointsAssigned}/${maxScore}` : "Sin registrar"}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Badge variant="secondary" className="bg-green-500/10 text-green-700 border-green-500/20">
+                                  Pregunta calificada
+                                </Badge>
+                              </div>
                               <p className="text-xs text-muted-foreground">
                                 {manualPointsAssigned !== null
-                                  ? `La calificación manual actual es ${manualPointsAssigned}/${maxScore} y se puede ajustar en esta recalificación.`
-                                  : "Esta recalificación permite asignar o ajustar la calificación manual sin modificar las automáticas."
-                                }
+                                  ? "La calificación manual es definitiva para esta pregunta."
+                                  : "La calificación automática ya fue asignada."}
                               </p>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            <div className="p-4 bg-muted rounded-lg flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Calificación manual</p>
-                                  <p className="text-2xl font-mono">
-                                    {manualPointsAssigned !== null ? `${manualPointsAssigned}/${maxScore}` : "Sin registrar"}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Calificación automática</p>
-                                  <p className="text-2xl font-mono">
-                                    {autoPointsAssigned !== null ? `${autoPointsAssigned}/${maxScore}` : "Sin registrar"}
-                                  </p>
-                                </div>
-                              </div>
-                              <Badge variant="secondary" className="bg-green-500/10 text-green-700 border-green-500/20">
-                                Pregunta calificada
-                              </Badge>
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                              {manualPointsAssigned !== null
-                                ? "La calificación manual es definitiva para esta pregunta."
-                                : "La calificación automática ya fue asignada."}
-                            </p>
-                          </div>
-                        )
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="p-4 bg-muted rounded-lg flex items-center justify-between">
-                            <span className="text-sm font-medium">Puntuación obtenida:</span>
-                            <div className={`text-2xl font-mono font-semibold ${
-                              autoPoints === maxScore ? "text-green-600" : "text-red-600"
-                            }`}>
-                              {autoPoints}/{maxScore}
-                            </div>
-                          </div>
-                          {isRecalification && (
-                            <p className="text-xs text-muted-foreground">
-                              Las puntuaciones automáticas se mantienen y no se modifican durante la recalificación.
-                            </p>
                           )}
-                        </div>
+                        </>
                       )}
                     </div>
                   </div>
