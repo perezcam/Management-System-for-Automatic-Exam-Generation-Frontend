@@ -38,48 +38,87 @@ const STATUS_LABELS: Record<string, string> = {
 const mapStatusLabel = (status: string) => STATUS_LABELS[status] ?? status
 
 export default function RevisionesView() {
-  const { assignments, regradeRequests, loading, error, search, setSearch, refresh } = useRegradeQueues()
+  const {
+    assignments,
+    regradeRequests,
+    loading,
+    error,
+    search,
+    setSearch,
+    refresh,
+    studentNames,
+    examTitles,
+  } = useRegradeQueues()
   const [filters, setFilters] = useState<RevisionFilters>(DEFAULT_FILTERS)
   const [tempFilters, setTempFilters] = useState<RevisionFilters>(DEFAULT_FILTERS)
   const [showFiltersDialog, setShowFiltersDialog] = useState(false)
-  const [selectedRevision, setSelectedRevision] = useState<RevisionItem | null>(null)
+  const [selectedRevisionId, setSelectedRevisionId] = useState<string | null>(null)
+
+  const resolveStudentName = useCallback(
+    (studentId?: string, fallback?: string) => {
+      if (!studentId) {
+        return fallback ?? "Estudiante desconocido"
+      }
+      return studentNames[studentId] ?? fallback ?? "Estudiante desconocido"
+    },
+    [studentNames]
+  )
+
+  const resolveExamTitle = useCallback(
+    (examId?: string, fallback?: string, defaultLabel?: string) => {
+      if (examId && examTitles[examId]) {
+        return examTitles[examId]
+      }
+      if (fallback) {
+        return fallback
+      }
+      return defaultLabel ?? "Examen"
+    },
+    [examTitles]
+  )
 
   const assignmentItems: RevisionItem[] = useMemo(() => (
     assignments.map((assignment) => ({
       id: assignment.id,
       assignmentId: assignment.id,
       examId: assignment.examId,
-      examTitle: assignment.examTitle ?? "Examen asignado",
+      examTitle: resolveExamTitle(assignment.examId, assignment.examTitle, "Examen asignado"),
       subjectId: assignment.subjectId,
       subjectName: assignment.subjectName ?? "Sin asignatura",
       studentId: assignment.studentId,
-      studentName: assignment.studentName,
+      studentName: resolveStudentName(assignment.studentId, assignment.studentName),
       status: assignment.status ?? AssignedExamStatus.IN_EVALUATION,
       grade: assignment.grade ?? null,
       createdAt: assignment.applicationDate,
       kind: "GRADE" as const,
     }))
-  ), [assignments])
+  ), [assignments, resolveStudentName, resolveExamTitle])
 
   const regradeItems: RevisionItem[] = useMemo(() => (
     regradeRequests.map((request) => ({
       id: request.id,
-      assignmentId: request.examAssignmentId,
+      assignmentId: request.assignmentId ?? request.examAssignmentId,
       examId: request.examId,
-      examTitle: request.examTitle ?? "Revisión de examen",
+      examTitle: resolveExamTitle(request.examId, request.examTitle, "Revisión de examen"),
       subjectId: request.subjectId,
       subjectName: request.subjectName,
       studentId: request.studentId,
-      studentName: request.studentName,
+      studentName: resolveStudentName(request.studentId, request.studentName),
       status: request.status,
       grade: request.grade ?? null,
-      createdAt: request.createdAt,
+      createdAt: request.createdAt ?? request.requestedAt,
       requestReason: request.reason,
       kind: "REGRADE" as const,
     }))
-  ), [regradeRequests])
+  ), [regradeRequests, resolveStudentName,resolveExamTitle ])
 
   const allItems = useMemo(() => [...assignmentItems, ...regradeItems], [assignmentItems, regradeItems])
+  const selectedRevision = useMemo(() => {
+    if (!selectedRevisionId) {
+      return null
+    }
+    return allItems.find((item) => item.id === selectedRevisionId) ?? null
+  }, [allItems, selectedRevisionId])
 
   const filterItem = useCallback((item: RevisionItem) => {
     const text = search.trim().toLowerCase()
@@ -173,12 +212,12 @@ export default function RevisionesView() {
   }
 
   const handleRevisionClick = (revision: RevisionItem) => {
-    if (!revision.assignmentId || !revision.examId) return
-    setSelectedRevision(revision)
+    if (!revision.examId) return
+    setSelectedRevisionId(revision.id)
   }
 
   const handleBackFromGrading = () => {
-    setSelectedRevision(null)
+    setSelectedRevisionId(null)
     refresh()
   }
 

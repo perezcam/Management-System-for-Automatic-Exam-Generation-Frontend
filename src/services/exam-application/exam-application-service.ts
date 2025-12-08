@@ -167,8 +167,9 @@ export const ExamApplicationService = {
         });
     },
 
-    getResponseByIndex: async (examId: string, questionIndex: number) => {
-        const url = `${EXAMS_ENDPOINT}/${examId}/responses/${questionIndex}`;
+    getResponseByIndex: async (examId: string, questionIndex: number, studentId?: string) => {
+        const query = studentId ? `?studentId=${encodeURIComponent(studentId)}` : "";
+        const url = `${EXAMS_ENDPOINT}/${examId}/responses/${questionIndex}${query}`;
         const response = await performExamGet(url);
 
         if (response.status === 404) {

@@ -1,12 +1,12 @@
 import { Card } from "../../ui/card"
 import { Badge } from "../../ui/badge"
-import { Calendar, User, Repeat, ClipboardList } from "lucide-react"
+import { Calendar, Repeat, ClipboardList } from "lucide-react"
 
 export type RevisionKind = "GRADE" | "REGRADE"
 
 export interface RevisionItem {
   id: string
-  assignmentId: string
+  assignmentId?: string
   examId: string
   examTitle: string
   subjectId?: string
@@ -52,13 +52,17 @@ export function RevisionCard({ revision, onClick }: RevisionCardProps) {
   const hasReason = Boolean(revision.requestReason)
 
   return (
-    <Card
-      className={`p-5 transition-colors ${isClickable
-        ? "cursor-pointer hover:bg-muted/30 hover:border-primary/50"
-        : "cursor-default"
-        }`}
-      onClick={() => isClickable && onClick(revision)}
-    >
+    <div>
+      <div className="text-xs text-muted-foreground mb-1">
+        Estudiante: {revision.studentName}
+      </div>
+      <Card
+        className={`p-5 transition-colors ${isClickable
+          ? "cursor-pointer hover:bg-muted/30 hover:border-primary/50"
+            : "cursor-default"
+          }`}
+        onClick={() => isClickable && onClick(revision)}
+      >
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
@@ -93,12 +97,8 @@ export function RevisionCard({ revision, onClick }: RevisionCardProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <User className="h-4 w-4 flex-shrink-0" />
-            <span className="truncate">{revision.studentName}</span>
-          </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 flex-shrink-0" />
             <span>{formatDate(revision.createdAt)}</span>
           </div>
@@ -114,5 +114,6 @@ export function RevisionCard({ revision, onClick }: RevisionCardProps) {
         )}
       </div>
     </Card>
+  </div>
   )
 }

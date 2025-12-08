@@ -46,7 +46,7 @@ export interface ExamResponse {
     selectedOptions: ExamResponseOption[];
     textAnswer: string | null;
     textResponse?: string | null;
-    autoPoints: number;
+    autoPoints: number | null;
     manualPoints: number | null;
     feedback: string | null;
     answeredAt: string;

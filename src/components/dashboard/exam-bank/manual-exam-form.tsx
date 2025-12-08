@@ -139,6 +139,7 @@ export function ManualExamFormDialog({
 
   const selectedSubject = subjects.find(s => s.id === form.subject)
   const allSubtopics = selectedSubject?.topics.flatMap(t => t.subtopics) || []
+  const uniqueSubtopics = Array.from(new Set(allSubtopics))
   const questionScores = form.selectedQuestions.map((question) => question.score ?? 0)
   const totalScore = sumScores(questionScores)
   const hasQuestions = form.selectedQuestions.length > 0
@@ -350,8 +351,8 @@ export function ManualExamFormDialog({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Todos</SelectItem>
-                        {allSubtopics.map((subtopic) => (
-                          <SelectItem key={subtopic} value={subtopic}>
+                        {uniqueSubtopics.map((subtopic, index) => (
+                          <SelectItem key={`${subtopic}-${index}`} value={subtopic}>
                             {subtopic}
                           </SelectItem>
                         ))}

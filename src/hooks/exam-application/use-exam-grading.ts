@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { ExamApplicationService } from "@/services/exam-application/exam-application-service";
 import { ActiveExam, ExamResponse } from "@/types/exam-application/exam";
 import type { QuestionDetail } from "@/types/question-bank/question";
+import { showError } from "@/utils/toast";
 
-export function useExamGrading(assignmentId?: string, examId?: string) {
+export function useExamGrading(assignmentId?: string, examId?: string, studentId?: string) {
   const [exam, setExam] = useState<ActiveExam | null>(null);
   const [responses, setResponses] = useState<Record<string, ExamResponse | null>>({});
   const [questionDetails, setQuestionDetails] = useState<Record<string, QuestionDetail | null>>({});
@@ -13,6 +14,7 @@ export function useExamGrading(assignmentId?: string, examId?: string) {
   const [error, setError] = useState<Error | null>(null);
   const [saving, setSaving] = useState(false);
   const [loadingQuestionId, setLoadingQuestionId] = useState<string | null>(null);
+  const [questionError, setQuestionError] = useState<string | null>(null);
 
   const resetState = useCallback(() => {
     setExam(null);
@@ -53,10 +55,11 @@ export function useExamGrading(assignmentId?: string, examId?: string) {
       }
 
       setLoadingQuestionId(questionId);
+      setQuestionError(null);
       try {
         const [detail, response] = await Promise.all([
           ExamApplicationService.getQuestionByIndex(examId, questionIndex),
-          ExamApplicationService.getResponseByIndex(examId, questionIndex),
+          ExamApplicationService.getResponseByIndex(examId, questionIndex, studentId),
         ]);
 
         const normalizedDetail: QuestionDetail = {
@@ -83,13 +86,17 @@ export function useExamGrading(assignmentId?: string, examId?: string) {
           ...prev,
           [questionId]: null,
         }));
+        const messageBody = err instanceof Error ? err.message : "Error desconocido";
+        const friendlyMessage = `No se pudo cargar la pregunta ${questionIndex}. ${messageBody}`;
+        showError("Error al cargar la pregunta", messageBody);
+        setQuestionError(friendlyMessage);
         setError(err as Error);
         return null;
       } finally {
         setLoadingQuestionId(null);
       }
     },
-    [examId, questionDetails, responses]
+    [examId, questionDetails, responses, studentId]
   );
 
   const setManualPoints = useCallback(
@@ -139,5 +146,6 @@ export function useExamGrading(assignmentId?: string, examId?: string) {
     loadQuestionAssets,
     setManualPoints,
     finalizeAssignment,
+    questionError,
   };
 }
