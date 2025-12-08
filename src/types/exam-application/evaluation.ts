@@ -35,6 +35,8 @@ export type PendingRegradeRequest = {
   status: PendingRegradeRequestStatus;
   grade: number | null;
   createdAt?: string;
+  requestedAt?: string;
+  assignmentId?: string;
 };
 
 export type GradingTargetType = "GRADE" | "REGRADE";

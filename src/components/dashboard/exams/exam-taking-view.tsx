@@ -374,7 +374,7 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
     ? Object.entries(exam.topicProportion)
     : []
   const coverage = exam.topicCoverage
-  const coverageTopicNames = coverage?.topicIds.map((topicId) => resolveTopicName(topicId)) ?? []
+  const coverageTopicNames = coverage?.topicIds?.map((topicId) => resolveTopicName(topicId)) ?? []
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-muted/30">

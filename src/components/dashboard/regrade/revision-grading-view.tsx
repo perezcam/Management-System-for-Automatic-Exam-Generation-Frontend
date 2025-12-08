@@ -68,18 +68,23 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
     loadQuestionAssets,
     setManualPoints,
     finalizeAssignment,
+    questionError,
   } = useExamGrading(revision.assignmentId, revision.examId, revision.studentId)
+  const isRecalification = revision.kind === "REGRADE"
 
   const questions = useMemo(() => exam?.questions ?? [], [exam])
   const selectedQuestion = questions.find((q) => q.questionId === selectedQuestionId) ?? null
   const selectedDetail = selectedQuestion ? questionDetails[selectedQuestion.questionId] ?? null : null
   const selectedResponse = selectedQuestion ? responses[selectedQuestion.questionId] ?? null : null
   const maxScore = selectedQuestion?.questionScore ?? 0
-  const manualQuestionSelected = isManualQuestion(selectedDetail, selectedResponse)
   const manualPointsAssigned = selectedResponse?.manualPoints ?? null
   const autoPointsAssigned = selectedResponse?.autoPoints ?? null
-  const questionHasPersistedGrade = (manualPointsAssigned !== null && manualPointsAssigned !== undefined)
-    || (autoPointsAssigned !== null && autoPointsAssigned !== undefined)
+  const manualQuestionSelected = isManualQuestion(selectedDetail, selectedResponse)
+  const manualGradePersisted = manualPointsAssigned !== null && manualPointsAssigned !== undefined
+  const autoGradePersisted = autoPointsAssigned !== null && autoPointsAssigned !== undefined
+  const questionHasPersistedGrade = selectedResponse
+    ? manualGradePersisted || autoGradePersisted
+    : false
 
   useEffect(() => {
     if (questions.length > 0 && !selectedQuestionId) {
@@ -120,6 +125,41 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
   }, [getManualValue, questionDetails, responses])
   const selectedQuestionGraded = selectedQuestion ? isQuestionGraded(selectedQuestion.questionId) : false
 
+  const progressByType = useMemo(() => {
+    let manualGraded = 0
+    let manualKnown = 0
+    let autoGraded = 0
+    let autoKnown = 0
+
+    questions.forEach((question) => {
+      const detail = questionDetails[question.questionId]
+      const response = responses[question.questionId]
+      if (!response) return
+
+      if (isManualQuestion(detail, response)) {
+        manualKnown += 1
+        const manualValue = getManualValue(response)
+        if (manualValue !== null && manualValue !== undefined) {
+          manualGraded += 1
+        }
+      } else {
+        autoKnown += 1
+        if (response.autoPoints !== null && response.autoPoints !== undefined) {
+          autoGraded += 1
+        }
+      }
+    })
+
+    return { manualGraded, manualKnown, autoGraded, autoKnown }
+  }, [questions, questionDetails, responses, getManualValue])
+
+  const {
+    manualGraded: manualGradedCount,
+    manualKnown: manualKnownCount,
+    autoGraded: autoGradedCount,
+    autoKnown: autoKnownCount,
+  } = progressByType
+
   const gradedCount = useMemo(() => {
     if (!exam) return 0
     return exam.questions.reduce((count, question) => (
@@ -152,9 +192,10 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
     () => selectedDetail?.options ?? selectedResponse?.selectedOptions ?? [],
     [selectedDetail, selectedResponse]
   )
+  const expectedOptions = selectedDetail?.options ?? []
   const hasManualValue = manualValue !== null && manualValue !== undefined
   const manualSaveLoading = selectedResponse ? savingManualResponseId === selectedResponse.id : false
-  const manualEditable = manualQuestionSelected && !questionHasPersistedGrade
+  const manualEditable = manualQuestionSelected && (isRecalification || !questionHasPersistedGrade)
   const canSaveManualScore = manualEditable && Boolean(selectedResponse) && hasManualValue
   const hasPendingManualChange = canSaveManualScore && selectedResponse
     ? manualValue !== (selectedResponse.manualPoints ?? null)
@@ -170,6 +211,9 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
       [selectedResponse.id]: normalized
     }))
   }
+
+  const finishNotification = isRecalification ? "Recalificación completada" : "Calificación completada"
+  const finalizeButtonLabel = isRecalification ? "Terminar recalificación" : "Terminar calificación"
 
   const handleFinalize = async () => {
     if (!exam) return
@@ -191,7 +235,7 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
       }
 
       await finalizeAssignment()
-      showSuccess("Calificación completada", `Nota final: ${calculatedGrade.toFixed(1)}/10`)
+      showSuccess(finishNotification, `Nota final: ${calculatedGrade.toFixed(1)}/10`)
       if (onFinished) onFinished()
       onBack()
     } catch (err) {
@@ -434,6 +478,21 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
 
                 <ScrollArea className="flex-1">
                   <div className="p-6 space-y-6">
+                    {questionError && (
+                      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive space-y-2">
+                        <p className="font-semibold">Error al cargar la pregunta</p>
+                        <p className="text-xs text-destructive">{questionError}</p>
+                        {selectedQuestion && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => void loadQuestionAssets(selectedQuestion.questionId, selectedQuestion.questionIndex)}
+                          >
+                            Reintentar
+                          </Button>
+                        )}
+                      </div>
+                    )}
                     <div>
                       <Label className="text-base font-medium mb-3 block">Respuesta del estudiante:</Label>
                       {isManualQuestion(selectedDetail, selectedResponse) ? (
@@ -485,19 +544,38 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
                       )}
                     </div>
 
-                    {isManualQuestion(selectedDetail, selectedResponse) && (
-                      <>
-                        <Separator />
-                        <div>
-                          <Label className="text-base font-medium mb-3 block">Respuesta esperada</Label>
-                          <div className="p-4 bg-green-50 dark:bg-green-950/20 border-2 border-green-200 dark:border-green-800 rounded-lg max-h-64 overflow-y-auto">
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                              {selectedDetail?.response ?? "Sin respuesta esperada definida"}
-                            </p>
+                    <div>
+                      <Label className="text-base font-medium mb-3 block">Respuesta esperada</Label>
+                      <div className="p-4 bg-green-50 dark:bg-green-950/20 border-2 border-green-200 dark:border-green-800 rounded-lg max-h-64 overflow-y-auto">
+                        {expectedOptions.length > 0 ? (
+                          <div className="space-y-2">
+                            {expectedOptions.map((option, index) => (
+                              <div
+                                key={`${option.text}-${index}`}
+                                className={`p-3 rounded-lg border-2 ${
+                                  option.isCorrect
+                                    ? "bg-green-100 dark:bg-green-900/40 border-green-500"
+                                    : "bg-muted/30 border-muted"
+                                }`}
+                              >
+                                <div className="flex items-start gap-2">
+                                  {option.isCorrect && (
+                                    <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                  )}
+                                  <span className={`text-sm ${option.isCorrect ? "font-medium text-green-700" : ""}`}>
+                                    {option.text}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                      </>
-                    )}
+                        ) : (
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                            {selectedDetail?.response ?? "Sin respuesta esperada definida"}
+                          </p>
+                        )}
+                      </div>
+                    </div>
 
                     <Separator />
 
@@ -505,25 +583,35 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
                       <Label className="text-base font-medium mb-3 block">Calificación:</Label>
                       {manualQuestionSelected ? (
                         manualEditable ? (
-                          <div className="flex items-center gap-4">
-                            <div className="flex-1 max-w-xs">
-                              <div className="flex items-center gap-2">
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max={maxScore}
-                                  step="0.5"
-                                  value={manualValue ?? ""}
-                                  onChange={(e) => handleManualPointsChange(e.target.value)}
-                                  placeholder="0.0"
-                                  className="text-center text-lg font-semibold"
-                                />
-                                <span className="text-muted-foreground">/ {maxScore}</span>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-4">
+                              <div className="flex-1 max-w-xs">
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max={maxScore}
+                                    step="0.5"
+                                    value={manualValue ?? ""}
+                                    onChange={(e) => handleManualPointsChange(e.target.value)}
+                                    placeholder="0.0"
+                                    className="text-center text-lg font-semibold"
+                                  />
+                                  <span className="text-muted-foreground">/ {maxScore}</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Ingresa la puntuación obtenida (máximo {maxScore} puntos)
+                                </p>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-2">
-                                Ingresa la puntuación obtenida (máximo {maxScore} puntos)
-                              </p>
                             </div>
+                            {isRecalification && (
+                              <p className="text-xs text-muted-foreground">
+                                {manualPointsAssigned !== null
+                                  ? `La calificación manual actual es ${manualPointsAssigned}/${maxScore} y se puede ajustar en esta recalificación.`
+                                  : "Esta recalificación permite asignar o ajustar la calificación manual sin modificar las automáticas."
+                                }
+                              </p>
+                            )}
                           </div>
                         ) : (
                           <div className="space-y-3">
@@ -554,13 +642,20 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
                           </div>
                         )
                       ) : (
-                        <div className="p-4 bg-muted rounded-lg flex items-center justify-between">
-                          <span className="text-sm font-medium">Puntuación obtenida:</span>
-                          <div className={`text-2xl font-mono font-semibold ${
-                            autoPoints === maxScore ? "text-green-600" : "text-red-600"
-                          }`}>
-                            {autoPoints}/{maxScore}
+                        <div className="space-y-2">
+                          <div className="p-4 bg-muted rounded-lg flex items-center justify-between">
+                            <span className="text-sm font-medium">Puntuación obtenida:</span>
+                            <div className={`text-2xl font-mono font-semibold ${
+                              autoPoints === maxScore ? "text-green-600" : "text-red-600"
+                            }`}>
+                              {autoPoints}/{maxScore}
+                            </div>
                           </div>
+                          {isRecalification && (
+                            <p className="text-xs text-muted-foreground">
+                              Las puntuaciones automáticas se mantienen y no se modifican durante la recalificación.
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -665,7 +760,7 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
                 >
                   {(actionLoading || saving) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   <Save className="h-4 w-4 mr-2" />
-                  Terminar calificación
+                  {finalizeButtonLabel}
                 </Button>
               </div>
             </Card>

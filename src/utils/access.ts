@@ -24,7 +24,7 @@ export const ROLE_ALLOWED_KEYS: Record<Role, FolderKey[]> = {
     "administration",
   ],
   [Role.Teacher]: [
-    "question-bank", "pending-exams", "regrade",
+    "question-bank", "pending-exams", "regrade", "exam-bank",
   ],
   [Role.SubjectLeader]: [
     "question-bank", "pending-exams", "regrade",

@@ -64,7 +64,7 @@ export default function RevisionesView() {
   const regradeItems: RevisionItem[] = useMemo(() => (
     regradeRequests.map((request) => ({
       id: request.id,
-      assignmentId: request.examAssignmentId,
+      assignmentId: request.examAssignmentId ?? request.assignmentId,
       examId: request.examId,
       examTitle: request.examTitle ?? "Revisión de examen",
       subjectId: request.subjectId,
@@ -73,7 +73,7 @@ export default function RevisionesView() {
       studentName: request.studentName,
       status: request.status,
       grade: request.grade ?? null,
-      createdAt: request.createdAt,
+      createdAt: request.createdAt ?? request.requestedAt,
       requestReason: request.reason,
       kind: "REGRADE" as const,
     }))
@@ -173,7 +173,7 @@ export default function RevisionesView() {
   }
 
   const handleRevisionClick = (revision: RevisionItem) => {
-    if (!revision.assignmentId || !revision.examId) return
+    if (!revision.examId) return
     setSelectedRevision(revision)
   }
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ExamApplicationService } from "@/services/exam-application/exam-application-service";
 import { ActiveExam, ExamResponse } from "@/types/exam-application/exam";
 import type { QuestionDetail } from "@/types/question-bank/question";
+import { showError } from "@/utils/toast";
 
 export function useExamGrading(assignmentId?: string, examId?: string, studentId?: string) {
   const [exam, setExam] = useState<ActiveExam | null>(null);
@@ -13,6 +14,7 @@ export function useExamGrading(assignmentId?: string, examId?: string, studentId
   const [error, setError] = useState<Error | null>(null);
   const [saving, setSaving] = useState(false);
   const [loadingQuestionId, setLoadingQuestionId] = useState<string | null>(null);
+  const [questionError, setQuestionError] = useState<string | null>(null);
 
   const resetState = useCallback(() => {
     setExam(null);
@@ -53,6 +55,7 @@ export function useExamGrading(assignmentId?: string, examId?: string, studentId
       }
 
       setLoadingQuestionId(questionId);
+      setQuestionError(null);
       try {
         const [detail, response] = await Promise.all([
           ExamApplicationService.getQuestionByIndex(examId, questionIndex),
@@ -83,6 +86,10 @@ export function useExamGrading(assignmentId?: string, examId?: string, studentId
           ...prev,
           [questionId]: null,
         }));
+        const messageBody = err instanceof Error ? err.message : "Error desconocido";
+        const friendlyMessage = `No se pudo cargar la pregunta ${questionIndex}. ${messageBody}`;
+        showError("Error al cargar la pregunta", messageBody);
+        setQuestionError(friendlyMessage);
         setError(err as Error);
         return null;
       } finally {
@@ -139,5 +146,6 @@ export function useExamGrading(assignmentId?: string, examId?: string, studentId
     loadQuestionAssets,
     setManualPoints,
     finalizeAssignment,
+    questionError,
   };
 }
