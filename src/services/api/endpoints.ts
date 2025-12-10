@@ -38,6 +38,17 @@ export const REGRADE_REQUESTS_ENDPOINT = `${EXAMS_ENDPOINT}/regrade-requests`;
 export const PENDING_REGRADE_REQUESTS_ENDPOINT = `${REGRADE_REQUESTS_ENDPOINT}/pending`;
 export const EVALUATOR_ASSIGNMENTS_ENDPOINT = `${EXAMS_ENDPOINT}/evaluator/my-assignments`;
 
+export const ANALYTICS_ENDPOINTS = {
+  automaticExams: "/api/proxy/analytics/reports/automatic-exams",
+  popularQuestions: "/api/proxy/analytics/reports/popular-questions",
+  validatedExams: "/api/proxy/analytics/reports/validated-exams",
+  examPerformance: (examId: string) =>
+    `/api/proxy/analytics/reports/exam-performance/${encodeURIComponent(examId)}`,
+  subjectDifficulty: "/api/proxy/analytics/reports/subject-difficulty",
+  examComparison: "/api/proxy/analytics/reports/exam-comparison",
+  reviewerActivity: "/api/proxy/analytics/reports/reviewer-activity",
+} as const;
+
 
 export type QueryParams = Record<string, string | number | boolean | undefined | null>;
 
