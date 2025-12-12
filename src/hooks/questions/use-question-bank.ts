@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { createQuestion, deleteQuestion, fetchQuestions, updateQuestion } from "@/services/question-bank/questions";
 import { fetchQuestionTypes } from "@/services/question-administration/question_types";
-import { fetchTopics } from "@/services/question-administration/topics";
+import { MAX_TOPICS_LIMIT, fetchTopics } from "@/services/question-administration/topics";
 import { fetchTeachers, fetchTeacherDetail } from "@/services/users/teachers";
 import type { QuestionFilterValues, QuestionListItem } from "@/types/question-bank/view";
 import type { QuestionDetail, CreateQuestionPayload, UpdateQuestionPayload } from "@/types/question-bank/question";
@@ -13,7 +13,7 @@ import type { QuestionTypeDetail } from "@/types/question-administration/questio
 import type { TopicDetail } from "@/types/question-administration/topic";
 import { fetchCurrentUser } from "@/services/users/users";
 
-const DEFAULT_PAGE_SIZE = 2;
+const DEFAULT_PAGE_SIZE = 5;
 
 const DIFFICULTY_LABELS: Record<DifficultyLevelEnum, QuestionListItem["difficulty"]> = {
   [DifficultyLevelEnum.EASY]: "Fácil",
@@ -32,6 +32,8 @@ const DEFAULT_FILTERS: QuestionFilterValues = {
   type: "all",
   difficulty: "all",
 };
+
+const TOPIC_FETCH_LIMIT = MAX_TOPICS_LIMIT;
 
 // Tipo local que extiende TopicDetail con subjects opcional
 type TopicWithSubjects = TopicDetail & {
@@ -65,7 +67,7 @@ export type UseQuestionBankResult = {
 
 export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuestionBankResult {
   const [filters, setFiltersState] = useState<QuestionFilterValues>(DEFAULT_FILTERS);
-  const [search, setSearch] = useState("");
+  const [search, setSearchState] = useState("");
   const [page, setPageState] = useState(1);
 
   const [questions, setQuestions] = useState<QuestionDetail[]>([]);
@@ -196,11 +198,12 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
 
   const loadCatalogs = useCallback(async () => {
     try {
-      const [types, fetchedTopics, currentUser] = await Promise.all([
+      const [types, fetchedTopicsResponse, currentUser] = await Promise.all([
         fetchQuestionTypes(),
-        fetchTopics(),
+        fetchTopics({ limit: TOPIC_FETCH_LIMIT, offset: 0 }),
         fetchCurrentUser().catch(() => null),
       ]);
+      const fetchedTopics = fetchedTopicsResponse.data;
 
       let teacherId: string | null = null;
       let teacherTeachingSubjectIds: string[] = [];
@@ -364,6 +367,11 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
   const setFilters = useCallback((next: QuestionFilterValues) => {
     setPageState(1);
     setFiltersState(next);
+  }, []);
+
+  const setSearch = useCallback((value: string) => {
+    setPageState(1);
+    setSearchState(value);
   }, []);
 
   const setPage = useCallback((nextPage: number) => {

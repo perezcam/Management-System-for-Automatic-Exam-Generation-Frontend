@@ -13,18 +13,18 @@ function getStatusColor(status: string) {
   switch (status) {
     case "Aprobado":
     case "APPROVED":
-      return "bg-green-100 text-green-700 hover:bg-green-100"
+      return "bg-green-100 text-green-700"
     case "Bajo Revisión":
     case "UNDER_REVIEW":
-      return "bg-yellow-100 text-yellow-700 hover:bg-yellow-100"
+      return "bg-yellow-100 text-yellow-700"
     case "Rechazado":
     case "REJECTED":
-      return "bg-red-100 text-red-700 hover:bg-red-100"
+      return "bg-red-100 text-red-700"
     case "Borrador":
     case "DRAFT":
-      return "bg-gray-100 text-gray-700 hover:bg-gray-100"
+      return "bg-gray-100 text-gray-700"
     default:
-      return "bg-gray-100 text-gray-700 hover:bg-gray-100"
+      return "bg-gray-100 text-gray-700"
   }
 }
 

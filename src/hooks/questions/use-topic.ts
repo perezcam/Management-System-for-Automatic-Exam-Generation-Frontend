@@ -7,12 +7,14 @@ import { createSubtopic, deleteSubtopic } from "@/services/question-administrati
 import { CreateTopicPayload, TopicDetail, UpdateTopicPayload } from "@/types/question-administration/topic";
 import { CreateSubtopicPayload, SubTopicDetail } from "@/types/question-administration/subtopic";
 import { SubjectDetail } from "@/types/question-administration/subject";
+import { PaginationMeta } from "@/types/backend-responses";
 
 
 const PAGE_SIZE = 2;
 
 export type UseTopicsResult = {
   topics: TopicDetail[];
+  meta: PaginationMeta | null;
   page: number;
   pageSize: number;
   total: number | null;
@@ -35,29 +37,43 @@ export function useTopics(
 ): UseTopicsResult {
 
   const [topics, setTopics] = useState<TopicDetail[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [page, setPageState] = useState(1);
-  const [total, setTotal] = useState<number | null>(null);
   const [filter, setFilterState] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const refresh = useCallback(async () => {
+  const loadTopicsPage = useCallback(async (targetPage: number, currentFilter: string) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchTopics(filter ? { q: filter } : undefined);
+      const { data, meta } = await fetchTopics({
+        limit: PAGE_SIZE,
+        offset: (targetPage - 1) * PAGE_SIZE,
+        q: currentFilter || undefined,
+      });
+      const total = meta.total;
+      const totalPages = total > 0 ? Math.ceil(total / PAGE_SIZE) : 1;
+      if (targetPage > totalPages && totalPages > 0) {
+        setPageState(totalPages);
+        return;
+      }
       setTopics(data);
-      setTotal(data.length);
+      setMeta(meta);
     } catch (err) {
       setError(err as Error);
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, []);
+
+  const refresh = useCallback(async () => {
+    await loadTopicsPage(page, filter);
+  }, [filter, loadTopicsPage, page]);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    void loadTopicsPage(page, filter);
+  }, [filter, loadTopicsPage, page]);
 
   const setPage = useCallback((nextPage: number) => {
     setPageState(nextPage < 1 ? 1 : nextPage);
@@ -69,21 +85,20 @@ export function useTopics(
   }, []);
 
   const handleCreateTopic = useCallback(async (payload: CreateTopicPayload) => {
-    const created = await createTopic(payload);
-    setTopics(prev => [...prev, created]);
-    setTotal((prev) => (typeof prev === "number" ? prev + 1 : prev));
-  }, []);
+    await createTopic(payload);
+    await refresh();
+  }, [refresh]);
 
   const handleUpdateTopic = useCallback(async (topicId: string, payload: UpdateTopicPayload) => {
     const updated = await updateTopic(topicId, payload);
-    setTopics(prev => prev.map(t => (t.topic_id === topicId ? updated : t)));
     setSubjects(prev =>
       prev.map(subject => ({
         ...subject,
         topics: subject.topics.map(topic => (topic.topic_id === topicId ? updated : topic)),
       })),
     );
-  }, [setSubjects]);
+    await refresh();
+  }, [refresh, setSubjects]);
 
   const handleDeleteTopic = useCallback(async (topicId: string) => {
     await deleteTopic(topicId);
@@ -94,9 +109,8 @@ export function useTopics(
         topics_amount: s.topics.some(t => t.topic_id === topicId) ? Math.max(0, s.topics.length - 1) : s.topics_amount,
       }))
     );
-    setTopics(prev => prev.filter(t => t.topic_id !== topicId));
-    setTotal((prev) => (typeof prev === "number" ? Math.max(0, prev - 1) : prev));
-  }, [setSubjects]);
+    await refresh();
+  }, [refresh, setSubjects]);
 
   const handleCreateSubtopic = useCallback(async (payload: CreateSubtopicPayload) => {
     const created = await createSubtopic(payload);
@@ -147,9 +161,10 @@ export function useTopics(
 
   return {
     topics,
+    meta,
     page,
     pageSize: PAGE_SIZE,
-    total,
+    total: meta?.total ?? null,
     filter,
     loading,
     error,

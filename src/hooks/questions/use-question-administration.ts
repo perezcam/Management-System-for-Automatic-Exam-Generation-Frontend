@@ -10,6 +10,7 @@ import { CreateSubjectPayload, SubjectDetail, UpdateSubjectPayload } from "@/typ
 import { CreateTopicPayload, TopicDetail, UpdateTopicPayload } from "@/types/question-administration/topic";
 import { TotalsDetail } from "@/types/question-administration/question_administration";
 import { CreateSubtopicPayload, SubTopicDetail } from "@/types/question-administration/subtopic";
+import { PaginationMeta } from "@/types/backend-responses";
 
 export type UseQuestionAdministrationResult
  = {
@@ -17,6 +18,7 @@ export type UseQuestionAdministrationResult
   subjects: SubjectDetail[];
   subjectsAll: SubjectDetail[];
   topics: TopicDetail[];
+  topicsMeta: PaginationMeta | null;
   topicsAll: TopicDetail[];
   subjectsPage: number;
   subjectsPageSize: number;
@@ -51,12 +53,18 @@ export type UseQuestionAdministrationResult
 const computeTotals = (
   question_types: QuestionTypeDetail[],
   subjects: SubjectDetail[] = [],
-  topics: TopicDetail[] = [],
+  topicsMeta: PaginationMeta | null,
 ): TotalsDetail => {
-  console.log("Question types", question_types)
-  const totalTopics = topics.length;
-  const totalSubtopics = topics.reduce(
-    (acc, t) => acc + t.subtopics.length,
+  const totalTopics = topicsMeta?.total ?? subjects.reduce(
+    (acc, subject) => acc + subject.topics.length,
+    0,
+  );
+  const totalSubtopics = subjects.reduce(
+    (acc, subject) =>
+      acc + subject.topics.reduce(
+        (innerAcc, topic) => innerAcc + topic.subtopics.length,
+        0,
+      ),
     0,
   );
   return {
@@ -79,29 +87,37 @@ export function UseQuestionAdministration(): UseQuestionAdministrationResult
     return SUB.subjects.slice(start, end);
   }, [SUB.page, SUB.pageSize, SUB.subjects]);
 
-  const paginatedTopics = useMemo(() => {
-    const start = (TOP.page - 1) * TOP.pageSize;
-    const end = start + TOP.pageSize;
-    return TOP.topics.slice(start, end);
-  }, [TOP.page, TOP.pageSize, TOP.topics]);
+  const allTopics = useMemo(() => {
+    const topicMap = new Map<string, TopicDetail>();
+    TOP.topics.forEach((topic) => topicMap.set(topic.topic_id, topic));
+    SUB.subjects.forEach((subject) => {
+      subject.topics.forEach((topic) => {
+        if (!topicMap.has(topic.topic_id)) {
+          topicMap.set(topic.topic_id, topic);
+        }
+      });
+    });
+    return Array.from(topicMap.values());
+  }, [SUB.subjects, TOP.topics]);
 
   const totals = useMemo(
-    () => computeTotals(TYP.questionTypes, SUB.subjects, TOP.topics),
-    [TYP.questionTypes, SUB.subjects, TOP.topics],
+    () => computeTotals(TYP.questionTypes, SUB.subjects, TOP.meta),
+    [TYP.questionTypes, SUB.subjects, TOP.meta],
   );
-  const loading = TYP.loading || SUB.loading; // useTopics no carga nada por sí mismo
+  const loading = TYP.loading || SUB.loading || TOP.loading;
   const error = TYP.error ?? SUB.error ?? TOP.error ?? null;
 
   const refresh = async () => {
-    await Promise.all([TYP.refresh(), SUB.refresh()]);
+    await Promise.all([TYP.refresh(), SUB.refresh(), TOP.refresh()]);
   };
 
   return {
     questionTypes: TYP.questionTypes,
     subjects: paginatedSubjects,
     subjectsAll: SUB.subjects,
-    topics: paginatedTopics,
-    topicsAll: TOP.topics,
+    topics: TOP.topics,
+    topicsMeta: TOP.meta,
+    topicsAll: allTopics,
     subjectsPage: SUB.page,
     subjectsPageSize: SUB.pageSize,
     subjectsTotal: SUB.total,

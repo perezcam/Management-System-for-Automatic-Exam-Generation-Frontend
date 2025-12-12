@@ -13,7 +13,7 @@ interface QuestionListProps {
 function getDifficultyColor(difficulty: string) {
   switch (difficulty) {
     case "Fácil":
-      return "bg-green-100 text-green-700 hover:bg-green-100"
+      return "bg-green-100 text-green-700"
     case "Regular":
       return "bg-yellow-100 text-yellow-700 hover:bg-yellow-100"
     case "Difícil":

@@ -6,13 +6,13 @@ import type { TopicDetail } from "@/types/question-administration/topic";
 import { fetchSubjects } from "@/services/question-administration/subjects";
 import { fetchTeachers } from "@/services/users/teachers";
 import { fetchExams } from "@/services/exam-bank/exams";
-import { fetchTopics } from "@/services/question-administration/topics";
+import { MAX_TOPICS_LIMIT, fetchTopics } from "@/services/question-administration/topics";
 
 export type LookupItem = { id: string; name: string };
 
 const TEACHER_FETCH_LIMIT = 100;
 const EXAM_FETCH_LIMIT = 100;
-const TOPIC_FETCH_LIMIT = 500;
+const TOPIC_FETCH_LIMIT = MAX_TOPICS_LIMIT;
 
 const normalizeSubjectName = (subject: SubjectDetail) =>
   subject.subject_name ?? subject.name ?? subject.subject_id;
@@ -35,12 +35,13 @@ export function useAnalyticsLookups() {
     setLoading(true);
     setError(null);
     try {
-      const [subjectData, teacherData, examData, topicData] = await Promise.all([
+      const [subjectData, teacherData, examData, topicResponse] = await Promise.all([
         fetchSubjects(),
         fetchTeachers({ limit: TEACHER_FETCH_LIMIT, offset: 0 }),
         fetchExams({ limit: EXAM_FETCH_LIMIT, offset: 0 }),
-        fetchTopics(),
+        fetchTopics({ limit: TOPIC_FETCH_LIMIT, offset: 0 }),
       ]);
+      const topicData = topicResponse.data;
 
       setSubjects(
         subjectData.map((subject) => ({ id: subject.subject_id, name: normalizeSubjectName(subject) })),
