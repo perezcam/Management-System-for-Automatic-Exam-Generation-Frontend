@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import { ExamApplicationService, AssignExamToCoursePayload } from "@/services/exam-application/exam-application-service"
 import { fetchStudents } from "@/services/users/student"
@@ -124,19 +123,6 @@ export function ExamAssignDialog({
     })
   }, [students, searchTerm, courseFilter])
 
-  const availableCourses = useMemo(() => {
-    const courses = Array.from(
-      new Set(students.map((student) => String(student.course)).filter((course) => course)),
-    )
-    return courses.sort((a, b) => {
-      const na = Number(a)
-      const nb = Number(b)
-      if (Number.isNaN(na) || Number.isNaN(nb)) {
-        return a.localeCompare(b)
-      }
-      return na - nb
-    })
-  }, [students])
 
   const handleSelectToggle = (studentId: string) => {
     setSelectedStudentIds((prev) =>
@@ -268,22 +254,7 @@ export function ExamAssignDialog({
                   className="pl-10"
                 />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="course-filter">Curso</Label>
-                <Select value={courseFilter} onValueChange={(value) => setCourseFilter(value)}>
-                  <SelectTrigger id="course-filter">
-                    <SelectValue placeholder="Todos los cursos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los cursos</SelectItem>
-                    {availableCourses.map((course) => (
-                      <SelectItem key={course} value={course}>
-                        Curso {course}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+
             </div>
             <ScrollArea className="max-h-64 border rounded-lg bg-background">
               <div className="p-2 space-y-2">
