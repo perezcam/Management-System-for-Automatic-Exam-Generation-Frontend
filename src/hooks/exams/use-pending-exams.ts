@@ -7,6 +7,7 @@ import type {
   PendingExamFilterOption,
   PendingExamFilters,
   PendingExamListItem,
+  PendingExamQuestion,
 } from "@/types/pending-exams/exam";
 import {
   ApprovePendingExamPayload,
@@ -414,6 +415,8 @@ useEffect(() => {
           difficulty: question.difficulty,
           type: resolvedType,
           body: detail?.body ?? question.body,
+          response: detail?.response ?? question.response ?? null,
+          options: detail?.options ?? question.options ?? null,
         };
       });
     },

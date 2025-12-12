@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Users, FileText, Settings } from "lucide-react"
+import { Users, Settings } from "lucide-react"
 import { useRouter } from "next/navigation";
 
 
@@ -23,13 +23,6 @@ export default function AdministrationPage() {
       icon: Settings,
       color: "purple",
       href: "/administration/questions",
-    },
-    {
-      title: "Reportes",
-      description: "Genera y visualiza reportes del sistema",
-      icon: FileText,
-      color: "orange",
-      href: "/administration/reports",
     },
   ] as const;
 
