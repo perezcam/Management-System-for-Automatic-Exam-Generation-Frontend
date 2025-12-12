@@ -23,7 +23,7 @@ import { useActiveExam } from "@/hooks/exam-application/use-active-exam"
 import { DIFFICULTY_LABELS, STATUS_LABELS } from "@/hooks/exams/use-exams"
 import { ExamAssignment, ExamResponse } from "@/types/exam-application/exam"
 import { ExamApplicationService, ExamEndpointError } from "@/services/exam-application/exam-application-service"
-import { fetchTopics } from "@/services/question-administration/topics"
+import { MAX_TOPICS_LIMIT, fetchTopics } from "@/services/question-administration/topics"
 import type { QuestionDetail } from "@/types/question-bank/question"
 
 const getLocalizedLabel = (value?: string, labels: Record<string, string>) => {
@@ -92,7 +92,7 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
 
     const loadTopics = async () => {
       try {
-        const { data: topics } = await fetchTopics({ limit: 500, offset: 0 })
+        const { data: topics } = await fetchTopics({ limit: MAX_TOPICS_LIMIT, offset: 0 })
         if (cancelled) return
         const map: Record<string, string> = {}
         const addEntry = (id?: string, name?: string) => {

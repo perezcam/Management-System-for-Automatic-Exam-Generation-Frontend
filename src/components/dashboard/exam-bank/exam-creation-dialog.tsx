@@ -27,11 +27,11 @@ export function ExamCreationDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-          <Card 
-            className="p-6 cursor-pointer hover:border-primary transition-colors"
+          <Card
+            className="p-6 h-full cursor-pointer hover:border-primary transition-colors"
             onClick={onSelectManual}
           >
-            <div className="flex flex-col items-center text-center space-y-4">
+            <div className="flex flex-col h-full items-center text-center space-y-4">
               <div className="p-4 bg-blue-100 rounded-full">
                 <FileEdit className="h-8 w-8 text-blue-600" />
               </div>
@@ -41,17 +41,17 @@ export function ExamCreationDialog({
                   Selecciona manualmente cada pregunta del examen. Controla exactamente qué preguntas incluir según tema y dificultad.
                 </p>
               </div>
-              <Button className="w-full">
+              <Button className="w-full mt-auto" variant="default">
                 Crear Manualmente
               </Button>
             </div>
           </Card>
           
-          <Card 
-            className="p-6 cursor-pointer hover:border-primary transition-colors"
+          <Card
+            className="p-6 h-full cursor-pointer hover:border-primary transition-colors"
             onClick={onSelectAutomatic}
           >
-            <div className="flex flex-col items-center text-center space-y-4">
+            <div className="flex flex-col h-full items-center text-center space-y-4">
               <div className="p-4 bg-purple-100 rounded-full">
                 <Sparkles className="h-8 w-8 text-purple-600" />
               </div>
@@ -61,7 +61,7 @@ export function ExamCreationDialog({
                   Define parámetros y genera el examen automáticamente. Configura dificultad, tipos de preguntas y cobertura de temas.
                 </p>
               </div>
-              <Button className="w-full" variant="secondary">
+              <Button className="w-full mt-auto" variant="default">
                 Generar Automáticamente
               </Button>
             </div>

@@ -6,13 +6,13 @@ import type { TopicDetail } from "@/types/question-administration/topic";
 import { fetchSubjects } from "@/services/question-administration/subjects";
 import { fetchTeachers } from "@/services/users/teachers";
 import { fetchExams } from "@/services/exam-bank/exams";
-import { fetchTopics } from "@/services/question-administration/topics";
+import { MAX_TOPICS_LIMIT, fetchTopics } from "@/services/question-administration/topics";
 
 export type LookupItem = { id: string; name: string };
 
 const TEACHER_FETCH_LIMIT = 100;
 const EXAM_FETCH_LIMIT = 100;
-const TOPIC_FETCH_LIMIT = 500;
+const TOPIC_FETCH_LIMIT = MAX_TOPICS_LIMIT;
 
 const normalizeSubjectName = (subject: SubjectDetail) =>
   subject.subject_name ?? subject.name ?? subject.subject_id;

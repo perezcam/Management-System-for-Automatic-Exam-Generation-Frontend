@@ -11,7 +11,7 @@ export function ExamBankHeader({ onNewExam }: ExamBankHeaderProps) {
       <div>
         <h1 className="text-2xl mb-2">Banco de Exámenes</h1>
         <p className="text-muted-foreground">
-          Repositorio de exámenes creados y aprobados
+          Repositorio de exámenes. Gestiona los exámenes de tus asignaturas
         </p>
       </div>
       {onNewExam && (

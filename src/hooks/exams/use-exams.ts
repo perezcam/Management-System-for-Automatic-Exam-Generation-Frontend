@@ -31,10 +31,25 @@ const DEFAULT_PAGE_SIZE = 6;
 
 export const STATUS_LABELS: Record<string, string> = {
   valid: "Aprobado",
+  VALID: "Aprobado",
+  approved: "Aprobado",
+  APPROVED: "Aprobado",
   on_review: "Bajo Revisión",
+  UNDER_REVIEW: "Bajo Revisión",
   invalid: "Rechazado",
+  REJECTED: "Rechazado",
   draft: "Borrador",
+  DRAFT: "Borrador",
   published: "Publicado"
+};
+
+const CANONICAL_STATUSES = ["draft", "on_review", "valid", "invalid", "published"] as const;
+const normalizeStatusValue = (value: string) => {
+  const normalized = value.toLowerCase();
+  if (normalized === "approved") return "valid";
+  if (normalized === "rejected") return "invalid";
+  if (normalized === "under_review") return "on_review";
+  return normalized;
 };
 
 
@@ -275,17 +290,18 @@ export function useExams(pageSize: number = DEFAULT_PAGE_SIZE): UseExamsResult {
   }, []);
 
   const availableStatuses = useMemo(() => {
-    const statuses = new Set<string>();
+    const statuses = new Set<string>(CANONICAL_STATUSES);
     rawExams.forEach((exam) => {
       if (exam.examStatus) {
-        statuses.add(exam.examStatus);
+        statuses.add(normalizeStatusValue(String(exam.examStatus)));
       }
     });
     return Array.from(statuses);
   }, [rawExams]);
 
   const availableDifficulties = useMemo(() => {
-    const values = new Set<string>();
+    const defaults = ["EASY", "MEDIUM", "HARD"];
+    const values = new Set<string>(defaults);
     rawExams.forEach((exam) => {
       if (exam.difficulty) {
         values.add(exam.difficulty);
@@ -393,7 +409,7 @@ export function useExams(pageSize: number = DEFAULT_PAGE_SIZE): UseExamsResult {
       const { data, meta } = await fetchExams({
         subjectId: filters.subjectId !== "all" ? filters.subjectId : undefined,
         difficulty: filters.difficulty !== "all" ? filters.difficulty : undefined,
-        examStatus: filters.status !== "all" ? filters.status : undefined,
+        examStatus: filters.status !== "all" ? normalizeStatusValue(filters.status) : undefined,
         authorId: filters.authorId !== "all" ? filters.authorId : undefined,
         title: search || undefined,
         limit: pageSize,

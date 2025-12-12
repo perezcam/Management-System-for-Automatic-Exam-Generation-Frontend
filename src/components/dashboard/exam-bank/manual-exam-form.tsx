@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, X, GripVertical } from "lucide-react"
+import { Plus, X, GripVertical, Loader2 } from "lucide-react"
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -16,6 +16,7 @@ import { ScrollArea } from "../../ui/scroll-area"
 import { ManualExamForm, Subject, SelectedQuestion } from "./types"
 import { TOTAL_EXAM_SCORE, isScoreSumValid, sumScores, sanitizeScoreValue } from "@/utils/exam-scores"
 import { sanitizeDecimalInput, selectAllWhenZeroOrEmpty } from "@/utils/input-sanitizer"
+import type { QuestionFilterValues } from "@/types/question-bank/view"
 
 interface ManualExamFormDialogProps {
   open: boolean
@@ -24,6 +25,15 @@ interface ManualExamFormDialogProps {
   onFormChange: (form: ManualExamForm) => void
   subjects: Subject[]
   availableQuestions: SelectedQuestion[]
+  filters: QuestionFilterValues
+  onFiltersChange: (next: QuestionFilterValues) => void
+  search: string
+  onSearchChange: (value: string) => void
+  onClearFilters: () => void
+  page: number
+  totalPages: number
+  onChangePage: (nextPage: number) => void
+  loadingQuestions: boolean
   onSubmit: () => void
   isEditMode?: boolean
 }
@@ -122,13 +132,20 @@ export function ManualExamFormDialog({
   onFormChange,
   subjects,
   availableQuestions,
+  filters,
+  onFiltersChange,
+  search,
+  onSearchChange,
+  onClearFilters,
+  page,
+  totalPages,
+  onChangePage,
+  loadingQuestions,
   onSubmit,
   isEditMode,
   isAutomaticPreview
 }: ManualExamFormDialogProps & { isAutomaticPreview?: boolean }) {
   const [showQuestionSelector, setShowQuestionSelector] = useState(false)
-  const [selectedSubtopic, setSelectedSubtopic] = useState<string>("all")
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all")
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -145,16 +162,12 @@ export function ManualExamFormDialog({
   const hasQuestions = form.selectedQuestions.length > 0
   const isScoreValid = hasQuestions && isScoreSumValid(questionScores)
 
-  // Filtrar preguntas disponibles
-  const filteredQuestions = availableQuestions.filter(q => {
-    if (selectedSubtopic !== "all" && q.subtopic !== selectedSubtopic) return false
-    if (selectedDifficulty !== "all" && q.difficulty !== selectedDifficulty) return false
-    // No mostrar preguntas ya seleccionadas
-    if (form.selectedQuestions.find(sq => sq.id === q.id)) return false
-    return true
-  })
+  const filteredQuestions = availableQuestions
 
   const addQuestion = (question: SelectedQuestion) => {
+    if (form.selectedQuestions.find(sq => sq.id === question.id)) {
+      return
+    }
     onFormChange({
       ...form,
       selectedQuestions: [
@@ -345,7 +358,10 @@ export function ManualExamFormDialog({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="subtopic-filter">Filtrar por Subtópico</Label>
-                    <Select value={selectedSubtopic} onValueChange={setSelectedSubtopic}>
+                    <Select
+                      value={filters.subtopic}
+                      onValueChange={(value) => onFiltersChange({ ...filters, subtopic: value })}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -361,7 +377,10 @@ export function ManualExamFormDialog({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="difficulty-filter">Filtrar por Dificultad</Label>
-                    <Select value={selectedDifficulty} onValueChange={setSelectedDifficulty}>
+                    <Select
+                      value={filters.difficulty}
+                      onValueChange={(value) => onFiltersChange({ ...filters, difficulty: value })}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -375,29 +394,77 @@ export function ManualExamFormDialog({
                   </div>
                 </div>
                 <ScrollArea className="h-[300px]">
+                  <div className="flex gap-2 mb-3">
+                    <Input
+                      placeholder="Busca por texto de la pregunta..."
+                      value={search}
+                      onChange={(e) => onSearchChange(e.target.value)}
+                    />
+                    <Button variant="ghost" onClick={onClearFilters}>
+                      Limpiar
+                    </Button>
+                  </div>
                   <div className="space-y-2">
-                    {filteredQuestions.length > 0 ? (
-                      filteredQuestions.map((question) => (
-                        <div
-                          key={question.id}
-                          className="p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                          onClick={() => addQuestion(question)}
-                        >
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <Badge variant="outline" className="text-xs">{question.subtopic}</Badge>
-                            <Badge className={`text-xs ${getDifficultyColor(question.difficulty)}`}>
-                              {question.difficulty}
-                            </Badge>
-                            <Badge variant="secondary" className="text-xs">{question.type}</Badge>
+                    {loadingQuestions ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Cargando preguntas...
+                      </div>
+                    ) : filteredQuestions.length > 0 ? (
+                      filteredQuestions.map((question) => {
+                        const alreadyAdded = form.selectedQuestions.some((sq) => sq.id === question.id)
+                        return (
+                          <div
+                            key={question.id}
+                            className={`p-3 border rounded-lg transition-colors ${
+                              alreadyAdded ? "cursor-not-allowed opacity-80" : "hover:bg-accent cursor-pointer"
+                            }`}
+                            onClick={() => {
+                              if (!alreadyAdded) addQuestion(question)
+                            }}
+                          >
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <Badge variant="outline" className="text-xs">{question.subtopic}</Badge>
+                              <Badge className={`text-xs ${getDifficultyColor(question.difficulty)}`}>
+                                {question.difficulty}
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs">{question.type}</Badge>
+                            </div>
+                            <p className="text-sm">{question.body}</p>
+                            {alreadyAdded ? (
+                              <p className="text-xs text-muted-foreground mt-1">Ya agregada al examen</p>
+                            ) : null}
                           </div>
-                          <p className="text-sm">{question.body}</p>
-                        </div>
-                      ))
+                        )
+                      })
                     ) : (
                       <p className="text-sm text-muted-foreground text-center py-8">
                         No hay preguntas disponibles con estos filtros
                       </p>
                     )}
+                  </div>
+                  <div className="flex items-center justify-between gap-3 pt-3">
+                    <p className="text-sm text-muted-foreground">
+                      Página {page} de {totalPages || 1}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onChangePage(page - 1)}
+                        disabled={loadingQuestions || page <= 1}
+                      >
+                        Anterior
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onChangePage(page + 1)}
+                        disabled={loadingQuestions || page >= totalPages}
+                      >
+                        Siguiente
+                      </Button>
+                    </div>
                   </div>
                 </ScrollArea>
               </div>

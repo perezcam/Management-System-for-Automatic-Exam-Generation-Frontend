@@ -19,6 +19,8 @@ const normalizeTopic = (topic: TopicDetail): TopicDetail => {
   };
 };
 
+export const MAX_TOPICS_LIMIT = 100;
+
 export type TopicQueryParams = PaginationParams & {
   q?: string;
 };
@@ -38,16 +40,20 @@ const buildMeta = (payload: TopicListResponse, params: TopicQueryParams): Pagina
 };
 
 export const fetchTopics = async (params: TopicQueryParams = {}): Promise<PaginatedResult<TopicDetail>> => {
+  const safeLimit =
+    typeof params.limit === "number"
+      ? Math.min(params.limit, MAX_TOPICS_LIMIT)
+      : params.limit;
   const url = withQueryParams(QUESTION_TOPICS_ENDPOINT, {
     q: params?.q,
-    limit: params.limit,
+    limit: safeLimit,
     offset: params.offset,
   });
   const resp = await backendRequest<TopicListResponse>(url);
   const topics = resp.data ?? [];
   return {
     data: topics.map(normalizeTopic),
-    meta: buildMeta(resp, params),
+    meta: buildMeta(resp, { ...params, limit: safeLimit }),
   };
 };
 

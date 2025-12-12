@@ -387,7 +387,7 @@ export default function BancoExamenesView() {
     questionTypes,
     refresh: refreshQuestionBank,
     topics,
-  } = useQuestionBank(3)
+  } = useQuestionBank(2)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -569,11 +569,27 @@ export default function BancoExamenesView() {
     [availableQuestions],
   )
 
+  const addedQuestionIds = useMemo(
+    () => new Set(draftQuestions.map((q) => q.questionId)),
+    [draftQuestions],
+  )
+
   const selectableQuestionsForCurrentExam = useMemo(() => {
-    if (subtopicsForCurrentSelection.length === 0) return selectableQuestions
+    const notAdded = selectableQuestions
+    if (subtopicsForCurrentSelection.length === 0) return notAdded
     const allowed = new Set(subtopicsForCurrentSelection)
-    return selectableQuestions.filter((question) => allowed.has(question.subtopic))
+    return notAdded.filter((question) => allowed.has(question.subtopic))
   }, [selectableQuestions, subtopicsForCurrentSelection])
+
+  const manualAvailableQuestions = useMemo(() => {
+    const baseQuestions =
+      manualForm.subject && subtopicsBySubjectId.has(manualForm.subject)
+        ? selectableQuestions.filter((question) =>
+            (subtopicsBySubjectId.get(manualForm.subject) ?? []).includes(question.subtopic),
+          )
+        : selectableQuestions
+    return baseQuestions
+  }, [manualForm.subject, selectableQuestions, subtopicsBySubjectId])
 
   const topicNamesMap = useMemo(() => {
     const map = new Map<string, string>()
@@ -619,6 +635,12 @@ export default function BancoExamenesView() {
   const handleApplyFilters = () => {
     setFilters(tempFilters)
     setShowFiltersDialog(false)
+  }
+
+  const clearQuestionFilters = () => {
+    setQuestionFilters({ subtopic: "all", type: "all", difficulty: "all" })
+    setQuestionSearch("")
+    setQuestionPage(1)
   }
 
   const handleOpenFiltersDialog = () => {
@@ -1161,13 +1183,16 @@ export default function BancoExamenesView() {
         form={manualForm}
         onFormChange={setManualForm}
         subjects={subjectsForForms}
-        availableQuestions={
-          manualForm.subject && subtopicsBySubjectId.has(manualForm.subject)
-            ? selectableQuestions.filter((question) =>
-              (subtopicsBySubjectId.get(manualForm.subject) ?? []).includes(question.subtopic),
-            )
-            : selectableQuestions
-        }
+        availableQuestions={manualAvailableQuestions}
+        filters={questionFilters}
+        onFiltersChange={setQuestionFilters}
+        search={questionSearch}
+        onSearchChange={setQuestionSearch}
+        onClearFilters={clearQuestionFilters}
+        page={questionPage}
+        totalPages={questionsTotalPages}
+        onChangePage={changeQuestionPage}
+        loadingQuestions={questionsLoading}
         onSubmit={handleManualSubmit}
         isAutomaticPreview={isAutomaticPreview}
       />
@@ -1273,11 +1298,7 @@ export default function BancoExamenesView() {
               />
               <Button
                 variant="ghost"
-                onClick={() => {
-                  setQuestionFilters({ subtopic: "all", type: "all", difficulty: "all" })
-                  setQuestionSearch("")
-                  setQuestionPage(1)
-                }}
+                onClick={clearQuestionFilters}
               >
                 Limpiar
               </Button>
@@ -1299,7 +1320,7 @@ export default function BancoExamenesView() {
                 </p>
               ) : (
                 selectableQuestionsForCurrentExam.map((question) => {
-                  const alreadyAdded = new Set(draftQuestions.map((q) => q.questionId)).has(question.id)
+                  const alreadyAdded = addedQuestionIds.has(question.id)
                   return (
                     <div
                       key={question.id}
@@ -1313,6 +1334,9 @@ export default function BancoExamenesView() {
                         </div>
                         <p className="text-sm text-muted-foreground mt-1 break-words">{question.body}</p>
                         <p className="text-xs text-muted-foreground">Autor: {question.author}</p>
+                        {alreadyAdded ? (
+                          <p className="text-xs text-muted-foreground">Ya agregada al examen</p>
+                        ) : null}
                       </div>
                       <Button
                         size="sm"
