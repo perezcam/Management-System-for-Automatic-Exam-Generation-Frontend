@@ -256,7 +256,7 @@ export function ExamAssignDialog({
               </div>
 
             </div>
-            <ScrollArea className="max-h-64 border rounded-lg bg-background">
+            <ScrollArea className="max-h-[50vh] border rounded-lg bg-background overflow-y-auto">
               <div className="p-2 space-y-2">
                 {studentsLoading ? (
                   <div className="flex items-center justify-center py-6">
