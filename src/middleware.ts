@@ -43,5 +43,6 @@ export const config = {
     "/question_bank","/question_bank/:path*",
     "/regrade","/regrade/:path*",
     "/exams","/exams/:path*",
+    "/reports","/reports/:path*",
   ],
 };
