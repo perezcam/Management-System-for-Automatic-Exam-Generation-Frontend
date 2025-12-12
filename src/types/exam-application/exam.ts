@@ -4,7 +4,9 @@ export enum AssignedExamStatus {
     PENDING = "PENDING",
     ENABLED = "ENABLED",
     IN_EVALUATION = "IN_EVALUATION",
-    GRADED = "GRADED"
+    GRADED = "GRADED",
+    REGRADING = "REGRADING",
+    REGRADED = "REGRADED",
 }
 
 export interface ExamAssignment {
@@ -20,6 +22,9 @@ export interface ExamAssignment {
     applicationDate: string; // Date string
     durationMinutes: number;
     grade: number | null;
+    regradeGrade?: number | null;
+    regradeStatus?: string;
+    regradeId?: string;
 }
 
 export type ExamResponseOption = {

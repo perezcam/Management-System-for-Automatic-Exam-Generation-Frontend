@@ -24,6 +24,7 @@ export type PendingRegradeRequestStatus = typeof PendingRegradeRequestStatus[key
 
 export type PendingRegradeRequest = {
   id: string;
+  regradeId?: string;
   examAssignmentId: string;
   examId: string;
   examTitle: string;

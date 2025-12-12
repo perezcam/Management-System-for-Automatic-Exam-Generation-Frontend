@@ -17,6 +17,7 @@ export interface RevisionItem {
   grade: number | null
   createdAt?: string
   requestReason?: string
+  regradeRequestId?: string
   kind: RevisionKind
 }
 
@@ -40,6 +41,10 @@ const getEstadoBadge = (revision: RevisionItem) => {
       return <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 border-blue-500/20">{kind === "REGRADE" ? "Recalificación solicitada" : "Solicitud"}</Badge>
     case "IN_REVIEW":
       return <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-700 border-yellow-500/20">En revisión</Badge>
+    case "REGRADING":
+      return <Badge variant="secondary" className="bg-purple-500/10 text-purple-700 border-purple-500/20">En recalificación</Badge>
+    case "REGRADED":
+      return <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20">Recalificada</Badge>
     case "GRADED":
       return <Badge variant="secondary" className="bg-green-500/10 text-green-700 border-green-500/20">Calificada</Badge>
     default:

@@ -63,6 +63,8 @@ export function StudentExamFiltersDialog({
                 <SelectItem value={AssignedExamStatus.PENDING}>Pendiente</SelectItem>
                 <SelectItem value={AssignedExamStatus.ENABLED}>Activo</SelectItem>
                 <SelectItem value={AssignedExamStatus.IN_EVALUATION}>En evaluación</SelectItem>
+                <SelectItem value={AssignedExamStatus.REGRADING}>En recalificación</SelectItem>
+                <SelectItem value={AssignedExamStatus.REGRADED}>Recalificado</SelectItem>
                 <SelectItem value={AssignedExamStatus.GRADED}>Calificado</SelectItem>
               </SelectContent>
             </Select>

@@ -261,6 +261,12 @@ export const ExamApplicationService = {
         });
     },
 
+    finalizeRegradeRequestGrade: async (regradeRequestId: string) => {
+        return backendRequest<BaseResponse>(`${REGRADE_REQUESTS_ENDPOINT}/${regradeRequestId}/grade`, {
+            method: "PATCH",
+        });
+    },
+
     submitRegradeRequest: async (payload: RegradeRequestPayload) => {
         return backendRequest<BaseResponse & { data: RegradeRequestResponse }>(
             REGRADE_REQUESTS_ENDPOINT,

@@ -98,6 +98,7 @@ export default function RevisionesView() {
     regradeRequests.map((request) => ({
       id: request.id,
       assignmentId: request.assignmentId ?? request.examAssignmentId,
+      regradeRequestId: request.regradeId ?? request.id,
       examId: request.examId,
       examTitle: resolveExamTitle(request.examId, request.examTitle, "Revisión de examen"),
       subjectId: request.subjectId,

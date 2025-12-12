@@ -22,6 +22,10 @@ const getEstadoBadge = (estado: AssignedExamStatus) => {
       return <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-200">Activo</Badge>
     case AssignedExamStatus.IN_EVALUATION:
       return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-200">En evaluación</Badge>
+    case AssignedExamStatus.REGRADING:
+      return <Badge variant="outline" className="bg-purple-500/10 text-purple-700 border-purple-200">En recalificación</Badge>
+    case AssignedExamStatus.REGRADED:
+      return <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-200">Recalificado</Badge>
     case AssignedExamStatus.GRADED:
       return <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-200">Calificada</Badge>
     default:
@@ -148,77 +152,82 @@ export default function PruebasView() {
         ) : (
           <ScrollArea className="h-full">
             <div className="space-y-4 pr-4">
-              {exams.map((exam) => (
-                <Card
-                  key={exam.id}
-                  className={`p-5 transition-colors ${exam.status === AssignedExamStatus.GRADED && exam.grade !== null
-                    ? "cursor-pointer hover:bg-accent/50"
-                    : ""
-                    }`}
-                  onClick={() => {
-                    if (exam.status === AssignedExamStatus.GRADED && exam.grade !== null) {
-                      handleExamClick(exam)
-                    }
-                  }}
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-3 mb-2">
-                          <div className="flex-1">
-                            <h3 className="font-medium mb-1">{exam.title ?? exam.examTitle ?? `Examen de ${exam.subjectName}`}</h3>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Badge variant="secondary" className="text-xs">
-                                {exam.subjectName}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">•</span>
-                              <span className="text-xs text-muted-foreground">{exam.teacherName}</span>
+              {exams.map((exam) => {
+                const displayedGrade = exam.regradeGrade ?? exam.grade
+                const hasGrade = displayedGrade !== null && displayedGrade !== undefined
+
+                return (
+                  <Card
+                    key={exam.id}
+                    className={`p-5 transition-colors ${exam.status === AssignedExamStatus.GRADED && exam.grade !== null
+                      ? "cursor-pointer hover:bg-accent/50"
+                      : ""
+                      }`}
+                    onClick={() => {
+                      if (exam.status === AssignedExamStatus.GRADED && exam.grade !== null) {
+                        handleExamClick(exam)
+                      }
+                    }}
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start gap-3 mb-2">
+                            <div className="flex-1">
+                              <h3 className="font-medium mb-1">{exam.title ?? exam.examTitle ?? `Examen de ${exam.subjectName}`}</h3>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge variant="secondary" className="text-xs">
+                                  {exam.subjectName}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">•</span>
+                                <span className="text-xs text-muted-foreground">{exam.teacherName}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
+                        <div className="flex items-center gap-3">
+                          {hasGrade && (
+                            <div className="text-right">
+                              <div className="text-xs text-muted-foreground mb-0.5">Calificación</div>
+                              <div className="text-xl font-mono text-green-600">{displayedGrade}</div>
+                            </div>
+                          )}
+                          {getEstadoBadge(exam.status)}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        {exam.status === AssignedExamStatus.GRADED && exam.grade !== null && (
-                          <div className="text-right">
-                            <div className="text-xs text-muted-foreground mb-0.5">Calificación</div>
-                            <div className="text-xl font-mono text-green-600">{exam.grade}</div>
-                          </div>
-                        )}
-                        {getEstadoBadge(exam.status)}
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Calendar className="h-4 w-4 flex-shrink-0" />
-                        <span>{formatApplicationDateTime(exam.applicationDate)}</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Calendar className="h-4 w-4 flex-shrink-0" />
+                          <span>{formatApplicationDateTime(exam.applicationDate)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Clock className="h-4 w-4 flex-shrink-0" />
+                          <span>{exam.durationMinutes} minutos</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <GraduationCap className="h-4 w-4 flex-shrink-0" />
+                          <span>{exam.teacherName}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Clock className="h-4 w-4 flex-shrink-0" />
-                        <span>{exam.durationMinutes} minutos</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <GraduationCap className="h-4 w-4 flex-shrink-0" />
-                        <span>{exam.teacherName}</span>
-                      </div>
-                    </div>
 
-                    {exam.status === AssignedExamStatus.ENABLED && (
-                      <div className="pt-3 border-t">
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleExamClick(exam)
-                          }}
-                          className="w-full sm:w-auto"
-                        >
-                          Realizar Examen
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              ))}
+                      {exam.status === AssignedExamStatus.ENABLED && (
+                        <div className="pt-3 border-t">
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleExamClick(exam)
+                            }}
+                            className="w-full sm:w-auto"
+                          >
+                            Realizar Examen
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                )
+              })}
             </div>
           </ScrollArea>
         )}

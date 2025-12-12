@@ -45,32 +45,33 @@ export function useExamGrading(assignmentId?: string, examId?: string, studentId
   }, [fetchExam]);
 
   const loadQuestionAssets = useCallback(
-    async (questionId: string, questionIndex: number) => {
+    async (questionId: string, questionIndex: number, options: { force?: boolean } = {}) => {
       if (!examId) return null;
-      if (questionDetails[questionId] !== undefined && responses[questionId] !== undefined) {
-        return {
-          detail: questionDetails[questionId],
-          response: responses[questionId],
-        };
-      }
+      const force = options.force ?? false;
 
       setLoadingQuestionId(questionId);
       setQuestionError(null);
       try {
         const [detail, response] = await Promise.all([
-          ExamApplicationService.getQuestionByIndex(examId, questionIndex),
+          questionDetails[questionId] !== undefined
+            ? Promise.resolve(questionDetails[questionId])
+            : ExamApplicationService.getQuestionByIndex(examId, questionIndex),
           ExamApplicationService.getResponseByIndex(examId, questionIndex, studentId),
         ]);
 
-        const normalizedDetail: QuestionDetail = {
-          ...detail,
-          questionId,
-        };
+        const normalizedDetail = detail
+          ? {
+              ...detail,
+              questionId,
+            }
+          : null;
 
-        setQuestionDetails((prev) => ({
-          ...prev,
-          [questionId]: normalizedDetail,
-        }));
+        if (force || questionDetails[questionId] === undefined) {
+          setQuestionDetails((prev) => ({
+            ...prev,
+            [questionId]: normalizedDetail,
+          }));
+        }
         setResponses((prev) => ({
           ...prev,
           [questionId]: response,
@@ -134,6 +135,19 @@ export function useExamGrading(assignmentId?: string, examId?: string, studentId
     }
   }, [assignmentId]);
 
+  const finalizeRegradeRequest = useCallback(async (regradeRequestId: string) => {
+    if (!regradeRequestId) return;
+    setSaving(true);
+    try {
+      await ExamApplicationService.finalizeRegradeRequestGrade(regradeRequestId);
+    } catch (err) {
+      setError(err as Error);
+      throw err;
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
   return {
     exam,
     responses,
@@ -146,6 +160,7 @@ export function useExamGrading(assignmentId?: string, examId?: string, studentId
     loadQuestionAssets,
     setManualPoints,
     finalizeAssignment,
+    finalizeRegradeRequest,
     questionError,
   };
 }
