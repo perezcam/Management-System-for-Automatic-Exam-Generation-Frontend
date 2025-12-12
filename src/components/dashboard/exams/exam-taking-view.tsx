@@ -92,7 +92,7 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
 
     const loadTopics = async () => {
       try {
-        const topics = await fetchTopics()
+        const { data: topics } = await fetchTopics({ limit: 500, offset: 0 })
         if (cancelled) return
         const map: Record<string, string> = {}
         const addEntry = (id?: string, name?: string) => {

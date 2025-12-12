@@ -3,8 +3,6 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { QuestionsConfigHeader } from "@/components/dashboard/administration/questions/questions-config-header";
-import { QuestionTypeForm } from "@/components/dashboard/administration/questions/question-type-form";
-import { QuestionTypeList } from "@/components/dashboard/administration/questions/question-type-list";
 import { SubjectsTopicsManagement } from "@/components/dashboard/administration/questions/subjects-topics-management";
 import { UseQuestionAdministration } from "@/hooks/questions/use-question-administration";
 
@@ -12,7 +10,6 @@ export default function QuestionsAdminPage() {
   const router = useRouter();
 
   const {
-    questionTypes,
     subjects,
     subjectsAll,
     subjectsPage,
@@ -33,12 +30,11 @@ export default function QuestionsAdminPage() {
     setTopicsPage,
     setSubjectsFilter,
     setTopicsFilter,
-    createQuestionType, deleteQuestionType,
     createSubject, updateSubject, deleteSubject,
     attachTopicToSubject, detachTopicFromSubject,
     createTopic, updateTopic, deleteTopic,
     createSubtopic, deleteSubtopic,
-  } = UseQuestionAdministration(); 
+  } = UseQuestionAdministration();
 
   return (
     <div className="flex-1 p-6 overflow-auto">
@@ -52,7 +48,6 @@ export default function QuestionsAdminPage() {
 
         <QuestionsConfigHeader
           stats={{
-            totalTypes: totals.total_question_types,
             totalSubjects: totals.total_subjects,
             totalTopics: totals.total_topics,
             totalSubtopics: totals.total_subtopics,
@@ -69,19 +64,6 @@ export default function QuestionsAdminPage() {
             </div>
           </div>
         )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <QuestionTypeForm onCreateType={createQuestionType} />
-          </div>
-
-          <div className="lg:col-span-2">
-            <QuestionTypeList
-              questionTypes={questionTypes}
-              onDeleteType={deleteQuestionType}
-            />
-          </div>
-        </div>
 
         <SubjectsTopicsManagement
           subjects={subjects}

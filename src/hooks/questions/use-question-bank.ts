@@ -33,6 +33,8 @@ const DEFAULT_FILTERS: QuestionFilterValues = {
   difficulty: "all",
 };
 
+const TOPIC_FETCH_LIMIT = 500;
+
 // Tipo local que extiende TopicDetail con subjects opcional
 type TopicWithSubjects = TopicDetail & {
   subjects?: Array<{ subject_id?: string; id?: string }>;
@@ -196,11 +198,12 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
 
   const loadCatalogs = useCallback(async () => {
     try {
-      const [types, fetchedTopics, currentUser] = await Promise.all([
+      const [types, fetchedTopicsResponse, currentUser] = await Promise.all([
         fetchQuestionTypes(),
-        fetchTopics(),
+        fetchTopics({ limit: TOPIC_FETCH_LIMIT, offset: 0 }),
         fetchCurrentUser().catch(() => null),
       ]);
+      const fetchedTopics = fetchedTopicsResponse.data;
 
       let teacherId: string | null = null;
       let teacherTeachingSubjectIds: string[] = [];

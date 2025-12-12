@@ -1,6 +1,13 @@
-import type { BaseResponse, RetrieveManySchema, RetrieveOneSchema } from "@/types/backend-responses";
+import type {
+  BaseResponse,
+  PaginatedSchema,
+  PaginationMeta,
+  PaginationParams,
+  RetrieveManySchema,
+  RetrieveOneSchema,
+} from "@/types/backend-responses";
 import { backendRequest } from "@/services/api-client";
-import { QUESTION_TOPICS_ENDPOINT, withQueryParams } from "@/services/api/endpoints";
+import { PaginatedResult, QUESTION_TOPICS_ENDPOINT, withQueryParams } from "@/services/api/endpoints";
 import { CreateTopicPayload, TopicDetail, UpdateTopicPayload } from "@/types/question-administration/topic";
 
 const normalizeTopic = (topic: TopicDetail): TopicDetail => {
@@ -12,17 +19,36 @@ const normalizeTopic = (topic: TopicDetail): TopicDetail => {
   };
 };
 
-export type TopicQueryParams = {
+export type TopicQueryParams = PaginationParams & {
   q?: string;
 };
 
-export const fetchTopics = async (params?: TopicQueryParams): Promise<TopicDetail[]> => {
+type TopicListResponse = PaginatedSchema<TopicDetail> | RetrieveManySchema<TopicDetail>;
+
+const buildMeta = (payload: TopicListResponse, params: TopicQueryParams): PaginationMeta => {
+  if ("meta" in payload && payload.meta) {
+    return payload.meta;
+  }
+  const fallbackTotal = Array.isArray(payload.data) ? payload.data.length : 0;
+  return {
+    limit: params.limit ?? fallbackTotal,
+    offset: params.offset ?? 0,
+    total: fallbackTotal,
+  };
+};
+
+export const fetchTopics = async (params: TopicQueryParams = {}): Promise<PaginatedResult<TopicDetail>> => {
   const url = withQueryParams(QUESTION_TOPICS_ENDPOINT, {
     q: params?.q,
+    limit: params.limit,
+    offset: params.offset,
   });
-  const resp = await backendRequest<RetrieveManySchema<TopicDetail>>(url);
-  const topics = resp.data;
-  return topics.map(normalizeTopic);
+  const resp = await backendRequest<TopicListResponse>(url);
+  const topics = resp.data ?? [];
+  return {
+    data: topics.map(normalizeTopic),
+    meta: buildMeta(resp, params),
+  };
 };
 
 export const createTopic = async (payload: CreateTopicPayload): Promise<TopicDetail> => {

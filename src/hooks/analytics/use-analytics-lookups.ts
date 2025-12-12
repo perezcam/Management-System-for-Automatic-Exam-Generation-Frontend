@@ -35,12 +35,13 @@ export function useAnalyticsLookups() {
     setLoading(true);
     setError(null);
     try {
-      const [subjectData, teacherData, examData, topicData] = await Promise.all([
+      const [subjectData, teacherData, examData, topicResponse] = await Promise.all([
         fetchSubjects(),
         fetchTeachers({ limit: TEACHER_FETCH_LIMIT, offset: 0 }),
         fetchExams({ limit: EXAM_FETCH_LIMIT, offset: 0 }),
-        fetchTopics(),
+        fetchTopics({ limit: TOPIC_FETCH_LIMIT, offset: 0 }),
       ]);
+      const topicData = topicResponse.data;
 
       setSubjects(
         subjectData.map((subject) => ({ id: subject.subject_id, name: normalizeSubjectName(subject) })),
