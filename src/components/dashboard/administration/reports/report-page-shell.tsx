@@ -31,7 +31,7 @@ export function ReportPageShell({
         </div>
         <div className="flex items-center gap-2">
           {actions}
-          <Button variant="ghost" onClick={() => router.push("/administration/reports")}>
+          <Button variant="ghost" onClick={() => router.push("/reports")}>
             Volver
           </Button>
         </div>

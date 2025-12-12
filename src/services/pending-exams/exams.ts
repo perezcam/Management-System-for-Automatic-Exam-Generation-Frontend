@@ -10,6 +10,7 @@ import type {
   PendingExamQuestion,
   PendingExamStatus,
 } from "@/types/pending-exams/exam";
+import type { QuestionOption } from "@/types/question-bank/question";
 
 export type ListPendingExamsQuery = {
   title?: string;
@@ -43,6 +44,21 @@ type PendingExamListItemApi = {
   validatedAt?: string;
 };
 
+type PendingExamQuestionOptionApi =
+  | string
+  | {
+      text?: string;
+      label?: string;
+      value?: string;
+      statement?: string;
+      option?: string;
+      description?: string;
+      body?: string;
+      isCorrect?: boolean;
+      correct?: boolean;
+      is_correct?: boolean;
+      answer?: boolean;
+    };
 
 type PendingExamQuestionApi = {
   id: string;
@@ -57,6 +73,8 @@ type PendingExamQuestionApi = {
   subtopicName?: string;
   questionId?: string;
   question_id?: string;
+  response?: string | null;
+  options?: PendingExamQuestionOptionApi[];
 };
 
 type PendingExamDetailApi = PendingExamListItemApi & {
@@ -115,14 +133,75 @@ const formatDateLabel = (value?: string): string => {
   return date.toLocaleDateString("es-ES");
 };
 
-const mapPendingExamQuestion = (question: PendingExamQuestionApi): PendingExamQuestion => ({
-  id: question.id,
-  questionId: question.questionId ?? question.question_id ?? question.id,
-  body: question.body ?? question.statement ?? question.enunciado ?? question.text ?? "",
-  type: question.type ?? question.questionType ?? "",
-  difficulty: mapExamDifficultyResponse(question.difficulty),
-  subtopic: question.subtopic ?? question.subtopicName ?? "",
-});
+const normalizePendingExamQuestionOptions = (
+  options?: PendingExamQuestionOptionApi[],
+): (QuestionOption | string)[] | null => {
+  if (!options?.length) {
+    return null;
+  }
+
+  const normalized = options
+    .map((option) => {
+      if (typeof option === "string") {
+        const trimmed = option.trim();
+        return trimmed ? trimmed : null;
+      }
+      if (!option) {
+        return null;
+      }
+
+      const text =
+        option.text ??
+        option.label ??
+        option.value ??
+        option.statement ??
+        option.option ??
+        option.description ??
+        option.body ??
+        "";
+
+      if (!text) {
+        return null;
+      }
+
+      const isCorrectValue =
+        typeof option.isCorrect === "boolean"
+          ? option.isCorrect
+          : typeof option.correct === "boolean"
+            ? option.correct
+            : typeof option.is_correct === "boolean"
+              ? option.is_correct
+              : typeof option.answer === "boolean"
+                ? option.answer
+                : undefined;
+
+      if (typeof isCorrectValue === "boolean") {
+        return {
+          text,
+          isCorrect: isCorrectValue,
+        };
+      }
+
+      return text;
+    })
+    .filter((option): option is QuestionOption | string => Boolean(option));
+
+  return normalized.length ? normalized : null;
+};
+
+const mapPendingExamQuestion = (question: PendingExamQuestionApi): PendingExamQuestion => {
+  const options = normalizePendingExamQuestionOptions(question.options);
+  return {
+    id: question.id,
+    questionId: question.questionId ?? question.question_id ?? question.id,
+    body: question.body ?? question.statement ?? question.enunciado ?? question.text ?? "",
+    type: question.type ?? question.questionType ?? "",
+    difficulty: mapExamDifficultyResponse(question.difficulty),
+    subtopic: question.subtopic ?? question.subtopicName ?? "",
+    response: question.response ?? null,
+    options,
+  };
+};
 
 const mapPendingExamListItem = (exam: PendingExamListItemApi): PendingExamListItem => ({
   id: exam.id,
