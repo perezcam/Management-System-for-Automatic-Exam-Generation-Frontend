@@ -37,6 +37,61 @@ const STATUS_LABELS: Record<string, string> = {
 
 const mapStatusLabel = (status: string) => STATUS_LABELS[status] ?? status
 
+interface RevisionListPaginationProps {
+  currentCount: number
+  total?: number | null
+  page: number
+  pageSize: number
+  loading: boolean
+  onPageChange: (page: number) => void
+  entityLabel?: string
+}
+
+function RevisionListPagination({
+  currentCount,
+  total,
+  page,
+  pageSize,
+  loading,
+  onPageChange,
+  entityLabel = "elementos",
+}: RevisionListPaginationProps) {
+  const safePageSize = pageSize > 0 ? pageSize : 1
+  const displayTotal = typeof total === "number" ? total : currentCount
+  const totalPages = Math.max(1, Math.ceil((displayTotal || 1) / safePageSize))
+  const canPrev = page > 1
+  const canNext = page < totalPages
+
+  return (
+    <div className="mt-4 pt-4 border-t flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-muted-foreground">
+        Mostrando {currentCount} de {displayTotal} {entityLabel}.
+      </p>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(page - 1)}
+          disabled={loading || !canPrev}
+        >
+          Anterior
+        </Button>
+        <span className="text-sm">
+          Página {page} de {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(page + 1)}
+          disabled={loading || !canNext}
+        >
+          Siguiente
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export default function RevisionesView() {
   const {
     assignments,
@@ -48,6 +103,14 @@ export default function RevisionesView() {
     refresh,
     studentNames,
     examTitles,
+    assignmentsPage,
+    assignmentsLimit,
+    assignmentsTotal,
+    regradePage,
+    regradeLimit,
+    regradeTotal,
+    setAssignmentsPage,
+    setRegradePage,
   } = useRegradeQueues()
   const [filters, setFilters] = useState<RevisionFilters>(DEFAULT_FILTERS)
   const [tempFilters, setTempFilters] = useState<RevisionFilters>(DEFAULT_FILTERS)
@@ -150,6 +213,24 @@ export default function RevisionesView() {
     () => regradeItems.filter(filterItem),
     [regradeItems, filterItem]
   )
+
+  const assignmentPageSize = assignmentsLimit > 0 ? assignmentsLimit : 1
+  const assignmentTotalItems = assignmentsTotal ?? filteredAssignments.length
+  const assignmentTotalPages = Math.max(1, Math.ceil((assignmentTotalItems || 1) / assignmentPageSize))
+
+  const regradePageSize = regradeLimit > 0 ? regradeLimit : 1
+  const regradeTotalItems = regradeTotal ?? filteredRegrades.length
+  const regradeTotalPages = Math.max(1, Math.ceil((regradeTotalItems || 1) / regradePageSize))
+
+  const changeAssignmentPage = (nextPage: number) => {
+    if (nextPage < 1 || nextPage === assignmentsPage || nextPage > assignmentTotalPages) return
+    setAssignmentsPage(nextPage)
+  }
+
+  const changeRegradePage = (nextPage: number) => {
+    if (nextPage < 1 || nextPage === regradePage || nextPage > regradeTotalPages) return
+    setRegradePage(nextPage)
+  }
 
   const buildOptions = (
     items: RevisionItem[],
@@ -296,17 +377,28 @@ export default function RevisionesView() {
                   <p>No hay exámenes pendientes de calificación</p>
                 </div>
               ) : (
-                <ScrollArea className="max-h-[420px]">
-                  <div className="space-y-3 pr-4">
-                    {filteredAssignments.map((revision) => (
-                      <RevisionCard
-                        key={revision.id}
-                        revision={revision}
-                        onClick={handleRevisionClick}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
+                <>
+                  <ScrollArea className="max-h-[420px]">
+                    <div className="space-y-3 pr-4">
+                      {filteredAssignments.map((revision) => (
+                        <RevisionCard
+                          key={revision.id}
+                          revision={revision}
+                          onClick={handleRevisionClick}
+                        />
+                      ))}
+                    </div>
+                  </ScrollArea>
+                  <RevisionListPagination
+                    currentCount={filteredAssignments.length}
+                    total={assignmentsTotal}
+                    page={assignmentsPage}
+                    pageSize={assignmentPageSize}
+                    loading={loading}
+                    onPageChange={changeAssignmentPage}
+                    entityLabel="exámenes"
+                  />
+                </>
               )}
             </div>
 
@@ -323,17 +415,28 @@ export default function RevisionesView() {
                   <p>No hay solicitudes pendientes</p>
                 </div>
               ) : (
-                <ScrollArea className="max-h-[420px]">
-                  <div className="space-y-3 pr-4">
-                    {filteredRegrades.map((revision) => (
-                      <RevisionCard
-                        key={revision.id}
-                        revision={revision}
-                        onClick={handleRevisionClick}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
+                <>
+                  <ScrollArea className="max-h-[420px]">
+                    <div className="space-y-3 pr-4">
+                      {filteredRegrades.map((revision) => (
+                        <RevisionCard
+                          key={revision.id}
+                          revision={revision}
+                          onClick={handleRevisionClick}
+                        />
+                      ))}
+                    </div>
+                  </ScrollArea>
+                  <RevisionListPagination
+                    currentCount={filteredRegrades.length}
+                    total={regradeTotal}
+                    page={regradePage}
+                    pageSize={regradePageSize}
+                    loading={loading}
+                    onPageChange={changeRegradePage}
+                    entityLabel="solicitudes"
+                  />
+                </>
               )}
             </div>
           </>
