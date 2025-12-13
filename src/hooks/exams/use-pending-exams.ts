@@ -26,14 +26,12 @@ import type { ExamQuestionListItem } from "@/types/exam-question-list";
 import { fetchQuestionTypes } from "@/services/question-administration/question_types";
 import type { SubjectDetail } from "@/types/question-administration/subject";
 
-const DEFAULT_PAGE_SIZE = 1;
+const DEFAULT_PAGE_SIZE = 4;
 
 export const ALL_PENDING_EXAMS_FILTER = "all";
 
 const DEFAULT_FILTERS: PendingExamFilters = {
   professorId: ALL_PENDING_EXAMS_FILTER,
-  subjectId: ALL_PENDING_EXAMS_FILTER,
-  status: ALL_PENDING_EXAMS_FILTER,
 };
 
 type ExamDetailCache = Record<string, PendingExamDetail>;
@@ -146,7 +144,6 @@ export type UsePendingExamsResult = {
   filters: PendingExamFilters;
   search: string;
   professorOptions: PendingExamFilterOption[];
-  subjectOptions: PendingExamFilterOption[];
   setPage: (page: number) => void;
   setFilters: (filters: PendingExamFilters) => void;
   setSearch: (value: string) => void;
@@ -307,7 +304,6 @@ export function usePendingExams(pageSize: number = DEFAULT_PAGE_SIZE): UsePendin
         title: trimmedSearch || undefined,
         subjectId: undefined,
         authorId: mapValue(filters.professorId),
-        examStatus: mapValue(filters.status),
         validatorId,
         limit: pageSize,
         offset: (page - 1) * pageSize,
@@ -385,8 +381,6 @@ export function usePendingExams(pageSize: number = DEFAULT_PAGE_SIZE): UsePendin
 
     return options.sort((a, b) => a.label.localeCompare(b.label));
   }, [leaderSubjectIds, teacherSubjectsMap]);
-
-  const subjectOptions = useMemo<PendingExamFilterOption[]>(() => [], []);
 
   const getExamDetail = useCallback(
     async (examId: string, options: { force?: boolean } = {}) => {
@@ -488,7 +482,6 @@ export function usePendingExams(pageSize: number = DEFAULT_PAGE_SIZE): UsePendin
     filters,
     search,
     professorOptions,
-    subjectOptions,
     setPage,
     setFilters,
     setSearch,

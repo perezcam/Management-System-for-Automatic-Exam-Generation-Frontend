@@ -25,7 +25,6 @@ export default function PendingExamsPage() {
     setFilters,
     setPage,
     professorOptions,
-    subjectOptions,
     getExamDetail,
     getExamQuestionsWithDetails,
     approveExam,
@@ -73,7 +72,7 @@ export default function PendingExamsPage() {
   const handleApproveExam = useCallback(
     async (examId: string, comment?: string) => {
       try {
-    const updated = await approveExam(examId, { comment });
+        const updated = await approveExam(examId, { comment });
         setSelectedExam(updated);
         showSuccess("Examen aprobado", "Se notificó al profesor.");
       } catch (err) {
@@ -88,7 +87,7 @@ export default function PendingExamsPage() {
   const handleRejectExam = useCallback(
     async (examId: string, comment?: string) => {
       try {
-    const updated = await rejectExam(examId, { comment });
+        const updated = await rejectExam(examId, { comment });
         setSelectedExam(updated);
         showSuccess("Examen rechazado", "El profesor recibirá tus comentarios.");
       } catch (err) {
@@ -135,7 +134,7 @@ export default function PendingExamsPage() {
             <div className="flex items-start sm:items-center justify-between">
               <div className="flex-1 min-w-0 text-left">
                 <h1 className="text-2xl font-semibold tracking-tight">
-                  Pruebas a Aprobar
+                  Validaciones
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Revisa y gestiona las solicitudes de aprobación de exámenes
@@ -148,7 +147,7 @@ export default function PendingExamsPage() {
               <div className="relative flex-1">
                 <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por asignatura, examen o profesor..."
+                  placeholder="Buscar por nombre de el examen..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10 w-full"
@@ -225,7 +224,6 @@ export default function PendingExamsPage() {
         filters={tempFilters}
         onFiltersChange={setTempFilters}
         professors={professorOptions}
-        subjects={subjectOptions}
         onApplyFilters={handleApplyFilters}
       />
 
