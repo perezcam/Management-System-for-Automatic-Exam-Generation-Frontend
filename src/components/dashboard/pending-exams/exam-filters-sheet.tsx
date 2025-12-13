@@ -11,7 +11,7 @@ type ExamFiltersSheetProps = {
   filters: PendingExamFilters;
   onFiltersChange: (filters: PendingExamFilters) => void;
   professors: PendingExamFilterOption[];
-  subjects: PendingExamFilterOption[];
+  subjects?: PendingExamFilterOption[];
   onApplyFilters?: () => void;
 };
 
@@ -27,7 +27,7 @@ export function ExamFiltersSheet({
   filters,
   onFiltersChange,
   professors,
-  subjects,
+  subjects = [],
   onApplyFilters,
 }: ExamFiltersSheetProps) {
   const handleFilterChange = (key: keyof PendingExamFilters, value: string) => {
@@ -66,22 +66,24 @@ export function ExamFiltersSheet({
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="subject-filter">Asignatura</Label>
-            <Select value={filters.subjectId} onValueChange={(value) => handleFilterChange("subjectId", value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_PENDING_EXAMS_FILTER}>Todas</SelectItem>
-                {subjects.map((subject) => (
-                  <SelectItem key={subject.value} value={subject.value}>
-                    {subject.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {subjects.length > 0 ? (
+            <div className="space-y-2">
+              <Label htmlFor="subject-filter">Asignatura</Label>
+              <Select value={filters.subjectId} onValueChange={(value) => handleFilterChange("subjectId", value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_PENDING_EXAMS_FILTER}>Todas</SelectItem>
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject.value} value={subject.value}>
+                      {subject.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
 
           <div className="space-y-2">
             <Label htmlFor="status-filter">Estado</Label>
