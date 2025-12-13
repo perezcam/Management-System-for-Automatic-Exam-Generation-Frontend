@@ -175,7 +175,7 @@ export default function RevisionesView() {
       requestReason: request.reason,
       kind: "REGRADE" as const,
     }))
-  ), [regradeRequests, resolveStudentName,resolveExamTitle ])
+  ), [regradeRequests, resolveStudentName, resolveExamTitle])
 
   const allItems = useMemo(() => [...assignmentItems, ...regradeItems], [assignmentItems, regradeItems])
   const selectedRevision = useMemo(() => {
@@ -309,7 +309,7 @@ export default function RevisionesView() {
       <div className="p-4 sm:p-6 border-b">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl font-semibold mb-1">Revisiones</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold mb-1">Calificaciones</h1>
             <p className="text-sm text-muted-foreground">
               Califica exámenes pendientes y gestiona solicitudes de recalificación
             </p>
@@ -348,12 +348,12 @@ export default function RevisionesView() {
       <div className="flex-1 overflow-hidden p-4 sm:p-6 space-y-8">
         {error && (
           <div className="text-destructive text-sm">
-            Ocurrió un error al cargar las revisiones. Intenta recargar o vuelve a intentarlo más tarde.
+            Ocurrió un error al cargar las calificaciones. Intenta recargar o vuelve a intentarlo más tarde.
           </div>
         )}
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">Cargando revisiones...</p>
+            <p className="text-muted-foreground">Cargando calificaciones...</p>
           </div>
         ) : (
           <>

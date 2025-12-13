@@ -40,7 +40,7 @@ export function ExamAssignDialog({
   const [students, setStudents] = useState<StudentUser[]>([])
   const [studentsLoading, setStudentsLoading] = useState(false)
   const [studentsError, setStudentsError] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState("")
+  const [nameFilter, setNameFilter] = useState("")
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([])
   const [applicationDate, setApplicationDate] = useState(getDefaultDateTimeLocal())
   const [durationMinutes, setDurationMinutes] = useState(60)
@@ -48,7 +48,7 @@ export function ExamAssignDialog({
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [userError, setUserError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
-  const [courseFilter, setCourseFilter] = useState("all")
+  const [courseSearch, setCourseSearch] = useState("")
 
   useEffect(() => {
     if (!open) return
@@ -56,24 +56,34 @@ export function ExamAssignDialog({
     setStudentsLoading(true)
     setStudents([])
     setStudentsError(null)
-    void fetchStudents({ limit: 100, offset: 0 })
-      .then(({ data }) => {
+
+    const loadStudents = async () => {
+      try {
+        const trimmedName = nameFilter.trim()
+        const trimmedCourse = courseSearch.trim()
+        const { data } = await fetchStudents({
+          limit: 100,
+          offset: 0,
+          filter: trimmedName || undefined,
+          course: trimmedCourse || undefined,
+        })
         if (cancelled) return
         setStudents(data)
-      })
-      .catch((err) => {
+      } catch (err) {
         if (cancelled) return
         setStudentsError(err instanceof Error ? err.message : "No se pudieron cargar los estudiantes")
-      })
-      .finally(() => {
+      } finally {
         if (cancelled) return
         setStudentsLoading(false)
-      })
+      }
+    }
+
+    void loadStudents()
 
     return () => {
       cancelled = true
     }
-  }, [open])
+  }, [open, nameFilter, courseSearch])
 
   useEffect(() => {
     if (!open) return
@@ -100,28 +110,19 @@ export function ExamAssignDialog({
       setDurationMinutes(60)
       setFormError(null)
     } else {
-      setSearchTerm("")
+      setNameFilter("")
       setSelectedStudentIds([])
-      setCourseFilter("all")
+      setCourseSearch("")
     }
   }, [open])
 
-  const filteredStudents = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase()
-    return students.filter((student) => {
-      if (courseFilter !== "all" && String(student.course) !== courseFilter) {
-        return false
-      }
-      if (!term) return true
-      const normalizedEmail = student.email?.toLowerCase() ?? ""
-      const normalizedName = student.name?.toLowerCase() ?? ""
-      return (
-        normalizedName.includes(term) ||
-        normalizedEmail.includes(term) ||
-        String(student.course).includes(term)
-      )
-    })
-  }, [students, searchTerm, courseFilter])
+  const filteredStudents = useMemo(() => students, [students])
+  const allVisibleSelected = useMemo(
+    () =>
+      filteredStudents.length > 0 &&
+      filteredStudents.every((student) => selectedStudentIds.includes(student.id)),
+    [filteredStudents, selectedStudentIds],
+  )
 
 
   const handleSelectToggle = (studentId: string) => {
@@ -238,25 +239,33 @@ export function ExamAssignDialog({
             <div className="flex items-center justify-between gap-2">
               <div>
                 <p className="text-sm font-medium">Estudiantes ({selectedStudentIds.length} seleccionados)</p>
-                <p className="text-xs text-muted-foreground">Puedes buscar por nombre, email o curso.</p>
+                <p className="text-xs text-muted-foreground">Puedes buscar por nombre o curso desde el servidor.</p>
               </div>
               <Button variant="outline" size="sm" onClick={handleSelectAllVisible}>
-                Seleccionar todos
+                {allVisibleSelected ? "Deseleccionar todos" : "Seleccionar todos"}
               </Button>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar estudiante..."
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Buscar por nombre..."
+                  value={nameFilter}
+                  onChange={(event) => setNameFilter(event.target.value)}
                   className="pl-10"
                 />
               </div>
-
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por curso..."
+                  value={courseSearch}
+                  onChange={(event) => setCourseSearch(event.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
-            <ScrollArea className="max-h-[50vh] border rounded-lg bg-background overflow-y-auto">
+            <ScrollArea className="max-h-[330px] border rounded-lg bg-background overflow-y-auto">
               <div className="p-2 space-y-2">
                 {studentsLoading ? (
                   <div className="flex items-center justify-center py-6">
@@ -285,7 +294,7 @@ export function ExamAssignDialog({
                           <p className="text-sm font-medium">{student.name}</p>
                           <p className="text-xs text-muted-foreground">{student.email}</p>
                           <p className="text-xs text-muted-foreground">
-                            Curso {student.course}
+                            {student.course}
                           </p>
                         </div>
                       </label>

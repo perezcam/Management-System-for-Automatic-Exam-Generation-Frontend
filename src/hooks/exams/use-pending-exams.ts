@@ -24,15 +24,14 @@ import { fetchQuestionById } from "@/services/question-bank/questions";
 import type { QuestionDetail } from "@/types/question-bank/question";
 import type { ExamQuestionListItem } from "@/types/exam-question-list";
 import { fetchQuestionTypes } from "@/services/question-administration/question_types";
+import type { SubjectDetail } from "@/types/question-administration/subject";
 
-const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 4;
 
 export const ALL_PENDING_EXAMS_FILTER = "all";
 
 const DEFAULT_FILTERS: PendingExamFilters = {
   professorId: ALL_PENDING_EXAMS_FILTER,
-  subjectId: ALL_PENDING_EXAMS_FILTER,
-  status: ALL_PENDING_EXAMS_FILTER,
 };
 
 type ExamDetailCache = Record<string, PendingExamDetail>;
@@ -145,7 +144,6 @@ export type UsePendingExamsResult = {
   filters: PendingExamFilters;
   search: string;
   professorOptions: PendingExamFilterOption[];
-  subjectOptions: PendingExamFilterOption[];
   setPage: (page: number) => void;
   setFilters: (filters: PendingExamFilters) => void;
   setSearch: (value: string) => void;
@@ -166,19 +164,23 @@ export function usePendingExams(pageSize: number = DEFAULT_PAGE_SIZE): UsePendin
   const [error, setError] = useState<Error | null>(null);
   const [validatorId, setValidatorId] = useState<string | null>(null);
   const [validatorReady, setValidatorReady] = useState(false);
+  const [subjects, setSubjects] = useState<SubjectDetail[]>([]);
+  const [leaderSubjectIds, setLeaderSubjectIds] = useState<string[]>([]);
+  const [teacherSubjectsMap, setTeacherSubjectsMap] = useState<Record<string, string[]>>({});
+  const [currentTeacherId, setCurrentTeacherId] = useState<string | null>(null);
   const examDetailsRef = useRef<ExamDetailCache>({});
   const [questionDetails, setQuestionDetails] = useState<Record<string, QuestionDetail>>({});
   const [subtopicNames, setSubtopicNames] = useState<Record<string, string>>({});
   const [questionTypeNames, setQuestionTypeNames] = useState<Record<string, string>>({});
-const ensurePendingQuestionDetails = useCallback(
-  async (questions: PendingExamQuestion[] = []) => {
-    const ids = Array.from(
-      new Set(
-        questions
-          .map((question) => question.questionId ?? question.id)
-          .filter((id): id is string => Boolean(id)),
-      ),
-    );
+  const ensurePendingQuestionDetails = useCallback(
+    async (questions: PendingExamQuestion[] = []) => {
+      const ids = Array.from(
+        new Set(
+          questions
+            .map((question) => question.questionId ?? question.id)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      );
       const missing = ids.filter((id) => !questionDetails[id]);
       if (!missing.length) return;
 
@@ -207,77 +209,83 @@ const ensurePendingQuestionDetails = useCallback(
     [questionDetails],
   );
 
-const resolveValidatorTeacher = useCallback(async () => {
-  try {
-    const currentUser = await fetchCurrentUser().catch(() => null);
-    if (!currentUser?.id) return;
-
-    const teachersPage = await fetchTeachers({ limit: 100, offset: 0 });
-    teachersPage.data.forEach((teacher) => {
-      if (teacher.id && teacher.name) {
-        teacherNameCache.set(teacher.id, teacher.name);
-      }
-    });
-
-    const currentTeacher = teachersPage.data.find((teacher) => teacher.userId === currentUser.id);
-    if (currentTeacher?.id) {
-      setValidatorId(currentTeacher.id);
-      if (currentTeacher.name) {
-        teacherNameCache.set(currentTeacher.id, currentTeacher.name);
-      } else if (currentUser.name) {
-        teacherNameCache.set(currentTeacher.id, currentUser.name);
-      }
-    }
-  } catch (err) {
-    console.error("No se pudo resolver el validador actual", err);
-  } finally {
-    setValidatorReady(true);
-  }
-}, []);
-
-useEffect(() => {
-  let active = true;
-
-  const loadLookupData = async () => {
+  const resolveValidatorTeacher = useCallback(async () => {
     try {
-      const [subjects, questionTypes] = await Promise.all([
-        fetchSubjects(),
-        fetchQuestionTypes({ limit: 100 }),
-      ]);
+      const currentUser = await fetchCurrentUser().catch(() => null);
+      if (!currentUser?.id) return;
 
-      if (!active) return;
+      const teachersPage = await fetchTeachers({ limit: 100, offset: 0 });
+      const subjectsMap: Record<string, string[]> = {};
+      teachersPage.data.forEach((teacher) => {
+        if (teacher.id && teacher.name) {
+          teacherNameCache.set(teacher.id, teacher.name);
+        }
+        const subjectsIds = teacher.teaching_subjects_ids ?? teacher.subjects_ids ?? [];
+        subjectsMap[teacher.id] = subjectsIds.filter(Boolean);
+      });
+      setTeacherSubjectsMap(subjectsMap);
 
-      const subtopicMap: Record<string, string> = {};
-      subjects.forEach((subject) => {
-        subject.topics?.forEach((topic) => {
-          topic.subtopics?.forEach((subtopic) => {
-            if (subtopic.subtopic_id && subtopic.subtopic_name) {
-              subtopicMap[subtopic.subtopic_id] = subtopic.subtopic_name;
-            }
+      const currentTeacher = teachersPage.data.find((teacher) => teacher.userId === currentUser.id);
+      if (currentTeacher?.id) {
+        setCurrentTeacherId(currentTeacher.id);
+        setValidatorId(currentTeacher.id);
+        if (currentTeacher.name) {
+          teacherNameCache.set(currentTeacher.id, currentTeacher.name);
+        } else if (currentUser.name) {
+          teacherNameCache.set(currentTeacher.id, currentUser.name);
+        }
+      }
+    } catch (err) {
+      console.error("No se pudo resolver el validador actual", err);
+    } finally {
+      setValidatorReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadLookupData = async () => {
+      try {
+        const [subjects, questionTypes] = await Promise.all([
+          fetchSubjects(),
+          fetchQuestionTypes({ limit: 100 }),
+        ]);
+
+        if (!active) return;
+        setSubjects(subjects);
+
+        const subtopicMap: Record<string, string> = {};
+        subjects.forEach((subject) => {
+          subject.topics?.forEach((topic) => {
+            topic.subtopics?.forEach((subtopic) => {
+              if (subtopic.subtopic_id && subtopic.subtopic_name) {
+                subtopicMap[subtopic.subtopic_id] = subtopic.subtopic_name;
+              }
+            });
           });
         });
-      });
 
-      const questionTypeMap: Record<string, string> = {};
-      questionTypes.forEach((type) => {
-        if (type.id && type.name) {
-          questionTypeMap[type.id] = type.name;
-        }
-      });
+        const questionTypeMap: Record<string, string> = {};
+        questionTypes.forEach((type) => {
+          if (type.id && type.name) {
+            questionTypeMap[type.id] = type.name;
+          }
+        });
 
-      setSubtopicNames(subtopicMap);
-      setQuestionTypeNames(questionTypeMap);
-    } catch (err) {
-      console.error("No se pudieron cargar los subtemas y tipos de pregunta", err);
-    }
-  };
+        setSubtopicNames(subtopicMap);
+        setQuestionTypeNames(questionTypeMap);
+      } catch (err) {
+        console.error("No se pudieron cargar los subtemas y tipos de pregunta", err);
+      }
+    };
 
-  void loadLookupData();
+    void loadLookupData();
 
-  return () => {
-    active = false;
-  };
-}, []);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const loadExams = useCallback(async () => {
     if (!validatorReady) {
@@ -294,9 +302,8 @@ useEffect(() => {
       const trimmedSearch = search.trim();
       const { data, meta } = await fetchPendingExams({
         title: trimmedSearch || undefined,
-        subjectId: mapValue(filters.subjectId),
+        subjectId: undefined,
         authorId: mapValue(filters.professorId),
-        examStatus: mapValue(filters.status),
         validatorId,
         limit: pageSize,
         offset: (page - 1) * pageSize,
@@ -329,6 +336,17 @@ useEffect(() => {
     void loadExams();
   }, [loadExams]);
 
+  useEffect(() => {
+    if (!currentTeacherId) {
+      setLeaderSubjectIds([]);
+      return;
+    }
+    const led = subjects
+      .filter((subject) => subject.subject_leader_id === currentTeacherId)
+      .map((subject) => subject.subject_id);
+    setLeaderSubjectIds(led);
+  }, [currentTeacherId, subjects]);
+
   const refresh = useCallback(async () => {
     await loadExams();
   }, [loadExams]);
@@ -348,32 +366,21 @@ useEffect(() => {
   }, []);
 
   const professorOptions = useMemo<PendingExamFilterOption[]>(() => {
-    const map = new Map<string, string>();
-    exams.forEach((exam) => {
-      if (!exam.creator) return;
-      const value = exam.creatorId ?? exam.creator;
-      if (!map.has(value)) {
-        map.set(value, exam.creator);
-      }
-    });
-    return Array.from(map.entries())
-      .map(([value, label]) => ({ value, label }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [exams]);
+    if (!leaderSubjectIds.length) return [];
+    const options: PendingExamFilterOption[] = [];
+    const seen = new Set<string>();
 
-  const subjectOptions = useMemo<PendingExamFilterOption[]>(() => {
-    const map = new Map<string, string>();
-    exams.forEach((exam) => {
-      if (!exam.subject) return;
-      const value = exam.subjectId ?? exam.subject;
-      if (!map.has(value)) {
-        map.set(value, exam.subject);
-      }
+    Object.entries(teacherSubjectsMap).forEach(([teacherId, subjects]) => {
+      const teachesLeaderSubject = subjects.some((subjectId) => leaderSubjectIds.includes(subjectId));
+      if (!teachesLeaderSubject) return;
+      if (seen.has(teacherId)) return;
+      const label = teacherNameCache.get(teacherId) ?? teacherId;
+      seen.add(teacherId);
+      options.push({ value: teacherId, label });
     });
-    return Array.from(map.entries())
-      .map(([value, label]) => ({ value, label }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [exams]);
+
+    return options.sort((a, b) => a.label.localeCompare(b.label));
+  }, [leaderSubjectIds, teacherSubjectsMap]);
 
   const getExamDetail = useCallback(
     async (examId: string, options: { force?: boolean } = {}) => {
@@ -431,18 +438,19 @@ useEffect(() => {
         prev.map((exam) =>
           exam.id === examId
             ? {
-                ...exam,
-                status: detail.status,
-                difficulty: detail.difficulty,
-                totalQuestions: detail.totalQuestions,
-              }
+              ...exam,
+              status: detail.status,
+              difficulty: detail.difficulty,
+              totalQuestions: detail.totalQuestions,
+            }
             : exam,
         ),
       );
       examDetailsRef.current[examId] = detail;
+      await refresh();
       return detail;
     },
-    [ensurePendingQuestionDetails],
+    [ensurePendingQuestionDetails, refresh],
   );
 
   const rejectExamHandler = useCallback(
@@ -453,16 +461,17 @@ useEffect(() => {
         prev.map((exam) =>
           exam.id === examId
             ? {
-                ...exam,
-                status: detail.status,
-              }
+              ...exam,
+              status: detail.status,
+            }
             : exam,
         ),
       );
       examDetailsRef.current[examId] = detail;
+      await refresh();
       return detail;
     },
-    [ensurePendingQuestionDetails],
+    [ensurePendingQuestionDetails, refresh],
   );
 
   return {
@@ -475,7 +484,6 @@ useEffect(() => {
     filters,
     search,
     professorOptions,
-    subjectOptions,
     setPage,
     setFilters,
     setSearch,

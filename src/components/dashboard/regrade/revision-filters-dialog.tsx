@@ -55,9 +55,9 @@ export function RevisionFiltersDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Filtros de Revisiones</DialogTitle>
+          <DialogTitle>Filtros de Calificaciones</DialogTitle>
           <DialogDescription>
-            Filtra las revisiones por diferentes criterios
+            Filtra las calificaciones por diferentes criterios
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">

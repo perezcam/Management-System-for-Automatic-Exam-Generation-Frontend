@@ -13,11 +13,11 @@ interface MailSidebarProps {
 
 export function MailSidebar({ selectedFolder, onFolderSelect, allowedKeys }: MailSidebarProps) {
   const folders: { id: FolderKey; name: string; icon: typeof MessageSquare }[] = [
-    { id: "exams", name: "Pruebas", icon: FileCheck },
-    { id: "regrade", name: "Revisiones", icon: FileText },
+    { id: "exams", name: "Mis exámenes", icon: FileCheck },
+    { id: "regrade", name: "Calificaciones", icon: FileText },
     { id: "question-bank", name: "Banco de Preguntas", icon: Database },
     { id: "exam-bank", name: "Banco de Exámenes", icon: FileStack },
-    { id: "pending-exams", name: "Pruebas a Aprobar", icon: ClipboardCheck },
+    { id: "pending-exams", name: "Validaciones", icon: ClipboardCheck },
     { id: "administration", name: "Administración", icon: Shield },
     { id: "reports", name: "Reportes", icon: Scale },
   ];

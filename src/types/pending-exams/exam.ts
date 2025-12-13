@@ -36,8 +36,6 @@ export type PendingExamDetail = PendingExamListItem & {
 
 export type PendingExamFilters = {
   professorId: string;
-  subjectId: string;
-  status: string;
 };
 
 export type PendingExamFilterOption = {
