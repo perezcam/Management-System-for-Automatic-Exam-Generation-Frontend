@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,8 @@ import { StudentExamFiltersDialog } from "@/components/dashboard/exams/exam-filt
 import { ExamTakingView } from "@/components/dashboard/exams/exam-taking-view"
 import { RegradeRequestDialog } from "@/components/dashboard/exams/regrade-request-dialog"
 import { useStudentExams } from "@/hooks/exam-application/use-student-exams"
+import { fetchSubjects } from "@/services/question-administration/subjects"
+import { fetchTeachers } from "@/services/users/teachers"
 import { AssignedExamStatus, ExamAssignment } from "@/types/exam-application/exam"
 import { StudentExamFilters } from "@/types/exam-application/filters"
 
@@ -39,27 +41,72 @@ const formatApplicationDateTime = (value: string) => {
 }
 
 export default function PruebasView() {
-  const { exams, loading, filters, setFilters, refresh, search, setSearch } = useStudentExams()
+  const {
+    exams,
+    loading,
+    filters,
+    setFilters,
+    refresh,
+    search,
+    setSearch,
+    page,
+    pageSize,
+    total,
+    setPage,
+  } = useStudentExams()
   const [showFiltersDialog, setShowFiltersDialog] = useState(false)
   const [selectedExamAssignment, setSelectedExamAssignment] = useState<ExamAssignment | null>(null)
   const [regradeExam, setRegradeExam] = useState<ExamAssignment | null>(null)
   const [showRegradeDialog, setShowRegradeDialog] = useState(false)
+  const [subjectOptions, setSubjectOptions] = useState<{ id: string; name: string }[]>([])
+  const [teacherOptions, setTeacherOptions] = useState<{ id: string; name: string }[]>([])
 
   // Filtros temporales que no se aplican hasta presionar "Aplicar"
   const [tempFilters, setTempFilters] = useState<StudentExamFilters>(filters)
 
-  // Extraer listas únicas para filtros (esto es temporal, idealmente vendría del backend)
-  const asignaturas = useMemo(() => {
-    const unique = new Map<string, string>();
-    exams.forEach(e => unique.set(e.subjectId, e.subjectName));
-    return Array.from(unique.entries()).map(([id, name]) => ({ id, name }));
-  }, [exams])
+  useEffect(() => {
+    let cancelled = false
+    const loadSubjects = async () => {
+      try {
+        const subjects = await fetchSubjects()
+        if (cancelled) return
+        setSubjectOptions(
+          subjects.map((subject) => ({
+            id: subject.subject_id,
+            name: subject.subject_name,
+          })),
+        )
+      } catch (err) {
+        console.error("No se pudieron cargar las asignaturas", err)
+      }
+    }
+    void loadSubjects()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-  const profesores = useMemo(() => {
-    const unique = new Map<string, string>();
-    exams.forEach(e => unique.set(e.teacherId, e.teacherName));
-    return Array.from(unique.entries()).map(([id, name]) => ({ id, name }));
-  }, [exams])
+  useEffect(() => {
+    let cancelled = false
+    const loadTeachers = async () => {
+      try {
+        const { data } = await fetchTeachers({ limit: 10, offset: 0 })
+        if (cancelled) return
+        setTeacherOptions(
+          data.map((teacher) => ({
+            id: teacher.id,
+            name: teacher.name,
+          })),
+        )
+      } catch (err) {
+        console.error("No se pudieron cargar los profesores", err)
+      }
+    }
+    void loadTeachers()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleApplyFilters = () => {
     setFilters(tempFilters)
@@ -150,86 +197,114 @@ export default function PruebasView() {
             </p>
           </div>
         ) : (
-          <ScrollArea className="h-full">
-            <div className="space-y-4 pr-4">
-              {exams.map((exam) => {
-                const displayedGrade = exam.regradeGrade ?? exam.grade
-                const hasGrade = displayedGrade !== null && displayedGrade !== undefined
+          <>
+            <ScrollArea className="h-full">
+              <div className="space-y-4 pr-4">
+                {exams.map((exam) => {
+                  const displayedGrade = exam.regradeGrade ?? exam.grade
+                  const hasGrade = displayedGrade !== null && displayedGrade !== undefined
 
-                return (
-                  <Card
-                    key={exam.id}
-                    className={`p-5 transition-colors ${exam.status === AssignedExamStatus.GRADED && exam.grade !== null
-                      ? "cursor-pointer hover:bg-accent/50"
-                      : ""
-                      }`}
-                    onClick={() => {
-                      if (exam.status === AssignedExamStatus.GRADED && exam.grade !== null) {
-                        handleExamClick(exam)
-                      }
-                    }}
-                  >
-                    <div className="space-y-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start gap-3 mb-2">
-                            <div className="flex-1">
-                              <h3 className="font-medium mb-1">{exam.title ?? exam.examTitle ?? `Examen de ${exam.subjectName}`}</h3>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant="secondary" className="text-xs">
-                                  {exam.subjectName}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">•</span>
-                                <span className="text-xs text-muted-foreground">{exam.teacherName}</span>
+                  return (
+                    <Card
+                      key={exam.id}
+                      className={`p-5 transition-colors ${exam.status === AssignedExamStatus.GRADED && exam.grade !== null
+                        ? "cursor-pointer hover:bg-accent/50"
+                        : ""
+                        }`}
+                      onClick={() => {
+                        if (exam.status === AssignedExamStatus.GRADED && exam.grade !== null) {
+                          handleExamClick(exam)
+                        }
+                      }}
+                    >
+                      <div className="space-y-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start gap-3 mb-2">
+                              <div className="flex-1">
+                                <h3 className="font-medium mb-1">{exam.title ?? exam.examTitle ?? `Examen de ${exam.subjectName}`}</h3>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Badge variant="secondary" className="text-xs">
+                                    {exam.subjectName}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">•</span>
+                                  <span className="text-xs text-muted-foreground">{exam.teacherName}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
+                          <div className="flex items-center gap-3">
+                            {hasGrade && (
+                              <div className="text-right">
+                                <div className="text-xs text-muted-foreground mb-0.5">Calificación</div>
+                                <div className="text-xl font-mono text-green-600">{displayedGrade}</div>
+                              </div>
+                            )}
+                            {getEstadoBadge(exam.status)}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          {hasGrade && (
-                            <div className="text-right">
-                              <div className="text-xs text-muted-foreground mb-0.5">Calificación</div>
-                              <div className="text-xl font-mono text-green-600">{displayedGrade}</div>
-                            </div>
-                          )}
-                          {getEstadoBadge(exam.status)}
-                        </div>
-                      </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Calendar className="h-4 w-4 flex-shrink-0" />
-                          <span>{formatApplicationDateTime(exam.applicationDate)}</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Calendar className="h-4 w-4 flex-shrink-0" />
+                            <span>{formatApplicationDateTime(exam.applicationDate)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Clock className="h-4 w-4 flex-shrink-0" />
+                            <span>{exam.durationMinutes} minutos</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <GraduationCap className="h-4 w-4 flex-shrink-0" />
+                            <span>{exam.teacherName}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Clock className="h-4 w-4 flex-shrink-0" />
-                          <span>{exam.durationMinutes} minutos</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <GraduationCap className="h-4 w-4 flex-shrink-0" />
-                          <span>{exam.teacherName}</span>
-                        </div>
-                      </div>
 
-                      {exam.status === AssignedExamStatus.ENABLED && (
-                        <div className="pt-3 border-t">
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleExamClick(exam)
-                            }}
-                            className="w-full sm:w-auto"
-                          >
-                            Realizar Examen
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                )
-              })}
+                        {exam.status === AssignedExamStatus.ENABLED && (
+                          <div className="pt-3 border-t">
+                            <Button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleExamClick(exam)
+                              }}
+                              className="w-full sm:w-auto"
+                            >
+                              Realizar Examen
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  )
+                })}
+              </div>
+            </ScrollArea>
+            <div className="pt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Mostrando {exams.length} de {total ?? exams.length} exámenes.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page - 1)}
+                  disabled={loading || page <= 1}
+                >
+                  Anterior
+                </Button>
+                <span className="text-sm">
+                  Página {page} de {Math.max(1, Math.ceil((total ?? exams.length) / pageSize))}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page + 1)}
+                  disabled={loading || page >= Math.max(1, Math.ceil((total ?? exams.length) / pageSize))}
+                >
+                  Siguiente
+                </Button>
+              </div>
             </div>
-          </ScrollArea>
+          </>
         )}
       </div>
 
@@ -247,8 +322,8 @@ export default function PruebasView() {
         onOpenChange={setShowFiltersDialog}
         filters={tempFilters}
         onFiltersChange={setTempFilters}
-        asignaturas={asignaturas}
-        profesores={profesores}
+        asignaturas={subjectOptions}
+        profesores={teacherOptions}
         onApplyFilters={handleApplyFilters}
       />
     </div>
