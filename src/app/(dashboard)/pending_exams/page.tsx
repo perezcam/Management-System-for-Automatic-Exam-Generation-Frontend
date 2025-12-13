@@ -16,12 +16,15 @@ export default function PendingExamsPage() {
   const {
     exams,
     loading,
+    page,
+    pageSize,
+    total,
     filters,
     search,
     setSearch,
     setFilters,
+    setPage,
     professorOptions,
-    subjectOptions,
     getExamDetail,
     getExamQuestionsWithDetails,
     approveExam,
@@ -69,7 +72,7 @@ export default function PendingExamsPage() {
   const handleApproveExam = useCallback(
     async (examId: string, comment?: string) => {
       try {
-    const updated = await approveExam(examId, { comment });
+        const updated = await approveExam(examId, { comment });
         setSelectedExam(updated);
         showSuccess("Examen aprobado", "Se notificó al profesor.");
       } catch (err) {
@@ -84,7 +87,7 @@ export default function PendingExamsPage() {
   const handleRejectExam = useCallback(
     async (examId: string, comment?: string) => {
       try {
-    const updated = await rejectExam(examId, { comment });
+        const updated = await rejectExam(examId, { comment });
         setSelectedExam(updated);
         showSuccess("Examen rechazado", "El profesor recibirá tus comentarios.");
       } catch (err) {
@@ -131,7 +134,7 @@ export default function PendingExamsPage() {
             <div className="flex items-start sm:items-center justify-between">
               <div className="flex-1 min-w-0 text-left">
                 <h1 className="text-2xl font-semibold tracking-tight">
-                  Pruebas a Aprobar
+                  Validaciones
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Revisa y gestiona las solicitudes de aprobación de exámenes
@@ -144,7 +147,7 @@ export default function PendingExamsPage() {
               <div className="relative flex-1">
                 <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por asignatura, examen o profesor..."
+                  placeholder="Buscar por nombre de el examen..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10 w-full"
@@ -177,13 +180,41 @@ export default function PendingExamsPage() {
         ) : exams.length === 0 ? (
           renderEmptyState()
         ) : (
-          <ScrollArea className="h-full">
-            <div className="space-y-3 pr-4">
-              {exams.map((exam) => (
-                <ExamApprovalCard key={exam.id} exam={exam} onClick={handleExamClick} />
-              ))}
+          <div className="h-full flex flex-col">
+            <ScrollArea className="flex-1">
+              <div className="space-y-3 pr-4">
+                {exams.map((exam) => (
+                  <ExamApprovalCard key={exam.id} exam={exam} onClick={handleExamClick} />
+                ))}
+              </div>
+            </ScrollArea>
+            <div className="pt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Mostrando {exams.length} de {total ?? exams.length} exámenes.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page - 1)}
+                  disabled={loading || page <= 1}
+                >
+                  Anterior
+                </Button>
+                <span className="text-sm">
+                  Página {page} de {Math.max(1, Math.ceil((total ?? exams.length) / pageSize))}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page + 1)}
+                  disabled={loading || page >= Math.max(1, Math.ceil((total ?? exams.length) / pageSize))}
+                >
+                  Siguiente
+                </Button>
+              </div>
             </div>
-          </ScrollArea>
+          </div>
         )}
       </div>
 
@@ -193,7 +224,6 @@ export default function PendingExamsPage() {
         filters={tempFilters}
         onFiltersChange={setTempFilters}
         professors={professorOptions}
-        subjects={subjectOptions}
         onApplyFilters={handleApplyFilters}
       />
 

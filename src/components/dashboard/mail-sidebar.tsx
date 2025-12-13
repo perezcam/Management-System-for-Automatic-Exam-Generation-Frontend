@@ -17,7 +17,7 @@ export function MailSidebar({ selectedFolder, onFolderSelect, allowedKeys }: Mai
     { id: "regrade", name: "Revisiones", icon: FileText },
     { id: "question-bank", name: "Banco de Preguntas", icon: Database },
     { id: "exam-bank", name: "Banco de Exámenes", icon: FileStack },
-    { id: "pending-exams", name: "Pruebas a Aprobar", icon: ClipboardCheck },
+    { id: "pending-exams", name: "Validaciones", icon: ClipboardCheck },
     { id: "administration", name: "Administración", icon: Shield },
     { id: "reports", name: "Reportes", icon: Scale },
   ];

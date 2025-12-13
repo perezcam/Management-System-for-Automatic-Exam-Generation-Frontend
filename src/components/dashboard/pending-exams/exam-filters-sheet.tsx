@@ -11,14 +11,11 @@ type ExamFiltersSheetProps = {
   filters: PendingExamFilters;
   onFiltersChange: (filters: PendingExamFilters) => void;
   professors: PendingExamFilterOption[];
-  subjects: PendingExamFilterOption[];
   onApplyFilters?: () => void;
 };
 
 const getDefaultFilters = (): PendingExamFilters => ({
   professorId: ALL_PENDING_EXAMS_FILTER,
-  subjectId: ALL_PENDING_EXAMS_FILTER,
-  status: ALL_PENDING_EXAMS_FILTER,
 });
 
 export function ExamFiltersSheet({
@@ -27,7 +24,6 @@ export function ExamFiltersSheet({
   filters,
   onFiltersChange,
   professors,
-  subjects,
   onApplyFilters,
 }: ExamFiltersSheetProps) {
   const handleFilterChange = (key: keyof PendingExamFilters, value: string) => {
@@ -62,38 +58,6 @@ export function ExamFiltersSheet({
                     {professor.label}
                   </SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="subject-filter">Asignatura</Label>
-            <Select value={filters.subjectId} onValueChange={(value) => handleFilterChange("subjectId", value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_PENDING_EXAMS_FILTER}>Todas</SelectItem>
-                {subjects.map((subject) => (
-                  <SelectItem key={subject.value} value={subject.value}>
-                    {subject.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="status-filter">Estado</Label>
-            <Select value={filters.status} onValueChange={(value) => handleFilterChange("status", value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_PENDING_EXAMS_FILTER}>Todos</SelectItem>
-                <SelectItem value="pendiente">Pendiente</SelectItem>
-                <SelectItem value="aprobado">Aprobado</SelectItem>
-                <SelectItem value="rechazado">Rechazado</SelectItem>
               </SelectContent>
             </Select>
           </div>

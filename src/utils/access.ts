@@ -25,16 +25,16 @@ export const ROLE_ALLOWED_KEYS: Record<Role, FolderKey[]> = {
     "administration", "reports",
   ],
   [Role.Teacher]: [
-    "question-bank", "pending-exams", "regrade", "exam-bank",
+    "question-bank", "regrade",
   ],
   [Role.SubjectLeader]: [
     "question-bank", "pending-exams", "regrade", "reports",
   ],
   [Role.Examiner]: [
-    "question-bank", "exam-bank", "pending-exams",
+    "question-bank", "exam-bank",
   ],
   [Role.Student]: [
-    "exams", 
+    "exams",
   ],
 };
 export function isRole(value: unknown): value is Role {

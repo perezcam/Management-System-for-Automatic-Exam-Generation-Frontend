@@ -108,6 +108,8 @@ const DIFFICULTY_FROM_BACKEND = new Map<string, PendingExamDifficulty>([
   ["mixed", "Mixta"],
 ]);
 
+const VALIDATOR_ALLOWED_BACKEND_STATUSES = ["on_review"] as const;
+
 const mapExamStatusParam = (status?: string) => {
   if (!status) return undefined;
   const normalized = status.toLowerCase();
@@ -259,19 +261,27 @@ const ensureExamDetail = (schema: PendingExamDetailSchema, fallbackMessage: stri
 };
 
 export const fetchPendingExams = async (params: ListPendingExamsQuery = {}) => {
+  const defaultExamStatus =
+    params.validatorId && !params.examStatus ? VALIDATOR_ALLOWED_BACKEND_STATUSES[0] : undefined;
+  const examStatusParam = params.examStatus ?? defaultExamStatus;
+
   const { data, meta } = await fetchExams({
     title: params.title,
     subjectId: params.subjectId,
     authorId: params.authorId,
-    examStatus: mapExamStatusParam(params.examStatus),
+    examStatus: mapExamStatusParam(examStatusParam),
     validatorId: params.validatorId,
     limit: params.limit,
     offset: params.offset,
   });
 
-  const filtered = params.validatorId
-    ? data.filter((exam) => exam.validatorId === params.validatorId)
-    : data;
+  const allowedStatuses = params.validatorId ? VALIDATOR_ALLOWED_BACKEND_STATUSES : null;
+  const filtered = data.filter((exam) => {
+    const matchesValidator = params.validatorId ? exam.validatorId === params.validatorId : true;
+    const normalizedStatus = exam.examStatus?.toLowerCase() ?? "";
+    const matchesAllowedStatuses = allowedStatuses ? allowedStatuses.includes(normalizedStatus) : true;
+    return matchesValidator && matchesAllowedStatuses;
+  });
 
   const items = filtered.map(mapExamBankListItem);
 
