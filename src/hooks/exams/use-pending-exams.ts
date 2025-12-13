@@ -447,9 +447,10 @@ export function usePendingExams(pageSize: number = DEFAULT_PAGE_SIZE): UsePendin
         ),
       );
       examDetailsRef.current[examId] = detail;
+      await refresh();
       return detail;
     },
-    [ensurePendingQuestionDetails],
+    [ensurePendingQuestionDetails, refresh],
   );
 
   const rejectExamHandler = useCallback(
@@ -467,9 +468,10 @@ export function usePendingExams(pageSize: number = DEFAULT_PAGE_SIZE): UsePendin
         ),
       );
       examDetailsRef.current[examId] = detail;
+      await refresh();
       return detail;
     },
-    [ensurePendingQuestionDetails],
+    [ensurePendingQuestionDetails, refresh],
   );
 
   return {
