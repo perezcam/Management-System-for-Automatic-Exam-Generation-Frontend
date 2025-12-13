@@ -27,17 +27,14 @@ export function useRegradeQueues() {
     setLoading(true);
     setError(null);
     try {
-      const trimmedSearch = search.trim();
       const [assignmentsResp, regradeResp] = await Promise.all([
         ExamApplicationService.listEvaluatorAssignments({
           page: assignmentsPage,
           limit: assignmentsLimit,
-          search: trimmedSearch || undefined,
         }),
         ExamApplicationService.listPendingRegradeRequests({
           page: regradePage,
           limit: regradeLimit,
-          search: trimmedSearch || undefined,
         }),
       ]);
 
@@ -57,7 +54,7 @@ export function useRegradeQueues() {
     } finally {
       setLoading(false);
     }
-  }, [assignmentsLimit, assignmentsPage, regradeLimit, regradePage, search]);
+  }, [assignmentsLimit, assignmentsPage, regradeLimit, regradePage]);
 
   useEffect(() => {
     void fetchQueues();

@@ -33,6 +33,7 @@ const STATUS_LABELS: Record<string, string> = {
   [PendingRegradeRequestStatus.APPROVED]: "Aprobada",
   [PendingRegradeRequestStatus.REJECTED]: "Rechazada",
   [AssignedExamStatus.GRADED]: "Calificada",
+  REGRADING: "En calificacion",
 }
 
 const mapStatusLabel = (status: string) => STATUS_LABELS[status] ?? status
@@ -165,7 +166,7 @@ export default function RevisionesView() {
       examId: request.examId,
       examTitle: resolveExamTitle(request.examId, request.examTitle, "Revisión de examen"),
       subjectId: request.subjectId,
-      subjectName: request.subjectName,
+      subjectName: request.subjectName ?? "Sin asignatura",
       studentId: request.studentId,
       studentName: resolveStudentName(request.studentId, request.studentName),
       status: request.status,
@@ -186,10 +187,13 @@ export default function RevisionesView() {
 
   const filterItem = useCallback((item: RevisionItem) => {
     const text = search.trim().toLowerCase()
+    const examTitle = (item.examTitle ?? "").toLowerCase()
+    const studentName = (item.studentName ?? "").toLowerCase()
+    const subjectName = (item.subjectName ?? "").toLowerCase()
     const matchesSearch = !text
-      || item.examTitle.toLowerCase().includes(text)
-      || item.studentName.toLowerCase().includes(text)
-      || item.subjectName.toLowerCase().includes(text)
+      || examTitle.includes(text)
+      || studentName.includes(text)
+      || subjectName.includes(text)
 
     const matchesStudent = filters.studentId === "ALL"
       || item.studentId === filters.studentId
@@ -258,24 +262,11 @@ export default function RevisionesView() {
     ...buildOptions(allItems, "subjectId", "subjectName")
   ], [allItems])
 
-  const statusOptions: RevisionFilterOption[] = useMemo(() => {
-    const statuses = new Set<string>([
-      AssignedExamStatus.IN_EVALUATION,
-      PendingRegradeRequestStatus.REQUESTED,
-      PendingRegradeRequestStatus.IN_REVIEW,
-      PendingRegradeRequestStatus.APPROVED,
-      PendingRegradeRequestStatus.REJECTED,
-      AssignedExamStatus.GRADED
-    ])
-    allItems.forEach((item) => statuses.add(item.status))
-    return [
-      { value: "ALL", label: "Todos" },
-      ...Array.from(statuses).map((status) => ({
-        value: status,
-        label: mapStatusLabel(status)
-      }))
-    ]
-  }, [allItems])
+  const statusOptions: RevisionFilterOption[] = useMemo(() => [
+    { value: "ALL", label: "Todos" },
+    { value: AssignedExamStatus.IN_EVALUATION, label: mapStatusLabel(AssignedExamStatus.IN_EVALUATION) },
+    { value: "REGRADING", label: mapStatusLabel("REGRADING") },
+  ], [])
 
   const typeOptions: RevisionFilterOption[] = [
     { value: "ALL", label: "Todos" },
