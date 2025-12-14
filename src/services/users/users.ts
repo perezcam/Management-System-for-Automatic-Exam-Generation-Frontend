@@ -20,6 +20,7 @@ export {
 export {
   fetchTeachers,
   fetchTeacherDetail,
+  fetchTeacherByUserId,
   createTeacher,
   updateTeacher,
   deleteTeacher,
