@@ -6,7 +6,7 @@ import { ExamAssignment, AssignedExamStatus } from "@/types/exam-application/exa
 import { StudentExamFilters } from "@/types/exam-application/filters";
 import { ASSIGNMENT_GRADED_EVENT } from "@/utils/events";
 
-const DEFAULT_PAGE_SIZE = 1;
+const DEFAULT_PAGE_SIZE = 3;
 
 const DEFAULT_FILTERS: StudentExamFilters = {
     status: "ALL",
