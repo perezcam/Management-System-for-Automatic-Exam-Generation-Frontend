@@ -4,6 +4,7 @@ import { CheckCircle2, Circle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { ExamQuestionListItem } from "@/types/exam-question-list";
+import type React from "react";
 
 type ExamQuestionListProps = {
   questions: ExamQuestionListItem[];
@@ -14,20 +15,37 @@ type NormalizedOption = {
   isCorrect: boolean;
 };
 
-const getDifficultyColor = (difficulty?: string) => {
-  switch (difficulty) {
-    case "FA�cil":
-      return "bg-green-100 text-green-700 hover:bg-green-100";
-    case "Regular":
-      return "bg-yellow-100 text-yellow-700 hover:bg-yellow-100";
-    case "DifA-cil":
-      return "bg-red-100 text-red-700 hover:bg-red-100";
-    case "Mixta":
-      return "bg-blue-100 text-blue-700 hover:bg-blue-100";
+function normalizeDifficulty(input?: string) {
+  const raw = (input ?? "").trim();
+
+  // Arreglos comunes por encoding raro / variantes
+  const fixed = raw
+    .replace(/FA�cil/gi, "Fácil")
+    .replace(/DifA-cil/gi, "Difícil");
+
+  // Normalización: sin tildes y en minúsculas
+  return fixed
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function getDifficultyStyle(difficulty?: string): React.CSSProperties {
+  const d = normalizeDifficulty(difficulty);
+
+  switch (d) {
+    case "facil":
+      return { backgroundColor: "#dcfce7", color: "#15803d" }; // green-100 / green-700
+    case "regular":
+      return { backgroundColor: "#fef9c3", color: "#a16207" }; // yellow-100 / yellow-700
+    case "dificil":
+      return { backgroundColor: "#fee2e2", color: "#b91c1c" }; // red-100 / red-700
+    case "mixta":
+      return { backgroundColor: "#dbeafe", color: "#1d4ed8" }; // blue-100 / blue-700-ish
     default:
-      return "bg-gray-100 text-gray-700 hover:bg-gray-100";
+      return { backgroundColor: "#f3f4f6", color: "#374151" }; // gray-100 / gray-700
   }
-};
+}
 
 const normalizeQuestionOptions = (options?: ExamQuestionListItem["options"]): NormalizedOption[] => {
   if (!options?.length) return [];
@@ -48,9 +66,7 @@ const normalizeQuestionOptions = (options?: ExamQuestionListItem["options"]): No
 const getOptionLabel = (index: number) => {
   const baseCode = "A".charCodeAt(0);
   const charCode = baseCode + index;
-  if (charCode <= "Z".charCodeAt(0)) {
-    return String.fromCharCode(charCode);
-  }
+  if (charCode <= "Z".charCodeAt(0)) return String.fromCharCode(charCode);
   return `${index + 1}`;
 };
 
@@ -64,10 +80,14 @@ export function ExamQuestionList({ questions }: ExamQuestionListProps) {
         const hasResponse = typeof question.response === "string" && question.response.trim().length > 0;
         const shouldShowResponse = hasResponse || normalizedOptions.length === 0;
 
+        const difficultyText = (question.difficulty ?? "Regular").trim();
+        const difficultyStyle = getDifficultyStyle(difficultyText);
+
         return (
           <Card key={`${question.id}-${index}`} className="p-4">
             <div className="flex items-start gap-3">
               <span className="font-medium text-sm mt-1 flex-shrink-0">{index + 1}.</span>
+
               <div className="flex-1 min-w-0 space-y-3">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   {question.subtopic ? (
@@ -75,17 +95,21 @@ export function ExamQuestionList({ questions }: ExamQuestionListProps) {
                       {question.subtopic}
                     </Badge>
                   ) : null}
-                  <Badge className={`text-xs ${getDifficultyColor(question.difficulty)}`}>
-                    {question.difficulty ?? "Regular"}
+
+                  <Badge className="text-xs" style={difficultyStyle}>
+                    {difficultyText}
                   </Badge>
+
                   {question.type ? (
                     <Badge variant="secondary" className="text-xs">
                       {question.type}
                     </Badge>
                   ) : null}
                 </div>
+
                 <div className="space-y-2">
                   <p className="text-sm break-words">{question.body}</p>
+
                   {normalizedOptions.length > 0 ? (
                     <div className="space-y-2">
                       {normalizedOptions.map((option, optIndex) => {
@@ -105,7 +129,9 @@ export function ExamQuestionList({ questions }: ExamQuestionListProps) {
                               }`}
                             />
                             <div className="flex-1 min-w-0">
-                              <span className="font-semibold mr-2 text-foreground">{getOptionLabel(optIndex)}.</span>
+                              <span className="font-semibold mr-2 text-foreground">
+                                {getOptionLabel(optIndex)}.
+                              </span>
                               <span className="break-words">{option.text}</span>
                             </div>
                           </div>
@@ -113,6 +139,7 @@ export function ExamQuestionList({ questions }: ExamQuestionListProps) {
                       })}
                     </div>
                   ) : null}
+
                   {shouldShowResponse ? (
                     <p className="text-xs text-muted-foreground break-words">
                       <span className="font-semibold text-foreground">Respuesta:</span>{" "}

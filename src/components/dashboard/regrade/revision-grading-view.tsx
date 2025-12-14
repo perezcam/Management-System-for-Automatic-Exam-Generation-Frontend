@@ -74,6 +74,7 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
     finalizeRegradeRequest,
     questionError,
   } = useExamGrading(revision.assignmentId, revision.examId, revision.studentId)
+
   const isRecalification = revision.kind === "REGRADE"
 
   const questions = useMemo(() => exam?.questions ?? [], [exam])
@@ -131,6 +132,7 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
       response?.autoPoints !== null && response?.autoPoints !== undefined
     )
   }, [getManualValue, responses])
+
   const selectedQuestionGraded = selectedQuestion ? isQuestionGraded(selectedQuestion.questionId) : false
 
   const gradedCount = useMemo(() => {
@@ -158,33 +160,45 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
 
   const calculatedGrade = maxPoints > 0 ? (earnedPoints / maxPoints) * 100 : 0
   const allQuestionsGraded = (exam?.questions.length ?? 0) > 0 && gradedCount === (exam?.questions.length ?? 0)
+
   const manualValue = getManualValue(selectedResponse, selectedQuestionId)
   const hasManualValue = manualValue !== null && manualValue !== undefined
   const hasAutoValue = autoPointsAssigned !== null && autoPointsAssigned !== undefined
   const hasAnyGrade = hasManualValue || hasAutoValue
+
   const effectivePoints = hasManualValue
     ? manualValue
     : hasAutoValue
       ? autoPointsAssigned
       : null
+
   const selectedTotalPoints = effectivePoints ?? 0
   const showQuestionLoader = loadingQuestionId === selectedQuestion?.questionId && !selectedDetail
+
   const choiceOptions = useMemo(
     () => selectedDetail?.options ?? selectedResponse?.selectedOptions ?? [],
     [selectedDetail, selectedResponse]
   )
+
   const hasChoiceSelection = (selectedResponse?.selectedOptions?.length ?? 0) > 0
   const expectedOptions = selectedDetail?.options ?? []
+
   const manualKey = valueKey(selectedResponse, selectedQuestionId)
   const manualSaveLoading = manualKey ? savingManualResponseId === manualKey : false
   const manualEditable = Boolean(selectedQuestion)
-  const canSaveManualScore = manualEditable && hasManualValue
+
   const hasPendingManualChange = manualEditable
     ? selectedResponse
       ? manualValue !== (selectedResponse.manualPoints ?? null)
       : hasManualValue
     : false
-  const manualSaveDisabled = !canSaveManualScore || !hasPendingManualChange || manualSaveLoading || saving
+
+  const manualSaveDisabled =
+    !manualEditable ||
+    !hasManualValue ||
+    !hasPendingManualChange ||
+    manualSaveLoading ||
+    saving
 
   const handleManualPointsChange = (value: string) => {
     const key = valueKey(selectedResponse, selectedQuestionId)
@@ -193,17 +207,10 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
     const normalized = Number.isNaN(parsed)
       ? null
       : Math.min(Math.max(parsed, 0), maxScore > 0 ? maxScore : parsed)
-    const displayValue = Number.isNaN(parsed)
-      ? ""
-      : String(normalized ?? "")
-    setManualInputs((prev) => ({
-      ...prev,
-      [key]: displayValue,
-    }))
-    setManualScores((prev) => ({
-      ...prev,
-      [key]: normalized
-    }))
+
+    const displayValue = Number.isNaN(parsed) ? "" : String(normalized ?? "")
+    setManualInputs((prev) => ({ ...prev, [key]: displayValue }))
+    setManualScores((prev) => ({ ...prev, [key]: normalized }))
   }
 
   const finishNotification = isRecalification ? "Recalificación completada" : "Calificación completada"
@@ -237,11 +244,13 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
       } else {
         await finalizeAssignment()
       }
+
       if (revision.assignmentId) {
         dispatchAssignmentGradedEvent(revision.assignmentId)
       }
+
       showSuccess(finishNotification, `Nota final: ${calculatedGrade.toFixed(1)}/100`)
-      if (onFinished) onFinished()
+      onFinished?.()
       onBack()
     } catch (err) {
       showError("No se pudo finalizar la calificación", err instanceof Error ? err.message : undefined)
@@ -249,6 +258,7 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
       setActionLoading(false)
     }
   }
+
   const handleSaveManualScore = useCallback(async () => {
     if (!selectedQuestion) {
       showError("Selecciona una pregunta para guardar la calificación")
@@ -269,7 +279,6 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
 
     let responseId = selectedResponse?.id
 
-    // Si no existe respuesta registrada, creamos una vacía para poder asignar puntaje manual
     if (!responseId && exam) {
       try {
         const created = await ExamApplicationService.submitResponse({
@@ -324,414 +333,127 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
     )
   }
 
-  if (!exam) {
-    return null
-  }
+  if (!exam) return null
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-muted/30">
-      <div className="bg-background border-b p-4 sm:p-6 flex-shrink-0">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-4 mb-4">
-            <Button variant="ghost" size="sm" onClick={onBack}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver
-            </Button>
-          </div>
+  <div className="flex-1 flex flex-col overflow-hidden bg-muted/30">
+    <div className="bg-background border-b p-4 sm:p-6 flex-shrink-0">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center gap-4 mb-4">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver
+          </Button>
+        </div>
 
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex-1">
-              <h1 className="text-xl sm:text-2xl font-semibold mb-2">{revision.examTitle}</h1>
-              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <BookOpen className="h-4 w-4" />
-                  <span>{revision.subjectName}</span>
-                </div>
-                <span>•</span>
-                <div className="flex items-center gap-1.5">
-                  <User className="h-4 w-4" />
-                  <span>{revision.studentName}</span>
-                </div>
-                <span>•</span>
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4" />
-                  <span>{formatDate(revision.createdAt)}</span>
-                </div>
+        {/* Cambiado: md:flex-row para que no se “centre raro” antes de lg */}
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-semibold mb-2">
+              {revision.examTitle}
+            </h1>
+
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <BookOpen className="h-4 w-4" />
+                <span>{revision.subjectName}</span>
               </div>
+              <span>•</span>
+              <div className="flex items-center gap-1.5">
+                <User className="h-4 w-4" />
+                <span>{revision.studentName}</span>
+              </div>
+              <span>•</span>
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-4 w-4" />
+                <span>{formatDate(revision.createdAt)}</span>
+              </div>
+            </div>
 
-              {revision.requestReason && (
-                <div className="mt-3 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="text-xs font-medium text-blue-700 mb-1">Motivo de recalificación</div>
-                      <p className="text-sm text-blue-700">{revision.requestReason}</p>
+            {revision.requestReason && (
+              <div className="mt-3 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="text-xs font-medium text-blue-700 mb-1">
+                      Motivo de recalificación
                     </div>
+                    <p className="text-sm text-blue-700">{revision.requestReason}</p>
                   </div>
                 </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="text-xs text-muted-foreground mb-1">Progreso</div>
-                <div className="text-xl font-semibold">
-                  {gradedCount}/{questions.length}
-                </div>
               </div>
-              <Separator orientation="vertical" className="h-12" />
+            )}
+          </div>
+
+          {/* Cambiado: empujar progreso a la derecha desde md */}
+          <div className="flex items-center gap-4 md:ml-auto md:justify-end">
+            <div className="text-right">
+              <div className="text-xs text-muted-foreground mb-1">Progreso</div>
+              <div className="text-xl font-semibold">
+                {gradedCount}/{questions.length}
+              </div>
             </div>
+            {/* Cambiado: el separador vertical solo tiene sentido en fila */}
+            <Separator orientation="vertical" className="h-12 hidden md:block" />
           </div>
         </div>
       </div>
+    </div>
+
 
       <div className="flex-1 overflow-hidden">
-        <div className="max-w-7xl mx-auto h-full flex gap-6 p-4 sm:p-6">
-          <Card className="w-80 hidden lg:block">
-            <div className="p-4 border-b">
-              <h3 className="font-medium">Preguntas del Examen</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Selecciona una pregunta para revisar
-              </p>
-            </div>
-            <ScrollArea className="h-[calc(100vh-280px)]">
-              <div className="p-4 space-y-2">
-                {questions.map((question) => {
-                  const isGradedQuestion = isQuestionGraded(question.questionId)
-                  const isSelected = question.questionId === selectedQuestionId
-                  const detail = questionDetails[question.questionId]
-
-                  return (
-                    <button
-                      key={question.questionId}
-                      onClick={() => handleSelectQuestion(question)}
-                      className={`
-                        w-full text-left p-3 rounded-lg border-2 transition-all
-                        ${isSelected
-                          ? "border-primary bg-primary/5"
-                          : "border-transparent hover:border-muted-foreground/20 hover:bg-muted/50"
-                        }
-                      `}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`
-                          flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 text-sm font-medium
-                          ${isGradedQuestion
-                            ? "bg-green-500/10 text-green-700 border-2 border-green-500"
-                            : "bg-muted text-muted-foreground"
-                          }
-                        `}>
-                          {isGradedQuestion ? <CheckCircle2 className="h-4 w-4" /> : question.questionIndex}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm mb-1">
-                            Pregunta {question.questionIndex}
-                          </div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {detail?.body ?? "Detalle disponible al seleccionar"}
-                          </div>
-                          <Badge variant="secondary" className="text-[11px] mt-2">
-                            Puntaje: {question.questionScore}
-                          </Badge>
-                        </div>
-                      </div>
-                    </button>
-                  )
-                })}
+        {/* ✅ Desktop-first: sidebar visible por defecto, se oculta en pantallas chicas */}
+        <div className="max-w-7xl mx-auto h-full p-4 sm:p-6">
+          <div className="h-full grid grid-cols-[20rem_minmax(0,1fr)] gap-6 max-lg:grid-cols-1">
+            {/* Sidebar */}
+            <Card className="w-full max-lg:hidden">
+              <div className="p-4 border-b">
+                <h3 className="font-medium">Preguntas del Examen</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Selecciona una pregunta para revisar
+                </p>
               </div>
-            </ScrollArea>
-          </Card>
-
-          <div className="flex-1 overflow-hidden flex flex-col gap-4">
-            {showQuestionLoader && (
-              <Card className="flex-1 flex items-center justify-center gap-3">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <p className="text-muted-foreground">Cargando pregunta...</p>
-              </Card>
-            )}
-
-            {!showQuestionLoader && !selectedQuestion && (
-              <Card className="flex-1 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>Selecciona una pregunta para calificar</p>
-                </div>
-              </Card>
-            )}
-
-            {!showQuestionLoader && selectedQuestion && (
-              <Card className="flex-1 overflow-hidden flex flex-col">
-                <div className="p-6 border-b bg-muted/30 flex-shrink-0">
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-semibold">
-                        {selectedQuestion.questionIndex}
-                      </div>
-                      <div>
-                        <Badge variant="secondary" className="mb-1">
-                          {getQuestionTypeLabel(selectedDetail)}
-                        </Badge>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Puntaje: {selectedQuestion.questionScore} puntos
-                        </div>
-                      </div>
-                    </div>
-
-                    {isQuestionGraded(selectedQuestion.questionId) && (
-                      <div className="flex items-center gap-2 text-sm text-green-600">
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span>Calificada</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <p className="text-base leading-relaxed font-medium">
-                    {selectedDetail?.body ?? "Detalle de la pregunta no disponible"}
-                  </p>
-                </div>
-
-                <ScrollArea className="flex-1">
-                  <div className="p-6 space-y-6">
-                        {questionError && (
-                          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive space-y-2">
-                            <p className="font-semibold">Error al cargar la pregunta</p>
-                            <p className="text-xs text-destructive">{questionError}</p>
-                            {selectedQuestion && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => void loadQuestionAssets(selectedQuestion.questionId, selectedQuestion.questionIndex, { force: true })}
-                              >
-                                Reintentar
-                              </Button>
-                            )}
-                          </div>
-                    )}
-                    <div>
-                      <Label className="text-base font-medium mb-3 block">Respuesta del estudiante:</Label>
-                      {isManualQuestion(selectedDetail, selectedResponse) ? (
-                        <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg max-h-64 overflow-y-auto">
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                            {getTextAnswer(selectedResponse) || "Sin respuesta"}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {!hasChoiceSelection && (
-                            <div className="p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-sm">
-                              El estudiante no seleccionó ninguna respuesta.
-                            </div>
-                          )}
-                          {choiceOptions.map((option, index) => {
-                            const isSelected = selectedResponse?.selectedOptions?.some((opt) => opt.text === option.text)
-                            return (
-                              <div
-                                key={index}
-                                className={`p-3 rounded-lg border-2 ${
-                                  isSelected
-                                    ? option.isCorrect
-                                      ? "bg-green-50 dark:bg-green-950/20 border-green-500"
-                                      : "bg-red-50 dark:bg-red-950/20 border-red-500"
-                                    : "bg-muted/30 border-muted"
-                                }`}
-                              >
-                                <div className="flex items-start gap-2">
-                                  {isSelected && (
-                                    <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
-                                      option.isCorrect ? "bg-green-500" : "bg-red-500"
-                                    }`}>
-                                      {option.isCorrect ? (
-                                        <CheckCircle2 className="h-3 w-3 text-white" />
-                                      ) : (
-                                        <span className="text-white text-xs">✕</span>
-                                      )}
-                                    </div>
-                                  )}
-                                  <span className={`text-sm ${isSelected ? "font-medium" : ""}`}>
-                                    {option.text}
-                                  </span>
-                                </div>
-                              </div>
-                            )
-                          })}
-                          {!choiceOptions.length && (
-                            <div className="text-sm text-muted-foreground">
-                              No hay opciones cargadas para esta pregunta.
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <Label className="text-base font-medium mb-3 block">Respuesta esperada</Label>
-                      <div className="p-4 bg-green-50 dark:bg-green-950/20 border-2 border-green-200 dark:border-green-800 rounded-lg max-h-64 overflow-y-auto">
-                        {expectedOptions.length > 0 ? (
-                          <div className="space-y-2">
-                            {expectedOptions.map((option, index) => (
-                              <div
-                                key={`${option.text}-${index}`}
-                                className={`p-3 rounded-lg border-2 ${
-                                  option.isCorrect
-                                    ? "bg-green-100 dark:bg-green-900/40 border-green-500"
-                                    : "bg-muted/30 border-muted"
-                                }`}
-                              >
-                                <div className="flex items-start gap-2">
-                                  {option.isCorrect && (
-                                    <CheckCircle2 className="h-3 w-3 text-green-600" />
-                                  )}
-                                  <span className={`text-sm ${option.isCorrect ? "font-medium text-green-700" : ""}`}>
-                                    {option.text}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                            {selectedDetail?.response ?? "Sin respuesta esperada definida"}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <Separator />
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between gap-2">
-                        <Label className="text-base font-medium">Calificación</Label>
-                        {hasAnyGrade && (
-                          <Badge variant="secondary" className="bg-green-500/10 text-green-700 border-green-500/20">
-                            Calificada
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="p-4 bg-muted rounded-lg border flex flex-col justify-between h-full">
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                              Calificación manual
-                            </p>
-                            <Badge variant="outline">Manual</Badge>
-                          </div>
-                          <p className="text-2xl font-mono">
-                            {selectedResponse?.manualPoints !== null && selectedResponse?.manualPoints !== undefined
-                              ? `${selectedResponse.manualPoints}/${maxScore}`
-                              : "Sin información"}
-                          </p>
-                        </div>
-                        <div className="p-4 bg-muted rounded-lg border flex flex-col justify-between h-full">
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                              Calificación automática
-                            </p>
-                            <Badge variant="outline">Automática</Badge>
-                          </div>
-                          <p className="text-2xl font-mono">
-                            {hasAutoValue ? `${autoPointsAssigned}/${maxScore}` : "Sin información"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Calificar manualmente:</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            min="0"
-                            max={maxScore > 0 ? maxScore : undefined}
-                            step="0.5"
-                            value={manualKey ? manualInputs[manualKey] ?? "" : ""}
-                            onChange={(e) => handleManualPointsChange(e.target.value)}
-                            placeholder="0.0"
-                            className="w-28 text-center text-lg font-semibold"
-                          />
-                          <span className="text-muted-foreground text-sm">/ {maxScore}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Guarda para aplicar la nueva calificación manual; prevalecerá sobre la automática.
-                        </p>
-                      </div>
-                      <div className="p-3 rounded-lg border bg-muted/30 text-xs text-muted-foreground">
-                        {selectedQuestionGraded
-                          ? "Esta pregunta ya cuenta con una calificación automática o manual. Puedes actualizar la calificación manual si necesitas ajustar la nota."
-                          : "Esta pregunta no tiene calificación automática ni manual. Debes asignar al menos una para poder finalizar la calificación del examen."
-                        }
-                      </div>
-                    </div>
-                  </div>
-                </ScrollArea>
-
-                <div className="p-6 border-t bg-muted/30 flex-shrink-0">
-                  <div className="flex items-center justify-between gap-4 flex-wrap">
-                    <div className={`text-sm ${
-                      hasPendingManualChange
-                        ? "text-amber-700"
-                        : hasAnyGrade
-                          ? "text-green-700"
-                          : "text-muted-foreground"
-                    }`}>
-                      {hasPendingManualChange && hasManualValue ? (
-                        <span className="flex items-center gap-2">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Calificación manual pendiente de guardar: {manualValue}/{maxScore}
-                        </span>
-                      ) : hasAnyGrade ? (
-                        <span className="flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          Pregunta calificada ({hasManualValue ? "manual" : "automática"}). Puntaje considerado: {selectedTotalPoints}/{maxScore}
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4" />
-                          Debes registrar al menos una calificación manual o automática.
-                        </span>
-                      )}
-                    </div>
-                    {manualEditable && (
-                      <Button
-                        variant="secondary"
-                        onClick={handleSaveManualScore}
-                        disabled={manualSaveDisabled}
-                      >
-                        {manualSaveLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                        <Save className="h-4 w-4 mr-2" />
-                        Guardar calificación
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            <Card className="lg:hidden p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium text-sm">Navegación de Preguntas</h3>
-                <span className="text-xs text-muted-foreground">
-                  {selectedQuestion ? questions.findIndex(q => q.questionId === selectedQuestion.questionId) + 1 : 0} de {questions.length}
-                </span>
-              </div>
-              <ScrollArea className="w-full">
-                <div className="flex gap-2 pb-2">
+              <ScrollArea className="h-[calc(100vh-280px)]">
+                <div className="p-4 space-y-2">
                   {questions.map((question) => {
                     const isGradedQuestion = isQuestionGraded(question.questionId)
-                    const isCurrent = question.questionId === selectedQuestionId
+                    const isSelected = question.questionId === selectedQuestionId
+                    const detail = questionDetails[question.questionId]
 
                     return (
                       <button
                         key={question.questionId}
                         onClick={() => handleSelectQuestion(question)}
                         className={`
-                          flex-shrink-0 w-10 h-10 rounded-md border-2 flex items-center justify-center text-sm font-medium
-                          transition-all
-                          ${isCurrent
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : isGradedQuestion
-                              ? "border-green-500 bg-green-500/10 text-green-700"
-                              : "border-muted-foreground/20 bg-background"
+                          w-full text-left p-3 rounded-lg border-2 transition-all
+                          ${isSelected
+                            ? "border-primary bg-primary/5"
+                            : "border-transparent hover:border-muted-foreground/20 hover:bg-muted/50"
                           }
                         `}
                       >
-                        {question.questionIndex}
+                        <div className="flex items-start gap-3">
+                          <div className={`
+                            flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 text-sm font-medium
+                            ${isGradedQuestion
+                              ? "bg-green-500/10 text-green-700 border-2 border-green-500"
+                              : "bg-muted text-muted-foreground"
+                            }
+                          `}>
+                            {isGradedQuestion ? <CheckCircle2 className="h-4 w-4" /> : question.questionIndex}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm mb-1">
+                              Pregunta {question.questionIndex}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {detail?.body ?? "Detalle disponible al seleccionar"}
+                            </div>
+                            <Badge variant="secondary" className="text-[11px] mt-2">
+                              Puntaje: {question.questionScore}
+                            </Badge>
+                          </div>
+                        </div>
                       </button>
                     )
                   })}
@@ -739,33 +461,340 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
               </ScrollArea>
             </Card>
 
-            <Card className="p-4 flex-shrink-0">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="font-medium">
-                    {allQuestionsGraded
-                      ? "Todas las preguntas calificadas"
-                      : `${gradedCount} de ${questions.length} preguntas calificadas`
-                    }
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    {allQuestionsGraded
-                      ? `Calificación final: ${calculatedGrade.toFixed(1)}/100`
-                      : "Cada pregunta necesita calificación automática o manual para finalizar"
-                    }
-                  </p>
+            {/* Main */}
+            <div className="flex-1 overflow-hidden flex flex-col gap-4 min-w-0">
+              {showQuestionLoader && (
+                <Card className="flex-1 flex items-center justify-center gap-3">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <p className="text-muted-foreground">Cargando pregunta...</p>
+                </Card>
+              )}
+
+              {!showQuestionLoader && !selectedQuestion && (
+                <Card className="flex-1 flex items-center justify-center">
+                  <div className="text-center text-muted-foreground">
+                    <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>Selecciona una pregunta para calificar</p>
+                  </div>
+                </Card>
+              )}
+
+              {!showQuestionLoader && selectedQuestion && (
+                <Card className="flex-1 overflow-hidden flex flex-col">
+                  <div className="p-6 border-b bg-muted/30 flex-shrink-0">
+                    <div className="flex items-start justify-between gap-4 mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-semibold">
+                          {selectedQuestion.questionIndex}
+                        </div>
+                        <div>
+                          <Badge variant="secondary" className="mb-1">
+                            {getQuestionTypeLabel(selectedDetail)}
+                          </Badge>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Puntaje: {selectedQuestion.questionScore} puntos
+                          </div>
+                        </div>
+                      </div>
+
+                      {isQuestionGraded(selectedQuestion.questionId) && (
+                        <div className="flex items-center gap-2 text-sm text-green-600">
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span>Calificada</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <p className="text-base leading-relaxed font-medium">
+                      {selectedDetail?.body ?? "Detalle de la pregunta no disponible"}
+                    </p>
+                  </div>
+
+                  <ScrollArea className="flex-1">
+                    <div className="p-6 space-y-6">
+                      {questionError && (
+                        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive space-y-2">
+                          <p className="font-semibold">Error al cargar la pregunta</p>
+                          <p className="text-xs text-destructive">{questionError}</p>
+                          {selectedQuestion && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void loadQuestionAssets(selectedQuestion.questionId, selectedQuestion.questionIndex, { force: true })}
+                            >
+                              Reintentar
+                            </Button>
+                          )}
+                        </div>
+                      )}
+
+                      <div>
+                        <Label className="text-base font-medium mb-3 block">Respuesta del estudiante:</Label>
+                        {isManualQuestion(selectedDetail, selectedResponse) ? (
+                          <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg max-h-64 overflow-y-auto">
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                              {getTextAnswer(selectedResponse) || "Sin respuesta"}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {!hasChoiceSelection && (
+                              <div className="p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-sm">
+                                El estudiante no seleccionó ninguna respuesta.
+                              </div>
+                            )}
+                            {choiceOptions.map((option, index) => {
+                              const isSelected = selectedResponse?.selectedOptions?.some((opt) => opt.text === option.text)
+                              return (
+                                <div
+                                  key={index}
+                                  className={`p-3 rounded-lg border-2 ${
+                                    isSelected
+                                      ? option.isCorrect
+                                        ? "bg-green-50 dark:bg-green-950/20 border-green-500"
+                                        : "bg-red-50 dark:bg-red-950/20 border-red-500"
+                                      : "bg-muted/30 border-muted"
+                                  }`}
+                                >
+                                  <div className="flex items-start gap-2">
+                                    {isSelected && (
+                                      <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                                        option.isCorrect ? "bg-green-500" : "bg-red-500"
+                                      }`}>
+                                        {option.isCorrect ? (
+                                          <CheckCircle2 className="h-3 w-3 text-white" />
+                                        ) : (
+                                          <span className="text-white text-xs">✕</span>
+                                        )}
+                                      </div>
+                                    )}
+                                    <span className={`text-sm ${isSelected ? "font-medium" : ""}`}>
+                                      {option.text}
+                                    </span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                            {!choiceOptions.length && (
+                              <div className="text-sm text-muted-foreground">
+                                No hay opciones cargadas para esta pregunta.
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <Label className="text-base font-medium mb-3 block">Respuesta esperada</Label>
+                        <div className="p-4 bg-green-50 dark:bg-green-950/20 border-2 border-green-200 dark:border-green-800 rounded-lg max-h-64 overflow-y-auto">
+                          {expectedOptions.length > 0 ? (
+                            <div className="space-y-2">
+                              {expectedOptions.map((option, index) => (
+                                <div
+                                  key={`${option.text}-${index}`}
+                                  className={`p-3 rounded-lg border-2 ${
+                                    option.isCorrect
+                                      ? "bg-green-100 dark:bg-green-900/40 border-green-500"
+                                      : "bg-muted/30 border-muted"
+                                  }`}
+                                >
+                                  <div className="flex items-start gap-2">
+                                    {option.isCorrect && (
+                                      <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                    )}
+                                    <span className={`text-sm ${option.isCorrect ? "font-medium text-green-700" : ""}`}>
+                                      {option.text}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                              {selectedDetail?.response ?? "Sin respuesta esperada definida"}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between gap-2">
+                          <Label className="text-base font-medium">Calificación</Label>
+                          {hasAnyGrade && (
+                            <Badge variant="secondary" className="bg-green-500/10 text-green-700 border-green-500/20">
+                              Calificada
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="p-4 bg-muted rounded-lg border flex flex-col justify-between h-full">
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                                Calificación manual
+                              </p>
+                              <Badge variant="outline">Manual</Badge>
+                            </div>
+                            <p className="text-2xl font-mono">
+                              {selectedResponse?.manualPoints !== null && selectedResponse?.manualPoints !== undefined
+                                ? `${selectedResponse.manualPoints}/${maxScore}`
+                                : "Sin información"}
+                            </p>
+                          </div>
+
+                          <div className="p-4 bg-muted rounded-lg border flex flex-col justify-between h-full">
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                                Calificación automática
+                              </p>
+                              <Badge variant="outline">Automática</Badge>
+                            </div>
+                            <p className="text-2xl font-mono">
+                              {hasAutoValue ? `${autoPointsAssigned}/${maxScore}` : "Sin información"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Calificar manualmente:</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              max={maxScore > 0 ? maxScore : undefined}
+                              step="0.5"
+                              value={manualKey ? manualInputs[manualKey] ?? "" : ""}
+                              onChange={(e) => handleManualPointsChange(e.target.value)}
+                              placeholder="0.0"
+                              className="w-28 text-center text-lg font-semibold"
+                            />
+                            <span className="text-muted-foreground text-sm">/ {maxScore}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Guarda para aplicar la nueva calificación manual; prevalecerá sobre la automática.
+                          </p>
+                        </div>
+
+                        <div className="p-3 rounded-lg border bg-muted/30 text-xs text-muted-foreground">
+                          {selectedQuestionGraded
+                            ? "Esta pregunta ya cuenta con una calificación automática o manual. Puedes actualizar la calificación manual si necesitas ajustar la nota."
+                            : "Esta pregunta no tiene calificación automática ni manual. Debes asignar al menos una para poder finalizar la calificación del examen."
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </ScrollArea>
+
+                  <div className="p-6 border-t bg-muted/30 flex-shrink-0">
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className={`text-sm ${
+                        hasPendingManualChange
+                          ? "text-amber-700"
+                          : hasAnyGrade
+                            ? "text-green-700"
+                            : "text-muted-foreground"
+                      }`}>
+                        {hasPendingManualChange && hasManualValue ? (
+                          <span className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Calificación manual pendiente de guardar: {manualValue}/{maxScore}
+                          </span>
+                        ) : hasAnyGrade ? (
+                          <span className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            Pregunta calificada ({hasManualValue ? "manual" : "automática"}). Puntaje considerado: {selectedTotalPoints}/{maxScore}
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-2">
+                            <AlertCircle className="h-4 w-4" />
+                            Debes registrar al menos una calificación manual o automática.
+                          </span>
+                        )}
+                      </div>
+
+                      {manualEditable && (
+                        <Button
+                          variant="secondary"
+                          onClick={handleSaveManualScore}
+                          disabled={manualSaveDisabled}
+                        >
+                          {manualSaveLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                          <Save className="h-4 w-4 mr-2" />
+                          Guardar calificación
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {/* ✅ Mobile-first nav: oculto por defecto, aparece solo en pantallas chicas */}
+              <Card className="hidden max-lg:block p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-sm">Navegación de Preguntas</h3>
+                  <span className="text-xs text-muted-foreground">
+                    {selectedQuestion ? questions.findIndex(q => q.questionId === selectedQuestion.questionId) + 1 : 0} de {questions.length}
+                  </span>
                 </div>
-                <Button
-                  onClick={handleFinalize}
-                  disabled={!allQuestionsGraded || actionLoading || saving}
-                  size="lg"
-                >
-                  {(actionLoading || saving) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  <Save className="h-4 w-4 mr-2" />
-                  {finalizeButtonLabel}
-                </Button>
-              </div>
-            </Card>
+                <ScrollArea className="w-full">
+                  <div className="flex gap-2 pb-2">
+                    {questions.map((question) => {
+                      const isGradedQuestion = isQuestionGraded(question.questionId)
+                      const isCurrent = question.questionId === selectedQuestionId
+
+                      return (
+                        <button
+                          key={question.questionId}
+                          onClick={() => handleSelectQuestion(question)}
+                          className={`
+                            flex-shrink-0 w-10 h-10 rounded-md border-2 flex items-center justify-center text-sm font-medium
+                            transition-all
+                            ${isCurrent
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : isGradedQuestion
+                                ? "border-green-500 bg-green-500/10 text-green-700"
+                                : "border-muted-foreground/20 bg-background"
+                            }
+                          `}
+                        >
+                          {question.questionIndex}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </ScrollArea>
+              </Card>
+
+              <Card className="p-4 flex-shrink-0">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium">
+                      {allQuestionsGraded
+                        ? "Todas las preguntas calificadas"
+                        : `${gradedCount} de ${questions.length} preguntas calificadas`
+                      }
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      {allQuestionsGraded
+                        ? `Calificación final: ${calculatedGrade.toFixed(1)}/100`
+                        : "Cada pregunta necesita calificación automática o manual para finalizar"
+                      }
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleFinalize}
+                    disabled={!allQuestionsGraded || actionLoading || saving}
+                    size="lg"
+                  >
+                    {(actionLoading || saving) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    <Save className="h-4 w-4 mr-2" />
+                    {finalizeButtonLabel}
+                  </Button>
+                </div>
+              </Card>
+            </div>
           </div>
         </div>
       </div>

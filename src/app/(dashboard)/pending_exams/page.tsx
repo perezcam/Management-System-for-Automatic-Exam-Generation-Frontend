@@ -188,11 +188,12 @@ export default function PendingExamsPage() {
                 ))}
               </div>
             </ScrollArea>
-            <div className="pt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-muted-foreground">
+            <div className="pt-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground flex-1 min-w-[220px]">
                 Mostrando {exams.length} de {total ?? exams.length} exámenes.
               </p>
-              <div className="flex items-center gap-2">
+
+              <div className="flex flex-wrap items-center justify-end gap-2 min-w-[260px]">
                 <Button
                   variant="outline"
                   size="sm"
@@ -201,9 +202,11 @@ export default function PendingExamsPage() {
                 >
                   Anterior
                 </Button>
-                <span className="text-sm">
+
+                <span className="text-sm whitespace-nowrap">
                   Página {page} de {Math.max(1, Math.ceil((total ?? exams.length) / pageSize))}
                 </span>
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -214,6 +217,7 @@ export default function PendingExamsPage() {
                 </Button>
               </div>
             </div>
+
           </div>
         )}
       </div>

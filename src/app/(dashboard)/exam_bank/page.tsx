@@ -1352,11 +1352,12 @@ export default function BancoExamenesView() {
               )}
             </div>
 
-            <div className="flex items-center justify-between gap-3 pt-2 border-t">
-              <p className="text-sm text-muted-foreground">
+            <div className="pt-2 border-t flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground flex-1 min-w-[180px] whitespace-nowrap">
                 Página {questionPage} de {questionsTotalPages}
               </p>
-              <div className="flex items-center gap-2">
+
+              <div className="flex flex-wrap items-center justify-end gap-2 min-w-[220px]">
                 <Button
                   variant="outline"
                   size="sm"
@@ -1365,6 +1366,7 @@ export default function BancoExamenesView() {
                 >
                   Anterior
                 </Button>
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -1375,6 +1377,7 @@ export default function BancoExamenesView() {
                 </Button>
               </div>
             </div>
+
           </div>
         </DialogContent>
       </Dialog>

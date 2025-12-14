@@ -10,18 +10,19 @@ interface QuestionListProps {
   onDelete: (question: QuestionListItem) => void
 }
 
-function getDifficultyColor(difficulty: string) {
+function getDifficultyStyle(difficulty: string): React.CSSProperties {
   switch (difficulty) {
     case "Fácil":
-      return "bg-green-100 text-green-700"
+      return { backgroundColor: "#dcfce7", color: "#15803d" }; // green-100 / green-700
     case "Regular":
-      return "bg-yellow-100 text-yellow-700 hover:bg-yellow-100"
+      return { backgroundColor: "#fef9c3", color: "#a16207" }; // yellow-100 / yellow-700
     case "Difícil":
-      return "bg-red-100 text-red-700 hover:bg-red-100"
+      return { backgroundColor: "#fee2e2", color: "#b91c1c" }; // red-100 / red-700
     default:
-      return "bg-gray-100 text-gray-700 hover:bg-gray-100"
+      return { backgroundColor: "#f3f4f6", color: "#374151" }; // gray-100 / gray-700
   }
 }
+
 
 export function QuestionList({ questions, onEdit, onDelete }: QuestionListProps) {
   return (
@@ -36,9 +37,10 @@ export function QuestionList({ questions, onEdit, onDelete }: QuestionListProps)
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   {question.subtopic ? <Badge variant="outline">{question.subtopic}</Badge> : null}
-                  <Badge className={getDifficultyColor(question.difficulty)}>
+                  <Badge style={getDifficultyStyle(question.difficulty)}>
                     {question.difficulty}
                   </Badge>
+
                   {question.type ? <Badge variant="secondary">{question.type}</Badge> : null}
                 </div>
                 <p className="mb-2 break-words">{question.body}</p>
