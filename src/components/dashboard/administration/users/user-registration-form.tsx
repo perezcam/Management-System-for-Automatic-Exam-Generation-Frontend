@@ -115,13 +115,12 @@ export function UserRegistrationForm({
     if (form.password.length < 8) {
       return false;
     }
-    if (userType === "student" && (!form.age || !form.course)) {
+    if (userType === "student" && (!form.age || !form.course.trim())) {
       return false;
     }
     if (userType === "student") {
       const age = Number(form.age);
-      const course = Number(form.course);
-      if (Number.isNaN(age) || Number.isNaN(course)) return false;
+      if (Number.isNaN(age)) return false;
     }
     if (userType === "teacher") {
       if (!form.specialty) return false;
@@ -157,7 +156,7 @@ export function UserRegistrationForm({
           email: form.email,
           password: form.password,
           age: Number(form.age),
-          course: Number(form.course),
+          course: form.course.trim(),
         };
         await onCreateStudent(payload);
         successMessage = "Estudiante creado correctamente";
@@ -231,13 +230,13 @@ export function UserRegistrationForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="course">Curso (número)</Label>
+              <Label htmlFor="course">Curso</Label>
               <Input
                 id="course"
-                type="number"
+                type="text"
                 value={form.course}
                 onChange={(e) => updateForm("course", e.target.value)}
-                placeholder="Ej: 3"
+                placeholder="Ej: 3A"
                 required
               />
             </div>

@@ -7,9 +7,14 @@ const DEFAULT_SUCCESS: BaseResponse = {
   message: "Operación exitosa",
 };
 
+type BackendRequestOptions = {
+  skipAuthRedirect?: boolean;
+};
+
 export async function backendRequest<TSchema extends BaseResponse>(
   url: string,
   init?: RequestInit,
+  options?: BackendRequestOptions,
 ): Promise<TSchema> {
   let response: Response;
   try {
@@ -35,7 +40,7 @@ export async function backendRequest<TSchema extends BaseResponse>(
   const payload = await parseResponseJson(response);
 
   if (!response.ok) {
-    if (shouldForceLogin(response.status)) {
+    if (!options?.skipAuthRedirect && shouldForceLogin(response.status)) {
       await handleExpiredSession();
     }
     const fallbackMessage = response.statusText || `Error ${response.status}`;
@@ -47,7 +52,11 @@ export async function backendRequest<TSchema extends BaseResponse>(
   return decodeBackendSchema<TSchema>(payload);
 }
 
-export async function backendRequestRaw<T>(url: string, init?: RequestInit): Promise<T> {
+export async function backendRequestRaw<T>(
+  url: string,
+  init?: RequestInit,
+  options?: BackendRequestOptions,
+): Promise<T> {
   let response: Response;
   try {
     response = await fetch(url, {
@@ -72,7 +81,7 @@ export async function backendRequestRaw<T>(url: string, init?: RequestInit): Pro
   const payload = await parseResponseJson(response);
 
   if (!response.ok) {
-    if (shouldForceLogin(response.status)) {
+    if (!options?.skipAuthRedirect && shouldForceLogin(response.status)) {
       await handleExpiredSession();
     }
     const fallbackMessage = response.statusText || `Error ${response.status}`;

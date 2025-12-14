@@ -6,7 +6,7 @@ export type StudentDetail = {
   name: string;
   email: string;
   age: number;
-  course: number;
+  course: string;
 };
 
 export type StudentUser = StudentDetail & { role: "student" };
@@ -18,7 +18,7 @@ export type CreateStudentPayload = {
   email: string;
   password: string;
   age: number;
-  course: number;
+  course: string;
 };
 
 

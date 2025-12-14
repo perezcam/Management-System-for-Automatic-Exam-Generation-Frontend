@@ -12,7 +12,7 @@ async function requestBackendToken({ email, password }: LoginCredentials): Promi
   const response = await backendRequest<RetrieveOneSchema<LoginData>>(url, {
     method: "POST",
     body: JSON.stringify({ email, password }),
-  });
+  }, { skipAuthRedirect: true });
 
   const token = response.data?.token;
   if (!token) throw new Error("El backend no devolvió un token válido");
