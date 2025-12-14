@@ -57,6 +57,7 @@ const formatTime = (seconds: number) => {
 }
 
 const formatPercentage = (value: number) => `${Math.round(value * 100)}%`
+
 const formatApplicationDateTime = (value: string) => {
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
@@ -65,6 +66,7 @@ const formatApplicationDateTime = (value: string) => {
 export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
   const examId = assignment.examId
   const { exam, loading, error, submitAnswer, updateAnswer, submitting } = useActiveExam(examId)
+
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null)
   const [localAnswers, setLocalAnswers] = useState<Record<string, AnswerDraft>>({})
   const [questionDetails, setQuestionDetails] = useState<Record<string, QuestionDetail | null>>({})
@@ -73,6 +75,7 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
   const [loadingQuestionAssets, setLoadingQuestionAssets] = useState(false)
   const [topicNames, setTopicNames] = useState<Record<string, string>>({})
   const [hasExpired, setHasExpired] = useState(false)
+
   const calculateRemainingTime = useCallback(() => {
     const totalSeconds = Math.max(0, assignment.durationMinutes) * 60
     if (!assignment.applicationDate) return totalSeconds
@@ -81,6 +84,7 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
     const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
     return Math.max(0, totalSeconds - elapsedSeconds)
   }, [assignment.applicationDate, assignment.durationMinutes])
+
   const [timeRemaining, setTimeRemaining] = useState(() => calculateRemainingTime())
 
   useEffect(() => {
@@ -89,7 +93,6 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
 
   useEffect(() => {
     let cancelled = false
-
     const loadTopics = async () => {
       try {
         const { data: topics } = await fetchTopics({ limit: MAX_TOPICS_LIMIT, offset: 0 })
@@ -104,16 +107,12 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
           addEntry(topic.topic_id, topic.topic_name)
           addEntry((topic as any).id, (topic as any).name)
         })
-        if (!cancelled) {
-          setTopicNames(map)
-        }
+        if (!cancelled) setTopicNames(map)
       } catch {
         if (cancelled) return
       }
     }
-
     void loadTopics()
-
     return () => {
       cancelled = true
     }
@@ -130,7 +129,6 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
     const timer = setInterval(() => {
       setTimeRemaining(calculateRemainingTime())
     }, 1000)
-
     return () => clearInterval(timer)
   }, [calculateRemainingTime])
 
@@ -156,6 +154,7 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
 
       setLoadingQuestionAssets(true)
       setQuestionError(null)
+
       try {
         const [detailResponse, response] = await Promise.all([
           ExamApplicationService.getQuestionByIndex(examId, activeQuestion.questionIndex),
@@ -169,14 +168,9 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
           questionId: activeQuestion.questionId,
         }
 
-        setQuestionDetails((prev) => ({
-          ...prev,
-          [activeQuestion.questionId]: normalizedDetail,
-        }))
-        setQuestionResponses((prev) => ({
-          ...prev,
-          [activeQuestion.questionId]: response,
-        }))
+        setQuestionDetails((prev) => ({ ...prev, [activeQuestion.questionId]: normalizedDetail }))
+        setQuestionResponses((prev) => ({ ...prev, [activeQuestion.questionId]: response }))
+
         setLocalAnswers((prev) => ({
           ...prev,
           [activeQuestion.questionId]: {
@@ -196,37 +190,25 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
       } catch (err) {
         if (cancelled) return
 
-        setQuestionDetails((prev) => ({
-          ...prev,
-          [activeQuestion.questionId]: null,
-        }))
-        setQuestionResponses((prev) => ({
-          ...prev,
-          [activeQuestion.questionId]: null,
-        }))
+        setQuestionDetails((prev) => ({ ...prev, [activeQuestion.questionId]: null }))
+        setQuestionResponses((prev) => ({ ...prev, [activeQuestion.questionId]: null }))
 
         let message = "No fue posible cargar la pregunta."
         if (err instanceof ExamEndpointError) {
-          if (err.status === 403) {
-            message = "No tienes permiso para acceder a esta pregunta."
-          } else if (err.status === 404) {
-            message = "No se encontró la pregunta solicitada."
-          } else {
-            message = err.message
-          }
+          if (err.status === 403) message = "No tienes permiso para acceder a esta pregunta."
+          else if (err.status === 404) message = "No se encontró la pregunta solicitada."
+          else message = err.message
         } else if (err instanceof Error && err.message) {
           message = err.message
         }
 
         setQuestionError(message)
       } finally {
-        if (!cancelled) {
-          setLoadingQuestionAssets(false)
-        }
+        if (!cancelled) setLoadingQuestionAssets(false)
       }
     }
 
-    loadQuestionAssets()
+    void loadQuestionAssets()
 
     return () => {
       cancelled = true
@@ -253,7 +235,7 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
         selectedOptions: [],
         textAnswer: "",
         submitted: false,
-        responseId: prev[questionId]?.responseId
+        responseId: prev[questionId]?.responseId,
       }
 
       const selectedOptions = checked
@@ -266,8 +248,8 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
           ...current,
           selectedOptions,
           submitted: false,
-          responseId: current.responseId
-        }
+          responseId: current.responseId,
+        },
       }
     })
   }
@@ -278,7 +260,7 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
         selectedOptions: [],
         textAnswer: "",
         submitted: false,
-        responseId: prev[questionId]?.responseId
+        responseId: prev[questionId]?.responseId,
       }
 
       return {
@@ -287,8 +269,8 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
           ...current,
           textAnswer: value,
           submitted: false,
-          responseId: current.responseId
-        }
+          responseId: current.responseId,
+        },
       }
     })
   }
@@ -306,12 +288,12 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
     const selectedOptionPayload =
       detail?.options && answer.selectedOptions.length
         ? answer.selectedOptions
-          .map((text) => detail.options?.find((option) => option.text === text))
-          .filter((option): option is QuestionDetail["options"][number] => Boolean(option))
-          .map((option) => ({
-            text: option.text,
-            isCorrect: Boolean(option.isCorrect)
-          }))
+            .map((text) => detail.options?.find((option) => option.text === text))
+            .filter((option): option is QuestionDetail["options"][number] => Boolean(option))
+            .map((option) => ({
+              text: option.text,
+              isCorrect: Boolean(option.isCorrect),
+            }))
         : null
 
     const normalizedSelectedOptions =
@@ -322,12 +304,12 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
       examId: exam?.id ?? assignment.examId,
       examQuestionId: activeQuestion.id,
       selectedOptions: normalizedSelectedOptions,
-      textAnswer: normalizedTextAnswer
+      textAnswer: normalizedTextAnswer,
     }
 
     const updatePayload = {
       selectedOptions: normalizedSelectedOptions,
-      textAnswer: normalizedTextAnswer
+      textAnswer: normalizedTextAnswer,
     }
 
     const savedResponse = answer.responseId
@@ -343,20 +325,17 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
         selectedOptions: savedResponse.selectedOptions?.map((option) => option.text) ?? [],
         textAnswer: savedResponse.textAnswer ?? savedResponse.textResponse ?? "",
         submitted: true,
-        responseId: savedResponse.id
-      }
+        responseId: savedResponse.id,
+      },
     }))
-    setQuestionResponses((prev) => ({
-      ...prev,
-      [selectedQuestionId]: savedResponse
-    }))
+    setQuestionResponses((prev) => ({ ...prev, [selectedQuestionId]: savedResponse }))
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-full gap-3">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Cargando examen...</span>
+        <span>Cargando examen...</span>
       </div>
     )
   }
@@ -370,16 +349,15 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
     )
   }
 
-  const topicProportionEntries = exam.topicProportion
-    ? Object.entries(exam.topicProportion)
-    : []
+  const topicProportionEntries = exam.topicProportion ? Object.entries(exam.topicProportion) : []
   const coverage = exam.topicCoverage
   const coverageTopicNames = coverage?.topicIds?.map((topicId) => resolveTopicName(topicId)) ?? []
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-muted/30">
-      <div className="bg-background border-b p-4 sm:p-6">
-        <div className="max-w-7xl mx-auto">
+      {/* HEADER FULL-WIDTH (anti-centrado en recargas) */}
+      <div className="border-b bg-background">
+        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-4 sm:py-6">
           <div className="flex items-center gap-4 mb-4">
             <Button variant="ghost" size="sm" onClick={onBack}>
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -387,15 +365,15 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
             </Button>
           </div>
 
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex-1 space-y-3">
+          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+            <div className="flex-1 min-w-0 space-y-3">
               <div className="flex items-center gap-3">
                 <BookOpen className="h-4 w-4 text-primary" />
                 <span className="text-xs uppercase tracking-wide text-muted-foreground">Examen</span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-semibold">
-                {exam.title}
-              </h1>
+
+              <h1 className="text-xl sm:text-2xl font-semibold break-words">{exam.title}</h1>
+
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <GraduationCap className="h-4 w-4" />
@@ -420,13 +398,16 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
 
               <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                 <div>
-                  <span className="font-semibold uppercase tracking-wide">Dificultad</span>: {getDifficultyLabel(exam.difficulty)}
+                  <span className="font-semibold uppercase tracking-wide">Dificultad</span>:{" "}
+                  {getDifficultyLabel(exam.difficulty)}
                 </div>
                 <div>
-                  <span className="font-semibold uppercase tracking-wide">Preguntas</span>: {exam.questionCount}
+                  <span className="font-semibold uppercase tracking-wide">Preguntas</span>:{" "}
+                  {exam.questionCount}
                 </div>
                 <div>
-                  <span className="font-semibold uppercase tracking-wide">Estado</span>: {getStatusLabel(exam.examStatus)}
+                  <span className="font-semibold uppercase tracking-wide">Estado</span>:{" "}
+                  {getStatusLabel(exam.examStatus)}
                 </div>
               </div>
 
@@ -453,17 +434,24 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
               )}
             </div>
 
-            <div className="flex items-center gap-4">
+            {/* Bloque derecho: tiempo + progreso (no se “centra”) */}
+            <div className="flex items-center gap-4 flex-shrink-0">
               <div className="text-right">
                 <div className="text-xs text-muted-foreground mb-1">Tiempo Restante</div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-end gap-2">
                   <Clock className={`h-4 w-4 ${timeRemaining < 600 ? "text-red-600" : "text-orange-600"}`} />
-                  <span className={`text-xl font-mono font-semibold ${timeRemaining < 600 ? "text-red-600" : "text-orange-600"}`}>
+                  <span
+                    className={`text-xl font-mono font-semibold ${
+                      timeRemaining < 600 ? "text-red-600" : "text-orange-600"
+                    }`}
+                  >
                     {formatTime(timeRemaining)}
                   </span>
                 </div>
               </div>
+
               <Separator orientation="vertical" className="h-12" />
+
               <div className="text-right">
                 <div className="text-xs text-muted-foreground mb-1">Progreso</div>
                 <div className="text-xl font-semibold">
@@ -475,194 +463,193 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
         </div>
       </div>
 
+      {/* CONTENIDO FULL-WIDTH + FLEX ESTABLE */}
       <div className="flex-1 overflow-hidden">
-        <div className="max-w-7xl mx-auto h-full flex gap-6 p-4 sm:p-6">
-          <Card className="w-80 hidden lg:block">
-            <div className="p-4 border-b">
-              <h3 className="font-medium">Preguntas del Examen</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Selecciona una pregunta para responder
-              </p>
-            </div>
-            <ScrollArea className="h-[calc(100vh-280px)]">
-              <div className="p-4 space-y-2">
-                {exam.questions.map((question) => {
-                  const answer = localAnswers[question.questionId]
-                  const isAnswered = answer?.submitted
-                  const isSelected = question.questionId === selectedQuestionId
-                  const previewBody = questionDetails[question.questionId]?.body ?? "Detalle disponible al seleccionar"
-                  return (
-                    <button
-                      key={question.questionId}
-                      onClick={() => setSelectedQuestionId(question.questionId)}
-                      className={`
-                        w-full text-left p-3 rounded-lg border-2 transition-all
-                        ${isSelected
-                          ? "border-primary bg-primary/5"
-                          : "border-transparent hover:border-muted-foreground/30 hover:bg-muted/50"
-                        }
-                      `}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`
-                          flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 text-sm font-medium
-                          ${isAnswered
-                            ? "bg-green-500/10 text-green-700 border-2 border-green-500"
-                            : "bg-muted text-muted-foreground"
-                          }
-                        `}>
-                          {isAnswered ? <CheckCircle2 className="h-4 w-4" /> : question.questionIndex}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm mb-1">
-                            Pregunta {question.questionIndex}
-                          </div>
-                          <div className="text-[13px] text-muted-foreground truncate">
-                            {previewBody}
-                          </div>
-                          <Badge variant="secondary" className="text-[11px] mt-2">
-                            Puntaje: {question.questionScore}
-                          </Badge>
-                        </div>
-                      </div>
-                    </button>
-                  )
-                })}
+        <div className="max-w-7xl mx-auto w-full h-full px-4 sm:px-6 py-4 sm:py-6">
+          <div className="h-full flex gap-6 min-h-0">
+            {/* Sidebar */}
+            <Card className="w-80 hidden lg:flex lg:flex-col min-h-0">
+              <div className="p-4 border-b">
+                <h3 className="font-medium">Preguntas del Examen</h3>
+                <p className="text-xs text-muted-foreground mt-1">Selecciona una pregunta para responder</p>
               </div>
-            </ScrollArea>
-          </Card>
 
-          <div className="flex-1 overflow-hidden flex flex-col">
-            {loadingQuestionAssets && !selectedQuestionDetail && !questionError ? (
-              <Card className="flex-1 flex items-center justify-center gap-3">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <p className="text-muted-foreground">Cargando pregunta...</p>
-              </Card>
-            ) : questionError ? (
-              <Card className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
-                <FileText className="h-12 w-12 text-destructive opacity-60" />
-                <p className="text-sm font-semibold text-destructive">{questionError}</p>
-                <p className="text-xs text-muted-foreground max-w-xs">
-                  Si el problema persiste, intenta volver a cargar la página o ponte en contacto con tu docente.
-                </p>
-              </Card>
-            ) : selectedQuestionDetail ? (
-              <Card className="flex-1 overflow-hidden flex flex-col">
-                <div className="p-6 border-b bg-muted/30">
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-semibold">
-                        {activeQuestion?.questionIndex ?? "-"}
-                      </div>
-                      <div>
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="p-4 space-y-2">
+                  {exam.questions.map((question) => {
+                    const answer = localAnswers[question.questionId]
+                    const isAnswered = answer?.submitted
+                    const isSelected = question.questionId === selectedQuestionId
+                    const previewBody =
+                      questionDetails[question.questionId]?.body ?? "Detalle disponible al seleccionar"
+
+                    return (
+                      <button
+                        key={question.questionId}
+                        onClick={() => setSelectedQuestionId(question.questionId)}
+                        className={`
+                          w-full text-left p-3 rounded-lg border-2 transition-all
+                          ${isSelected ? "border-primary bg-primary/5" : "border-transparent hover:border-muted-foreground/30 hover:bg-muted/50"}
+                        `}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`
+                              flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 text-sm font-medium
+                              ${isAnswered ? "bg-green-500/10 text-green-700 border-2 border-green-500" : "bg-muted text-muted-foreground"}
+                            `}
+                          >
+                            {isAnswered ? <CheckCircle2 className="h-4 w-4" /> : question.questionIndex}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm mb-1">Pregunta {question.questionIndex}</div>
+                            <div className="text-[13px] text-muted-foreground truncate">{previewBody}</div>
+                            <Badge variant="secondary" className="text-[11px] mt-2">
+                              Puntaje: {question.questionScore}
+                            </Badge>
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </ScrollArea>
+            </Card>
+
+            {/* Panel principal */}
+            <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+              {loadingQuestionAssets && !selectedQuestionDetail && !questionError ? (
+                <Card className="flex-1 flex items-center justify-center gap-3">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <p className="text-muted-foreground">Cargando pregunta...</p>
+                </Card>
+              ) : questionError ? (
+                <Card className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
+                  <FileText className="h-12 w-12 text-destructive opacity-60" />
+                  <p className="text-sm font-semibold text-destructive">{questionError}</p>
+                  <p className="text-xs text-muted-foreground max-w-xs">
+                    Si el problema persiste, intenta volver a cargar la página o ponte en contacto con tu docente.
+                  </p>
+                </Card>
+              ) : selectedQuestionDetail ? (
+                <Card className="flex-1 min-h-0 overflow-hidden flex flex-col">
+                  <div className="p-6 border-b bg-muted/30">
+                    <div className="flex items-start justify-between gap-4 mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-semibold">
+                          {activeQuestion?.questionIndex ?? "-"}
+                        </div>
                         <div className="text-xs text-muted-foreground">
                           Puntaje: {activeQuestion?.questionScore ?? "N/A"}
                         </div>
                       </div>
-                    </div>
 
-                    {currentAnswer?.submitted && (
-                      <div className="flex items-center gap-2 text-sm text-green-600">
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span>Respondida</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <p className="text-base leading-relaxed">{selectedQuestionDetail.body}</p>
-                </div>
-
-                <ScrollArea className="flex-1 p-6">
-                  {isMultipleChoice(selectedQuestionDetail) && (
-                    <div className="space-y-3">
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Selecciona la(s) opción(es) correcta(s)
-                      </p>
-                      {selectedQuestionDetail.options?.map((option, index) => (
-                        <div
-                          key={index}
-                          className="flex items-start space-x-3 p-4 rounded-lg border-2 hover:border-primary/50 transition-colors"
-                        >
-                          <Checkbox
-                            id={`option-${questionDetailKey}-${index}`}
-                            checked={currentAnswer?.selectedOptions.includes(option.text) || false}
-                            onCheckedChange={(checked) =>
-                              handleCheckboxChange(selectedQuestionDetail.questionId, option.text, checked as boolean)
-                            }
-                          />
-                          <Label
-                            htmlFor={`option-${questionDetailKey}-${index}`}
-                            className="flex-1 cursor-pointer leading-relaxed"
-                          >
-                            {option.text}
-                          </Label>
+                      {currentAnswer?.submitted && (
+                        <div className="flex items-center gap-2 text-sm text-green-600">
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span>Respondida</span>
                         </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {!isMultipleChoice(selectedQuestionDetail) && (
-                    <div>
-                      <Label htmlFor="essay-answer" className="mb-2 block">
-                        Tu respuesta:
-                      </Label>
-                      <Textarea
-                        id="essay-answer"
-                        value={currentAnswer?.textAnswer || ""}
-                        onChange={(e) => handleEssayChange(selectedQuestionDetail.questionId, e.target.value)}
-                        placeholder="Escribe tu respuesta aquí..."
-                        className="min-h-[300px] resize-none"
-                      />
-                      <div className="text-xs text-muted-foreground mt-2">
-                        {currentAnswer?.textAnswer?.length || 0} caracteres
-                      </div>
-                    </div>
-                  )}
-
-                  {currentResponse?.feedback && (
-                    <div className="mt-6 text-sm italic text-muted-foreground">
-                      Feedback: {currentResponse.feedback}
-                    </div>
-                  )}
-                </ScrollArea>
-
-                <div className="p-6 border-t bg-muted/30">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="text-sm text-muted-foreground">
-                      {currentAnswer?.submitted ? (
-                        <span className="flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          Respuesta guardada
-                        </span>
-                      ) : (
-                        <span>Selecciona tus respuestas y guarda para continuar</span>
                       )}
                     </div>
 
-                    <Button
-                      onClick={handleSaveAnswer}
-                      disabled={
-                        submitting ||
-                        loadingQuestionAssets ||
-                        !currentAnswer ||
-                        (!currentAnswer.selectedOptions.length && !currentAnswer.textAnswer?.trim())
-                      }
-                      variant={currentAnswer?.submitted ? "secondary" : "default"}
-                    >
-                      {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                      {currentAnswer?.submitted ? "Actualizar Respuesta" : "Guardar Respuesta"}
-                    </Button>
+                    <p className="text-base leading-relaxed">{selectedQuestionDetail.body}</p>
                   </div>
-                </div>
-              </Card>
-            ) : (
-              <Card className="flex-1 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>Selecciona una pregunta para comenzar</p>
-                </div>
-              </Card>
-            )}
+
+                  <ScrollArea className="flex-1 min-h-0">
+                    <div className="p-6 space-y-6">
+                      {isMultipleChoice(selectedQuestionDetail) && (
+                        <div className="space-y-3">
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Selecciona la(s) opción(es) correcta(s)
+                          </p>
+                          {selectedQuestionDetail.options?.map((option, index) => (
+                            <div
+                              key={index}
+                              className="flex items-start space-x-3 p-4 rounded-lg border-2 hover:border-primary/50 transition-colors"
+                            >
+                              <Checkbox
+                                id={`option-${questionDetailKey}-${index}`}
+                                checked={currentAnswer?.selectedOptions.includes(option.text) || false}
+                                onCheckedChange={(checked) =>
+                                  handleCheckboxChange(selectedQuestionDetail.questionId, option.text, checked as boolean)
+                                }
+                              />
+                              <Label
+                                htmlFor={`option-${questionDetailKey}-${index}`}
+                                className="flex-1 cursor-pointer leading-relaxed"
+                              >
+                                {option.text}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {!isMultipleChoice(selectedQuestionDetail) && (
+                        <div>
+                          <Label htmlFor="essay-answer" className="mb-2 block">
+                            Tu respuesta:
+                          </Label>
+                          <Textarea
+                            id="essay-answer"
+                            value={currentAnswer?.textAnswer || ""}
+                            onChange={(e) => handleEssayChange(selectedQuestionDetail.questionId, e.target.value)}
+                            placeholder="Escribe tu respuesta aquí..."
+                            className="min-h-[300px] resize-none"
+                          />
+                          <div className="text-xs text-muted-foreground mt-2">
+                            {currentAnswer?.textAnswer?.length || 0} caracteres
+                          </div>
+                        </div>
+                      )}
+
+                      {currentResponse?.feedback && (
+                        <div className="text-sm italic text-muted-foreground">
+                          Feedback: {currentResponse.feedback}
+                        </div>
+                      )}
+                    </div>
+                  </ScrollArea>
+
+                  <div className="p-6 border-t bg-muted/30">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="text-sm text-muted-foreground">
+                        {currentAnswer?.submitted ? (
+                          <span className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            Respuesta guardada
+                          </span>
+                        ) : (
+                          <span>Selecciona tus respuestas y guarda para continuar</span>
+                        )}
+                      </div>
+
+                      <Button
+                        onClick={handleSaveAnswer}
+                        disabled={
+                          submitting ||
+                          loadingQuestionAssets ||
+                          !currentAnswer ||
+                          (!currentAnswer.selectedOptions.length && !currentAnswer.textAnswer?.trim())
+                        }
+                        variant={currentAnswer?.submitted ? "secondary" : "default"}
+                      >
+                        {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                        {currentAnswer?.submitted ? "Actualizar Respuesta" : "Guardar Respuesta"}
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ) : (
+                <Card className="flex-1 flex items-center justify-center">
+                  <div className="text-center text-muted-foreground">
+                    <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>Selecciona una pregunta para comenzar</p>
+                  </div>
+                </Card>
+              )}
+            </div>
           </div>
         </div>
       </div>
