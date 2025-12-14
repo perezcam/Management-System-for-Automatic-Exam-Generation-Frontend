@@ -25,6 +25,7 @@ import { useExamGrading } from "@/hooks/exam-application/use-exam-grading"
 import { dispatchAssignmentGradedEvent } from "@/utils/events"
 import type { ExamResponse } from "@/types/exam-application/exam"
 import type { QuestionDetail } from "@/types/question-bank/question"
+import { ExamApplicationService } from "@/services/exam-application/exam-application-service"
 
 interface RevisionGradingViewProps {
   revision: RevisionItem
@@ -54,6 +55,7 @@ const getTextAnswer = (response?: ExamResponse | null) =>
 export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGradingViewProps) {
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null)
   const [manualScores, setManualScores] = useState<Record<string, number | null>>({})
+  const [manualInputs, setManualInputs] = useState<Record<string, string>>({})
   const [actionLoading, setActionLoading] = useState(false)
   const [savingManualResponseId, setSavingManualResponseId] = useState<string | null>(null)
 
@@ -94,29 +96,39 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
     }
   }, [questions, selectedQuestionId, handleSelectQuestion])
 
+  const valueKey = useCallback((response?: ExamResponse | null, questionId?: string | null) => {
+    return response?.id ?? questionId ?? ""
+  }, [])
+
   useEffect(() => {
     const next: Record<string, number | null> = {}
-    Object.values(responses).forEach((resp) => {
-      if (!resp) return
-      next[resp.id] = resp.manualPoints ?? null
+    const nextInputs: Record<string, string> = {}
+    Object.entries(responses).forEach(([questionId, resp]) => {
+      const key = valueKey(resp, questionId)
+      if (!key) return
+      next[key] = resp?.manualPoints ?? null
+      nextInputs[key] = resp && resp.manualPoints !== null && resp.manualPoints !== undefined
+        ? String(resp.manualPoints)
+        : ""
     })
     setManualScores(next)
-  }, [responses])
+    setManualInputs(nextInputs)
+  }, [responses, valueKey])
 
-  const getManualValue = useCallback((response?: ExamResponse | null) => {
-    if (!response) return null
-    const value = manualScores[response.id]
-    return value === undefined ? response.manualPoints ?? null : value
-  }, [manualScores])
+  const getManualValue = useCallback((response?: ExamResponse | null, questionId?: string | null) => {
+    const key = valueKey(response, questionId)
+    if (!key) return null
+    const value = manualScores[key]
+    return value === undefined ? response?.manualPoints ?? null : value
+  }, [manualScores, valueKey])
 
   const isQuestionGraded = useCallback((questionId: string) => {
     const response = responses[questionId]
-    if (!response) return false
-    const manualValue = getManualValue(response)
+    const manualValue = getManualValue(response, questionId)
     return (
       manualValue !== null && manualValue !== undefined
     ) || (
-      response.autoPoints !== null && response.autoPoints !== undefined
+      response?.autoPoints !== null && response?.autoPoints !== undefined
     )
   }, [getManualValue, responses])
   const selectedQuestionGraded = selectedQuestion ? isQuestionGraded(selectedQuestion.questionId) : false
@@ -146,9 +158,10 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
 
   const calculatedGrade = maxPoints > 0 ? (earnedPoints / maxPoints) * 100 : 0
   const allQuestionsGraded = (exam?.questions.length ?? 0) > 0 && gradedCount === (exam?.questions.length ?? 0)
-  const manualValue = getManualValue(selectedResponse)
+  const manualValue = getManualValue(selectedResponse, selectedQuestionId)
   const hasManualValue = manualValue !== null && manualValue !== undefined
   const hasAutoValue = autoPointsAssigned !== null && autoPointsAssigned !== undefined
+  const hasAnyGrade = hasManualValue || hasAutoValue
   const effectivePoints = hasManualValue
     ? manualValue
     : hasAutoValue
@@ -162,22 +175,34 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
   )
   const hasChoiceSelection = (selectedResponse?.selectedOptions?.length ?? 0) > 0
   const expectedOptions = selectedDetail?.options ?? []
-  const manualSaveLoading = selectedResponse ? savingManualResponseId === selectedResponse.id : false
-  const manualEditable = Boolean(selectedResponse)
+  const manualKey = valueKey(selectedResponse, selectedQuestionId)
+  const manualSaveLoading = manualKey ? savingManualResponseId === manualKey : false
+  const manualEditable = Boolean(selectedQuestion)
   const canSaveManualScore = manualEditable && hasManualValue
-  const hasPendingManualChange = manualEditable && selectedResponse
-    ? manualValue !== (selectedResponse.manualPoints ?? null)
+  const hasPendingManualChange = manualEditable
+    ? selectedResponse
+      ? manualValue !== (selectedResponse.manualPoints ?? null)
+      : hasManualValue
     : false
   const manualSaveDisabled = !canSaveManualScore || !hasPendingManualChange || manualSaveLoading || saving
-  const hasAnyGrade = hasManualValue || hasAutoValue
 
   const handleManualPointsChange = (value: string) => {
-    if (!selectedResponse) return
+    const key = valueKey(selectedResponse, selectedQuestionId)
+    if (!key) return
     const parsed = parseFloat(value)
-    const normalized = Number.isNaN(parsed) ? null : Math.min(Math.max(parsed, 0), maxScore || parsed)
+    const normalized = Number.isNaN(parsed)
+      ? null
+      : Math.min(Math.max(parsed, 0), maxScore > 0 ? maxScore : parsed)
+    const displayValue = Number.isNaN(parsed)
+      ? ""
+      : String(normalized ?? "")
+    setManualInputs((prev) => ({
+      ...prev,
+      [key]: displayValue,
+    }))
     setManualScores((prev) => ({
       ...prev,
-      [selectedResponse.id]: normalized
+      [key]: normalized
     }))
   }
 
@@ -225,23 +250,47 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
     }
   }
   const handleSaveManualScore = useCallback(async () => {
-    if (!selectedResponse) {
-      showError("Selecciona una respuesta para guardar la calificación")
+    if (!selectedQuestion) {
+      showError("Selecciona una pregunta para guardar la calificación")
       return
     }
 
-    const desired = getManualValue(selectedResponse)
+    const rawDesired = getManualValue(selectedResponse, selectedQuestion.questionId)
+    const desired = (rawDesired === null || rawDesired === undefined) && !hasAnyGrade ? 0 : rawDesired
     if (desired === null || desired === undefined) {
       showError("Ingresa una puntuación válida antes de guardar")
       return
     }
 
-    if (desired === (selectedResponse.manualPoints ?? null)) {
+    if (selectedResponse && desired === (selectedResponse.manualPoints ?? null)) {
       showSuccess("La calificación manual ya está guardada")
       return
     }
 
-    const responseId = selectedResponse.id
+    let responseId = selectedResponse?.id
+
+    // Si no existe respuesta registrada, creamos una vacía para poder asignar puntaje manual
+    if (!responseId && exam) {
+      try {
+        const created = await ExamApplicationService.submitResponse({
+          examId: exam.id,
+          examQuestionId: selectedQuestion.id ?? selectedQuestion.questionId,
+          selectedOptions: [],
+          textAnswer: "",
+        })
+        responseId = created.data?.id
+        await loadQuestionAssets(selectedQuestion.questionId, selectedQuestion.questionIndex, { force: true })
+      } catch (err) {
+        showError("No se pudo registrar la respuesta para calificar", err instanceof Error ? err.message : undefined)
+        return
+      }
+    }
+
+    if (!responseId) {
+      showError("No hay una respuesta registrada para esta pregunta.")
+      return
+    }
+
     setSavingManualResponseId(responseId)
     try {
       await setManualPoints(responseId, desired)
@@ -251,7 +300,7 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
     } finally {
       setSavingManualResponseId((prev) => (prev === responseId ? null : prev))
     }
-  }, [getManualValue, selectedResponse, setManualPoints])
+  }, [exam, getManualValue, hasAnyGrade, loadQuestionAssets, selectedQuestion, selectedResponse, setManualPoints])
 
   if (loading && !exam) {
     return (
@@ -589,9 +638,9 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
                           <Input
                             type="number"
                             min="0"
-                            max={maxScore}
+                            max={maxScore > 0 ? maxScore : undefined}
                             step="0.5"
-                            value={manualValue ?? ""}
+                            value={manualKey ? manualInputs[manualKey] ?? "" : ""}
                             onChange={(e) => handleManualPointsChange(e.target.value)}
                             placeholder="0.0"
                             className="w-28 text-center text-lg font-semibold"

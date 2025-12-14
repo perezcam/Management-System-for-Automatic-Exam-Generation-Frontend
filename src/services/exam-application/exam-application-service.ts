@@ -219,12 +219,25 @@ export const ExamApplicationService = {
         return question;
     },
 
-    listEvaluatorAssignments: async (params: { page?: number; limit?: number; search?: string } = {}) => {
+    listEvaluatorAssignments: async (
+        params: {
+            page?: number;
+            limit?: number;
+            examTitle?: string;
+            subjectId?: string;
+            studentId?: string;
+        } = {}
+    ) => {
         const queryParams = new URLSearchParams();
         queryParams.append("page", String(params.page ?? 1));
         queryParams.append("limit", String(params.limit ?? 10));
-        if (params.search?.trim()) {
-            queryParams.append("search", params.search.trim());
+        const examTitle = params.examTitle?.trim();
+        if (examTitle) queryParams.append("examTitle", examTitle);
+        if (params.subjectId && params.subjectId !== "ALL") {
+            queryParams.append("subjectId", params.subjectId);
+        }
+        if (params.studentId && params.studentId !== "ALL") {
+            queryParams.append("studentId", params.studentId);
         }
 
         return backendRequest<ListEvaluatorAssignmentsResponse>(
@@ -232,12 +245,25 @@ export const ExamApplicationService = {
         );
     },
 
-    listPendingRegradeRequests: async (params: { page?: number; limit?: number; search?: string } = {}) => {
+    listPendingRegradeRequests: async (
+        params: {
+            page?: number;
+            limit?: number;
+            examTitle?: string;
+            subjectId?: string;
+            studentId?: string;
+        } = {}
+    ) => {
         const queryParams = new URLSearchParams();
         queryParams.append("page", String(params.page ?? 1));
         queryParams.append("limit", String(params.limit ?? 10));
-        if (params.search?.trim()) {
-            queryParams.append("search", params.search.trim());
+        const examTitle = params.examTitle?.trim();
+        if (examTitle) queryParams.append("examTitle", examTitle);
+        if (params.subjectId && params.subjectId !== "ALL") {
+            queryParams.append("subjectId", params.subjectId);
+        }
+        if (params.studentId && params.studentId !== "ALL") {
+            queryParams.append("studentId", params.studentId);
         }
 
         return backendRequest<ListPendingRegradeRequestsResponse>(

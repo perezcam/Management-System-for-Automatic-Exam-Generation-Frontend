@@ -6,8 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 export type RevisionFilters = {
   studentId: string
   subjectId: string
-  status: string
-  kind: string
 }
 
 export type RevisionFilterOption = { value: string; label: string }
@@ -19,8 +17,6 @@ interface RevisionFiltersDialogProps {
   onFiltersChange: (filters: RevisionFilters) => void
   studentOptions: RevisionFilterOption[]
   subjectOptions: RevisionFilterOption[]
-  statusOptions: RevisionFilterOption[]
-  typeOptions: RevisionFilterOption[]
   onApplyFilters?: () => void
 }
 
@@ -31,8 +27,6 @@ export function RevisionFiltersDialog({
   onFiltersChange,
   studentOptions,
   subjectOptions,
-  statusOptions,
-  typeOptions,
   onApplyFilters
 }: RevisionFiltersDialogProps) {
   const handleFilterChange = (key: keyof RevisionFilters, value: string) => {
@@ -45,9 +39,7 @@ export function RevisionFiltersDialog({
   const handleClearFilters = () => {
     onFiltersChange({
       studentId: "ALL",
-      subjectId: "ALL",
-      status: "ALL",
-      kind: "ALL"
+      subjectId: "ALL"
     })
   }
 
@@ -61,25 +53,6 @@ export function RevisionFiltersDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="estado-filter">Estado</Label>
-            <Select
-              value={filters.status}
-              onValueChange={(value) => handleFilterChange("status", value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="asignatura-filter">Asignatura</Label>
             <Select
@@ -110,25 +83,6 @@ export function RevisionFiltersDialog({
               </SelectTrigger>
               <SelectContent>
                 {studentOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="tipo-filter">Tipo</Label>
-            <Select
-              value={filters.kind}
-              onValueChange={(value) => handleFilterChange("kind", value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {typeOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
