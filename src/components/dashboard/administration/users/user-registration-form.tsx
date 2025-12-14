@@ -55,9 +55,22 @@ export function UserRegistrationForm({
   const toggleSubject = (subjectId: string) => {
     setForm((prev) => {
       const exists = prev.subjects.includes(subjectId);
+      const nextSubjects = exists
+        ? prev.subjects.filter((id) => id !== subjectId)
+        : [...prev.subjects, subjectId];
+
+      // Un profesor líder siempre imparte la asignatura que lidera
+      const alreadyTeaching = prev.teachingSubjects.includes(subjectId);
+      const nextTeaching = exists
+        ? prev.teachingSubjects.filter((id) => id !== subjectId)
+        : alreadyTeaching
+          ? prev.teachingSubjects
+          : [...prev.teachingSubjects, subjectId];
+
       return {
         ...prev,
-        subjects: exists ? prev.subjects.filter((id) => id !== subjectId) : [...prev.subjects, subjectId],
+        subjects: nextSubjects,
+        teachingSubjects: nextTeaching,
       };
     });
   };
@@ -65,6 +78,11 @@ export function UserRegistrationForm({
   const toggleTeachingSubject = (subjectId: string) => {
     setForm((prev) => {
       const exists = prev.teachingSubjects.includes(subjectId);
+      const isLeaderOfSubject = prev.subjects.includes(subjectId);
+      // Si es jefe de la asignatura, no se permite quitarla de las que imparte
+      if (exists && isLeaderOfSubject) {
+        return prev;
+      }
       return {
         ...prev,
         teachingSubjects: exists
@@ -109,6 +127,10 @@ export function UserRegistrationForm({
       if (!form.specialty) return false;
       if (form.hasRoleSubjectLeader && form.subjects.length === 0) return false;
       if (form.teachingSubjects.length === 0) return false;
+      if (form.hasRoleSubjectLeader) {
+        const missingTeaching = form.subjects.some((id) => !form.teachingSubjects.includes(id));
+        if (missingTeaching) return false;
+      }
     }
     return true;
   };
@@ -153,7 +175,7 @@ export function UserRegistrationForm({
         await onCreateTeacher(payload);
         successMessage = "Profesor creado correctamente";
       }
-      
+
       showSuccessToast(successMessage);
       resetForm();
     } catch (err) {
@@ -241,6 +263,9 @@ export function UserRegistrationForm({
                 {form.teachingSubjects.length > 0 &&
                   ` (${form.teachingSubjects.length} seleccionada${form.teachingSubjects.length > 1 ? "s" : ""})`}
               </Label>
+              <p className="text-xs text-muted-foreground">
+                Si es jefe de una asignatura, automáticamente debe impartirla y no podrá desmarcarla.
+              </p>
               {subjects.length > 0 ? (
                 <>
                   <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">

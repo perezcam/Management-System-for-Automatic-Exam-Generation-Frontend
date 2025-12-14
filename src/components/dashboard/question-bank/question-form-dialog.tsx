@@ -99,7 +99,7 @@ export function QuestionFormDialog({
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona un subtópico" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-60 overflow-y-auto">
                   {availableSubtopics.map((subtopic, index) => (
                     <SelectItem key={`${subtopic}-${index}`} value={subtopic}>
                       {subtopic}

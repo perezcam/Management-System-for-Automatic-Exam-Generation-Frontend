@@ -26,6 +26,7 @@ import { dispatchAssignmentGradedEvent } from "@/utils/events"
 import type { ExamResponse } from "@/types/exam-application/exam"
 import type { QuestionDetail } from "@/types/question-bank/question"
 import { ExamApplicationService } from "@/services/exam-application/exam-application-service"
+import { fetchQuestionTypes } from "@/services/question-administration/question_types"
 
 interface RevisionGradingViewProps {
   revision: RevisionItem
@@ -37,11 +38,6 @@ const formatDate = (value?: string) => {
   if (!value) return "Sin fecha"
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
-}
-
-const getQuestionTypeLabel = (detail?: QuestionDetail | null) => {
-  if (!detail) return "Pregunta"
-  return detail.options && detail.options.length > 0 ? "Opción múltiple" : "Respuesta abierta"
 }
 
 const isManualQuestion = (detail?: QuestionDetail | null, response?: ExamResponse | null) => {
@@ -58,6 +54,7 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
   const [manualInputs, setManualInputs] = useState<Record<string, string>>({})
   const [actionLoading, setActionLoading] = useState(false)
   const [savingManualResponseId, setSavingManualResponseId] = useState<string | null>(null)
+  const [questionTypeNames, setQuestionTypeNames] = useState<Record<string, string>>({})
 
   const {
     exam,
@@ -96,6 +93,46 @@ export function RevisionGradingView({ revision, onBack, onFinished }: RevisionGr
       handleSelectQuestion(questions[0])
     }
   }, [questions, selectedQuestionId, handleSelectQuestion])
+
+  useEffect(() => {
+    let cancelled = false
+    const loadTypes = async () => {
+      try {
+        const types = await fetchQuestionTypes({ limit: 50, offset: 0 })
+        if (cancelled) return
+        const names: Record<string, string> = {}
+        types.forEach((type) => {
+          if (type.id && type.name) {
+            names[type.id] = type.name
+          }
+        })
+        setQuestionTypeNames(names)
+      } catch (err) {
+        console.error("No se pudieron cargar los tipos de pregunta", err)
+      }
+    }
+
+    void loadTypes()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const getQuestionTypeLabel = useCallback((detail?: QuestionDetail | null) => {
+    if (!detail) return "Pregunta"
+    const typeName = detail.questionTypeId ? questionTypeNames[detail.questionTypeId] : undefined
+    const normalized = typeName?.toUpperCase() ?? ""
+    if (normalized.includes("TRUE_FALSE") || normalized.includes("VERDADERO") || normalized.includes("FALSE")) {
+      return "Verdadero/Falso"
+    }
+    if (normalized.includes("ESSAY") || normalized.includes("ENSAYO")) {
+      return "Respuesta abierta"
+    }
+    if (normalized.includes("MCQ") || normalized.includes("MULTIPLE")) {
+      return "Opción múltiple"
+    }
+    return detail.options && detail.options.length > 0 ? "Opción múltiple" : "Respuesta abierta"
+  }, [questionTypeNames])
 
   const valueKey = useCallback((response?: ExamResponse | null, questionId?: string | null) => {
     return response?.id ?? questionId ?? ""
