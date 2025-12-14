@@ -6,7 +6,7 @@ import { EvaluatorAssignment, PendingRegradeRequest } from "@/types/exam-applica
 import { fetchStudentDetail } from "@/services/users/student";
 import { fetchExamById } from "@/services/exam-bank/exams";
 
-const DEFAULT_PAGE_SIZE = 1;
+const DEFAULT_PAGE_SIZE = 3;
 
 type QueueFilters = {
   studentId: string;

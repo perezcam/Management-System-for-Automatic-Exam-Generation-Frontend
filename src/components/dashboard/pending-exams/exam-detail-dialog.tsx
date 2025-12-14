@@ -13,6 +13,7 @@ import { ApproveExamDialog } from "./approve-exam-dialog";
 import { RejectExamDialog } from "./reject-exam-dialog";
 import { ExamQuestionList } from "@/components/dashboard/common/exam-question-list";
 import type { ExamQuestionListItem } from "@/types/exam-question-list";
+import type React from "react";
 
 type ExamDetailDialogProps = {
   open: boolean;
@@ -30,18 +31,33 @@ const STATUS_LABEL: Record<PendingExamDetail["status"], string> = {
   pendiente: "Pendiente",
 };
 
-const STATUS_COLOR: Record<PendingExamDetail["status"], string> = {
-  aprobado: "bg-green-100 text-green-700 hover:bg-green-100 flex-shrink-0",
-  rechazado: "bg-red-100 text-red-700 hover:bg-red-100 flex-shrink-0",
-  pendiente: "bg-yellow-100 text-yellow-700 hover:bg-yellow-100 flex-shrink-0",
-};
+function getStatusStyle(status: PendingExamDetail["status"]): React.CSSProperties {
+  switch (status) {
+    case "aprobado":
+      return { backgroundColor: "#dcfce7", color: "#15803d" }; // green-100 / green-700
+    case "rechazado":
+      return { backgroundColor: "#fee2e2", color: "#b91c1c" }; // red-100 / red-700
+    case "pendiente":
+      return { backgroundColor: "#fef9c3", color: "#a16207" }; // yellow-100 / yellow-700
+    default:
+      return { backgroundColor: "#f3f4f6", color: "#374151" }; // gray-100 / gray-700
+  }
+}
 
-const DIFFICULTY_COLOR: Record<string, string> = {
-  "Fácil": "bg-green-100 text-green-700 hover:bg-green-100",
-  "Regular": "bg-yellow-100 text-yellow-700 hover:bg-yellow-100",
-  "Difícil": "bg-red-100 text-red-700 hover:bg-red-100",
-  "Mixta": "bg-blue-100 text-blue-700 hover:bg-blue-100",
-};
+function getDifficultyStyle(difficulty: string): React.CSSProperties {
+  switch (difficulty) {
+    case "Fácil":
+      return { backgroundColor: "#dcfce7", color: "#15803d" };
+    case "Regular":
+      return { backgroundColor: "#fef9c3", color: "#a16207" };
+    case "Difícil":
+      return { backgroundColor: "#fee2e2", color: "#b91c1c" };
+    case "Mixta":
+      return { backgroundColor: "#dbeafe", color: "#1d4ed8" }; // blue-100 / blue-700-ish
+    default:
+      return { backgroundColor: "#f3f4f6", color: "#374151" };
+  }
+}
 
 export function ExamDetailDialog({
   open,
@@ -56,9 +72,9 @@ export function ExamDetailDialog({
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const difficultyBadge = useMemo(() => {
-    if (!exam) return "bg-gray-100 text-gray-700 hover:bg-gray-100";
-    return DIFFICULTY_COLOR[exam.difficulty] ?? "bg-gray-100 text-gray-700 hover:bg-gray-100";
+  const difficultyStyle = useMemo(() => {
+    if (!exam) return { backgroundColor: "#f3f4f6", color: "#374151" } as React.CSSProperties;
+    return getDifficultyStyle(exam.difficulty);
   }, [exam]);
 
   const handleApprove = async (comment?: string) => {
@@ -99,6 +115,7 @@ export function ExamDetailDialog({
                   <DialogTitle className="text-xl mb-2 pr-4">
                     {exam?.examName ?? (loading ? "Cargando examen..." : "Sin información")}
                   </DialogTitle>
+
                   {exam ? (
                     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                       <div className="flex items-center gap-2">
@@ -113,12 +130,16 @@ export function ExamDetailDialog({
                         <Clock className="h-4 w-4 flex-shrink-0" />
                         <span>{exam.createdDate}</span>
                       </div>
-                      <Badge className={difficultyBadge}>{exam.difficulty}</Badge>
+
+                      <Badge style={difficultyStyle}>{exam.difficulty}</Badge>
                     </div>
                   ) : null}
                 </div>
+
                 {exam ? (
-                  <Badge className={STATUS_COLOR[exam.status]}>{STATUS_LABEL[exam.status]}</Badge>
+                  <Badge className="flex-shrink-0" style={getStatusStyle(exam.status)}>
+                    {STATUS_LABEL[exam.status]}
+                  </Badge>
                 ) : null}
               </div>
             </DialogHeader>
@@ -163,9 +184,7 @@ export function ExamDetailDialog({
                     {questions.length > 0 ? (
                       <ExamQuestionList questions={questions} />
                     ) : (
-                      <p className="text-sm text-muted-foreground">
-                        No se encontraron preguntas para este examen.
-                      </p>
+                      <p className="text-sm text-muted-foreground">No se encontraron preguntas para este examen.</p>
                     )}
                   </div>
                 </div>

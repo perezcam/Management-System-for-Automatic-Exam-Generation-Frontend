@@ -12,6 +12,7 @@ import { DifficultyLevelEnum } from "@/types/question-bank/enums/difficultyLevel
 import type { QuestionTypeDetail } from "@/types/question-administration/question-type";
 import type { TopicDetail } from "@/types/question-administration/topic";
 import { fetchCurrentUser } from "@/services/users/users";
+import type { UserRole } from "@/types/users/users";
 
 const DEFAULT_PAGE_SIZE = 5;
 
@@ -75,6 +76,7 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
   const [topics, setTopics] = useState<TopicDetail[]>([]);
   const [authorNames, setAuthorNames] = useState<Record<string, string>>({});
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole | null>(null);
   const [currentTeacherId, setCurrentTeacherId] = useState<string | null>(null);
   const [teachingSubjectIds, setTeachingSubjectIds] = useState<string[]>([]);
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
@@ -131,17 +133,34 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
     return Array.from(names);
   }, [topics, teachingSubjectIds]);
 
+  const isTeacher = currentUserRole === "teacher";
+
   // Opciones únicas de subtemas para filtros (si no hay info de profesor, usamos todos)
   const uniqueSubtopicNames = useMemo(() => {
+    // Profesor sin asignaturas impartidas: no puede elegir subtópicos
+    if (isTeacher && teachingSubjectIds.length === 0) {
+      return [];
+    }
+
     if (teacherSubtopicNames.length) {
       return teacherSubtopicNames;
     }
+
+    // Si es profesor pero no encontramos subtemas asociados, evitamos mostrar todo el catálogo
+    if (isTeacher) {
+      return [];
+    }
+
     return Array.from(new Set(allSubtopics.map((subtopic) => subtopic.name)));
-  }, [allSubtopics, teacherSubtopicNames]);
+  }, [allSubtopics, isTeacher, teacherSubtopicNames, teachingSubjectIds]);
 
   // Subtemas disponibles en el formulario (id + nombre) basados en los nombres anteriores
   const availableSubtopics = useMemo(() => {
-    if (!uniqueSubtopicNames.length) return allSubtopics;
+    if (!uniqueSubtopicNames.length) {
+      // Si es profesor sin asignaturas impartidas, no mostramos subtópicos
+      if (isTeacher) return [];
+      return allSubtopics;
+    }
 
     const allowedNames = new Set(uniqueSubtopicNames);
     const seen = new Set<string>();
@@ -155,7 +174,7 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
     });
 
     return list;
-  }, [allSubtopics, uniqueSubtopicNames]);
+  }, [allSubtopics, isTeacher, uniqueSubtopicNames]);
 
   const subtopicNameToId = useMemo(() => {
     const map = new Map<string, string>();
@@ -243,6 +262,7 @@ export function useQuestionBank(pageSize: number = DEFAULT_PAGE_SIZE): UseQuesti
       setQuestionTypes(types);
       setTopics(fetchedTopics);
       setCurrentUserId(currentUser?.id ?? null);
+      setCurrentUserRole(currentUser?.role ?? null);
       setCurrentUserName(userName);
       setCurrentTeacherId(teacherId);
       setCurrentTeacherName(teacherName);

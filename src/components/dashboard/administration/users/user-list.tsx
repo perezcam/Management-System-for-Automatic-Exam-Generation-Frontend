@@ -586,8 +586,8 @@ export function UserList({
     <>
       <Card className="p-6">
         <h2 className="text-lg mb-4">Usuarios del Sistema</h2>
-        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
-          <div className="relative flex-1 min-w-0">
+        <div className="mb-4 flex flex-col gap-3">
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por nombre..."
@@ -601,22 +601,24 @@ export function UserList({
               }}
             />
           </div>
-          <div className="flex gap-3 md:justify-end">
-            <Select
-              value={userRoleFilter}
-              onValueChange={(value) => handleRoleChange(value as RoleFilter)}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Filtrar por rol" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los roles</SelectItem>
-                <SelectItem value="admin">Administrador</SelectItem>
-                <SelectItem value="student">Estudiante</SelectItem>
-                <SelectItem value="teacher">Profesor</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" onClick={refreshCurrentRole} disabled={isRefreshing}>
+          <div className="flex w-full items-center gap-3">
+            <div className="flex-1">
+              <Select
+                value={userRoleFilter}
+                onValueChange={(value) => handleRoleChange(value as RoleFilter)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Filtrar por rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los roles</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="student">Estudiante</SelectItem>
+                  <SelectItem value="teacher">Profesor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button variant="outline" size="sm" className="shrink-0" onClick={refreshCurrentRole} disabled={isRefreshing}>
               {isRefreshing ? "Actualizando..." : "Refrescar"}
             </Button>
           </div>
