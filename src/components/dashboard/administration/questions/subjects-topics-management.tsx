@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Plus, Trash2, GraduationCap, FolderTree, BookOpen, Search, Edit2, Loader2 } from "lucide-react"
 
 import { Card } from "../../../ui/card"
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { CreateSubjectPayload, SubjectDetail, UpdateSubjectPayload } from "@/types/question-administration/subject"
 import { CreateTopicPayload, TopicDetail, UpdateTopicPayload } from "@/types/question-administration/topic"
 import { CreateSubtopicPayload, SubTopicDetail } from "@/types/question-administration/subtopic"
+import { fetchTopics } from "@/services/question-administration/topics"
 
 
 interface SubjectsTopicsManagementProps {
@@ -124,13 +125,36 @@ export function SubjectsTopicsManagement({
   const [creatingSubtopic, setCreatingSubtopic] = useState(false)
   const [deletingSubtopic, setDeletingSubtopic] = useState(false)
 
+  const [candidateTopics, setCandidateTopics] = useState<TopicDetail[]>([])
+  const [loadingCandidates, setLoadingCandidates] = useState(false)
+
+  useEffect(() => {
+    if (showAttachTopicDialog) {
+      const loadCandidates = async () => {
+        setLoadingCandidates(true)
+        try {
+          const { data } = await fetchTopics({ limit: 100 })
+          setCandidateTopics(data)
+        } catch (error) {
+          console.error("Error fetching topics for assignment", error)
+        } finally {
+          setLoadingCandidates(false)
+        }
+      }
+      void loadCandidates()
+    }
+  }, [showAttachTopicDialog])
+
   const availableTopicsForSelectedSubject = useMemo(
     () => {
       if (!selectedSubject) return []
       const existingIds = new Set(selectedSubject.topics.map((t) => t.topic_id))
-      return allTopics.filter((topic) => !existingIds.has(topic.topic_id))
+      // Use candidateTopics if the dialog is open and we have fetched them, otherwise fallback to allTopics
+      // Ideally, candidateTopics should be the source of truth for the dialog.
+      const source = showAttachTopicDialog ? candidateTopics : allTopics
+      return source.filter((topic) => !existingIds.has(topic.topic_id))
     },
-    [selectedSubject, allTopics],
+    [selectedSubject, allTopics, candidateTopics, showAttachTopicDialog],
   )
 
   const isInitialLoading = loading && subjects.length === 0 && topics.length === 0
@@ -800,7 +824,7 @@ export function SubjectsTopicsManagement({
                 onValueChange={(value) => setAttachTopicId(value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Seleccione un tópico" />
+                  <SelectValue placeholder={loadingCandidates ? "Cargando tópicos..." : "Seleccione un tópico"} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableTopicsForSelectedSubject.map((topic) => (

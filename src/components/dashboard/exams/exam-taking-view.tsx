@@ -18,7 +18,17 @@ import {
   CheckCircle2,
   FileText,
   Loader2,
+  Menu,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../../ui/dialog"
 import { useActiveExam } from "@/hooks/exam-application/use-active-exam"
 import { DIFFICULTY_LABELS, STATUS_LABELS } from "@/hooks/exams/use-exams"
 import { ExamAssignment, ExamResponse } from "@/types/exam-application/exam"
@@ -288,12 +298,12 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
     const selectedOptionPayload =
       detail?.options && answer.selectedOptions.length
         ? answer.selectedOptions
-            .map((text) => detail.options?.find((option) => option.text === text))
-            .filter((option): option is QuestionDetail["options"][number] => Boolean(option))
-            .map((option) => ({
-              text: option.text,
-              isCorrect: Boolean(option.isCorrect),
-            }))
+          .map((text) => detail.options?.find((option) => option.text === text))
+          .filter((option): option is QuestionDetail["options"][number] => Boolean(option))
+          .map((option) => ({
+            text: option.text,
+            isCorrect: Boolean(option.isCorrect),
+          }))
         : null
 
     const normalizedSelectedOptions =
@@ -352,6 +362,53 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
   const topicProportionEntries = exam.topicProportion ? Object.entries(exam.topicProportion) : []
   const coverage = exam.topicCoverage
   const coverageTopicNames = coverage?.topicIds?.map((topicId) => resolveTopicName(topicId)) ?? []
+
+  const renderQuestionList = () => (
+    <div className="space-y-2">
+      {exam.questions.map((question) => {
+        const answer = localAnswers[question.questionId]
+        const isAnswered = answer?.submitted
+        const isSelected = question.questionId === selectedQuestionId
+        const previewBody =
+          questionDetails[question.questionId]?.body ?? "Detalle disponible al seleccionar"
+
+        return (
+          <button
+            key={question.questionId}
+            onClick={() => setSelectedQuestionId(question.questionId)}
+            className={`
+              w-full text-left p-3 rounded-lg border-2 transition-all
+              ${isSelected ? "border-primary bg-primary/5" : "border-transparent hover:border-muted-foreground/30 hover:bg-muted/50"}
+            `}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className={`
+                  flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 text-sm font-medium
+                  ${isAnswered ? "bg-green-500/10 text-green-700 border-2 border-green-500" : "bg-muted text-muted-foreground"}
+                `}
+              >
+                {isAnswered ? <CheckCircle2 className="h-4 w-4" /> : question.questionIndex}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm mb-1">Pregunta {question.questionIndex}</div>
+                <div className="text-[13px] text-muted-foreground truncate">{previewBody}</div>
+                <Badge variant="secondary" className="text-[11px] mt-2">
+                  Puntaje: {question.questionScore}
+                </Badge>
+              </div>
+            </div>
+          </button>
+        )
+      })}
+    </div>
+  )
+
+  const currentQuestionIndex = exam.questions.findIndex((q) => q.questionId === selectedQuestionId)
+  const prevQuestion = currentQuestionIndex > 0 ? exam.questions[currentQuestionIndex - 1] : null
+  const nextQuestion =
+    currentQuestionIndex < exam.questions.length - 1 ? exam.questions[currentQuestionIndex + 1] : null
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-muted/30">
@@ -418,6 +475,7 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
                   </span>
                   {topicProportionEntries.map(([topicId, value]) => {
                     const topicLabel = resolveTopicName(topicId)
+                    if (topicLabel === topicId) return null
                     return (
                       <Badge key={topicId} variant="secondary" className="text-[11px]">
                         {topicLabel}: {formatPercentage(value)}
@@ -441,9 +499,8 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
                 <div className="flex items-center justify-end gap-2">
                   <Clock className={`h-4 w-4 ${timeRemaining < 600 ? "text-red-600" : "text-orange-600"}`} />
                   <span
-                    className={`text-xl font-mono font-semibold ${
-                      timeRemaining < 600 ? "text-red-600" : "text-orange-600"
-                    }`}
+                    className={`text-xl font-mono font-semibold ${timeRemaining < 600 ? "text-red-600" : "text-orange-600"
+                      }`}
                   >
                     {formatTime(timeRemaining)}
                   </span>
@@ -467,7 +524,7 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
       <div className="flex-1 overflow-hidden">
         <div className="max-w-7xl mx-auto w-full h-full px-4 sm:px-6 py-4 sm:py-6">
           <div className="h-full flex gap-6 min-h-0">
-            {/* Sidebar */}
+            {/* Sidebar Desktop */}
             <Card className="w-80 hidden lg:flex lg:flex-col min-h-0">
               <div className="p-4 border-b">
                 <h3 className="font-medium">Preguntas del Examen</h3>
@@ -475,44 +532,8 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
               </div>
 
               <ScrollArea className="flex-1 min-h-0">
-                <div className="p-4 space-y-2">
-                  {exam.questions.map((question) => {
-                    const answer = localAnswers[question.questionId]
-                    const isAnswered = answer?.submitted
-                    const isSelected = question.questionId === selectedQuestionId
-                    const previewBody =
-                      questionDetails[question.questionId]?.body ?? "Detalle disponible al seleccionar"
-
-                    return (
-                      <button
-                        key={question.questionId}
-                        onClick={() => setSelectedQuestionId(question.questionId)}
-                        className={`
-                          w-full text-left p-3 rounded-lg border-2 transition-all
-                          ${isSelected ? "border-primary bg-primary/5" : "border-transparent hover:border-muted-foreground/30 hover:bg-muted/50"}
-                        `}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div
-                            className={`
-                              flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 text-sm font-medium
-                              ${isAnswered ? "bg-green-500/10 text-green-700 border-2 border-green-500" : "bg-muted text-muted-foreground"}
-                            `}
-                          >
-                            {isAnswered ? <CheckCircle2 className="h-4 w-4" /> : question.questionIndex}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm mb-1">Pregunta {question.questionIndex}</div>
-                            <div className="text-[13px] text-muted-foreground truncate">{previewBody}</div>
-                            <Badge variant="secondary" className="text-[11px] mt-2">
-                              Puntaje: {question.questionScore}
-                            </Badge>
-                          </div>
-                        </div>
-                      </button>
-                    )
-                  })}
+                <div className="p-4">
+                  {renderQuestionList()}
                 </div>
               </ScrollArea>
             </Card>
@@ -543,6 +564,26 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
                         <div className="text-xs text-muted-foreground">
                           Puntaje: {activeQuestion?.questionScore ?? "N/A"}
                         </div>
+                      </div>
+
+                      {/* Mobile Menu Trigger */}
+                      <div className="lg:hidden">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="gap-2">
+                              <Menu className="h-4 w-4" />
+                              <span className="hidden sm:inline">Ver Preguntas</span>
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-h-[80vh] flex flex-col">
+                            <DialogHeader>
+                              <DialogTitle>Preguntas del Examen</DialogTitle>
+                            </DialogHeader>
+                            <ScrollArea className="flex-1 -mx-6 px-6">
+                              {renderQuestionList()}
+                            </ScrollArea>
+                          </DialogContent>
+                        </Dialog>
                       </div>
 
                       {currentAnswer?.submitted && (
@@ -637,6 +678,35 @@ export function ExamTakingView({ assignment, onBack }: ExamTakingViewProps) {
                       >
                         {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                         {currentAnswer?.submitted ? "Actualizar Respuesta" : "Guardar Respuesta"}
+                      </Button>
+                    </div>
+
+                    {/* Navigation Buttons */}
+                    <div className="flex items-center justify-between gap-4 mt-4 pt-4 border-t border-dashed">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => prevQuestion && setSelectedQuestionId(prevQuestion.questionId)}
+                        disabled={!prevQuestion}
+                        className="text-muted-foreground"
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-2" />
+                        Anterior
+                      </Button>
+
+                      <div className="text-xs text-muted-foreground font-medium">
+                        {activeQuestion?.questionIndex} / {exam.questions.length}
+                      </div>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => nextQuestion && setSelectedQuestionId(nextQuestion.questionId)}
+                        disabled={!nextQuestion}
+                        className="text-muted-foreground"
+                      >
+                        Siguiente
+                        <ChevronRight className="h-4 w-4 ml-2" />
                       </Button>
                     </div>
                   </div>
