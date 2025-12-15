@@ -202,7 +202,7 @@ export function UserList({
           name: detail.name,
           email: detail.email,
           age: String(detail.age),
-          course: String(detail.course),
+          course: detail.course ?? "",
           specialty: "",
           hasRoleExaminer: false,
           hasRoleSubjectLeader: false,
@@ -255,7 +255,7 @@ export function UserList({
         name: user.name,
         email: user.email,
         age: String(user.age),
-        course: String(user.course),
+        course: user.course ?? "",
         specialty: "",
         hasRoleExaminer: false,
         hasRoleSubjectLeader: false,
@@ -304,11 +304,12 @@ export function UserList({
     setIsUpdatingUser(true);
     try {
       if (selectedRoleForEdit === "student") {
+        const trimmedCourse = editForm.course?.trim();
         const payload: UpdateStudentPayload = {
           name: editForm.name,
           email: editForm.email,
           age: editForm.age ? Number(editForm.age) : undefined,
-          course: editForm.course ? Number(editForm.course) : undefined,
+          course: trimmedCourse || undefined,
         };
         await onUpdateStudent(selectedUser.id, payload);
       } else if (selectedRoleForEdit === "teacher") {

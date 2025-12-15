@@ -35,6 +35,7 @@ export function UserRegistrationForm({
 }: UserRegistrationFormProps) {
   const [userType, setUserType] = useState<UserRole>("admin");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -106,39 +107,75 @@ export function UserRegistrationForm({
       teachingSubjects: [],
     });
     setUserType("admin");
+    setValidationErrors([]);
   };
 
-  const isFormValid = () => {
-    if (!form.name || !form.email || !form.password) {
-      return false;
+  const getValidationErrors = () => {
+    const errors: string[] = [];
+
+    if (!form.name.trim()) {
+      errors.push("Ingresa el nombre completo.");
     }
-    if (form.password.length < 8) {
-      return false;
+
+    if (!form.email.trim()) {
+      errors.push("Ingresa el correo electrónico.");
     }
-    if (userType === "student" && (!form.age || !form.course)) {
-      return false;
+
+    if (!form.password) {
+      errors.push("Ingresa la contraseña.");
+    } else if (form.password.length < 8) {
+      errors.push("La contraseña debe tener al menos 8 caracteres.");
     }
+
     if (userType === "student") {
-      const age = Number(form.age);
-      const course = Number(form.course);
-      if (Number.isNaN(age) || Number.isNaN(course)) return false;
-    }
-    if (userType === "teacher") {
-      if (!form.specialty) return false;
-      if (form.hasRoleSubjectLeader && form.subjects.length === 0) return false;
-      if (form.teachingSubjects.length === 0) return false;
-      if (form.hasRoleSubjectLeader) {
-        const missingTeaching = form.subjects.some((id) => !form.teachingSubjects.includes(id));
-        if (missingTeaching) return false;
+      if (!form.age) {
+        errors.push("Indica la edad del estudiante.");
+      } else if (Number.isNaN(Number(form.age))) {
+        errors.push("La edad debe ser un número válido.");
+      }
+
+      if (!form.course.trim()) {
+        errors.push("Indica el curso del estudiante.");
       }
     }
-    return true;
+
+    if (userType === "teacher") {
+      if (!form.specialty.trim()) {
+        errors.push("Agrega la especialidad del profesor.");
+      }
+
+      if (subjects.length === 0) {
+        errors.push("Para registrar un profesor primero crea asignaturas en la configuración de preguntas.");
+      }
+
+      if (form.teachingSubjects.length === 0) {
+        errors.push("Selecciona al menos una asignatura que imparte el profesor.");
+      }
+
+      if (form.hasRoleSubjectLeader) {
+        if (form.subjects.length === 0) {
+          errors.push("Selecciona al menos una asignatura para el rol de Jefe de Asignatura.");
+        }
+
+        const missingTeaching = form.subjects.some((id) => !form.teachingSubjects.includes(id));
+        if (missingTeaching) {
+          errors.push("Las asignaturas donde es jefe también deben estar marcadas como impartidas.");
+        }
+      }
+    }
+
+    return errors;
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!isFormValid()) return;
+    const errors = getValidationErrors();
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
 
+    setValidationErrors([]);
     setIsSubmitting(true);
     try {
       let successMessage = "Usuario creado correctamente";
@@ -157,7 +194,7 @@ export function UserRegistrationForm({
           email: form.email,
           password: form.password,
           age: Number(form.age),
-          course: Number(form.course),
+          course: form.course.trim(),
         };
         await onCreateStudent(payload);
         successMessage = "Estudiante creado correctamente";
@@ -191,10 +228,16 @@ export function UserRegistrationForm({
         <Plus className="h-5 w-5" />
         <h2 className="text-lg">Registrar Nuevo Usuario</h2>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div className="space-y-2">
           <Label htmlFor="userType">Tipo de Usuario</Label>
-          <Select value={userType} onValueChange={(value) => setUserType(value as UserRole)}>
+          <Select
+            value={userType}
+            onValueChange={(value) => {
+              setUserType(value as UserRole);
+              setValidationErrors([]);
+            }}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -213,7 +256,6 @@ export function UserRegistrationForm({
             value={form.name}
             onChange={(e) => updateForm("name", e.target.value)}
             placeholder="Ingrese nombre completo"
-            required
           />
         </div>
 
@@ -227,18 +269,16 @@ export function UserRegistrationForm({
                 value={form.age}
                 onChange={(e) => updateForm("age", e.target.value)}
                 placeholder="Ingrese edad"
-                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="course">Curso (número)</Label>
+              <Label htmlFor="course">Curso</Label>
               <Input
                 id="course"
-                type="number"
+                type="text"
                 value={form.course}
                 onChange={(e) => updateForm("course", e.target.value)}
-                placeholder="Ej: 3"
-                required
+                placeholder="Ej: 3A"
               />
             </div>
           </>
@@ -253,7 +293,6 @@ export function UserRegistrationForm({
                 value={form.specialty}
                 onChange={(e) => updateForm("specialty", e.target.value)}
                 placeholder="Ingrese especialidad"
-                required
               />
             </div>
 
@@ -378,7 +417,6 @@ export function UserRegistrationForm({
             value={form.email}
             onChange={(e) => updateForm("email", e.target.value)}
             placeholder="usuario@universidad.edu"
-            required
           />
         </div>
 
@@ -390,12 +428,24 @@ export function UserRegistrationForm({
             value={form.password}
             onChange={(e) => updateForm("password", e.target.value)}
             placeholder="••••••••"
-            minLength={8}
-            required
           />
         </div>
 
-        <Button type="submit" className="w-full" disabled={!isFormValid() || isSubmitting}>
+        {validationErrors.length > 0 && (
+          <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md text-sm text-amber-900">
+            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <div className="space-y-1">
+              <p className="font-medium">Faltan datos para crear el {ROLE_LABELS[userType]}:</p>
+              <ul className="list-disc pl-4 space-y-1 text-xs">
+                {validationErrors.map((error, index) => (
+                  <li key={`${error}-${index}`}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
           <Plus className="h-4 w-4 mr-2" />
           Crear {ROLE_LABELS[userType]}
         </Button>
