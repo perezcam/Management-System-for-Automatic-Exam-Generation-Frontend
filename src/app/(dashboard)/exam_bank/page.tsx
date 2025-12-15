@@ -452,6 +452,8 @@ export default function BancoExamenesView() {
 
   const normalizedExamStatus = (selectedExam?.examStatus ?? selectedExamListItem?.status ?? "").toLowerCase()
   const isApprovedExam = ["valid", "approved", "aprobado"].includes(normalizedExamStatus)
+  // User requested to disable editing ONLY for "published" exams.
+  const isEditable = !["published", "publicado"].includes(normalizedExamStatus)
   const assignableExamId = selectedExamId ?? selectedExam?.id ?? ""
 
   const subjectsForForms: Subject[] = useMemo(
@@ -585,8 +587,8 @@ export default function BancoExamenesView() {
     const baseQuestions =
       manualForm.subject && subtopicsBySubjectId.has(manualForm.subject)
         ? selectableQuestions.filter((question) =>
-            (subtopicsBySubjectId.get(manualForm.subject) ?? []).includes(question.subtopic),
-          )
+          (subtopicsBySubjectId.get(manualForm.subject) ?? []).includes(question.subtopic),
+        )
         : selectableQuestions
     return baseQuestions
   }, [manualForm.subject, selectableQuestions, subtopicsBySubjectId])
@@ -1018,7 +1020,8 @@ export default function BancoExamenesView() {
                     <p className="text-muted-foreground">Proporción por tema</p>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(selectedExam.topicProportion).map(([topic, value]) => {
-                        const topicName = topicNamesMap.get(topic) ?? topic
+                        const topicName = topicNamesMap.get(topic)
+                        if (!topicName) return null
                         return (
                           <Badge key={topic} variant="outline">
                             {topicName}: {Math.round(value * 100)}%
@@ -1041,7 +1044,7 @@ export default function BancoExamenesView() {
                       variant="outline"
                       size="sm"
                       onClick={handleCancelDraftChanges}
-                      disabled={!questionsDirty || savingExam || selectedExamLoading}
+                      disabled={!isEditable || !questionsDirty || savingExam || selectedExamLoading}
                     >
                       Cancelar
                     </Button>
@@ -1049,7 +1052,7 @@ export default function BancoExamenesView() {
                       variant="default"
                       size="sm"
                       onClick={() => setShowAddQuestionDialog(true)}
-                      disabled={!selectedExamId || selectedExamLoading}
+                      disabled={!isEditable || !selectedExamId || selectedExamLoading}
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Agregar pregunta
@@ -1058,7 +1061,7 @@ export default function BancoExamenesView() {
                       size="sm"
                       onClick={() => void handleSaveDraftQuestions()}
                       disabled={
-                        !questionsDirty || savingExam || selectedExamLoading || !isDraftScoreValid
+                        !isEditable || !questionsDirty || savingExam || selectedExamLoading || !isDraftScoreValid
                       }
                     >
                       Guardar cambios
@@ -1106,7 +1109,7 @@ export default function BancoExamenesView() {
                                 index={index}
                                 onRemove={(id) => handleRemoveDraftQuestion(id)}
                                 onScoreChange={handleDraftQuestionScoreChange}
-                                disabled={savingExam || selectedExamLoading}
+                                disabled={!isEditable || savingExam || selectedExamLoading}
                                 subtopicLabel={
                                   question.detail?.subtopicId
                                     ? subtopicIdToName.get(question.detail.subtopicId)

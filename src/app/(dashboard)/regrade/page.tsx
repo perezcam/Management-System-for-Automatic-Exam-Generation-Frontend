@@ -458,7 +458,7 @@ export default function RevisionesView() {
       </div>
 
       {/* CONTENT */}
-      <div className="flex-1 overflow-hidden p-4 sm:p-6 space-y-8">
+      <div className="flex-1 overflow-hidden p-4 sm:p-6 space-y-8 flex flex-col">
         {activeError && (
           <div className="text-destructive text-sm">
             Ocurrió un error al cargar{" "}
@@ -474,8 +474,8 @@ export default function RevisionesView() {
             </p>
           </div>
         ) : (
-          <div>
-            <div className="flex flex-row items-center justify-between gap-3 mb-3 flex-wrap">
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex flex-row items-center justify-between gap-3 mb-3 flex-wrap shrink-0">
               <h2 className="text-lg font-semibold">{activeTitle}</h2>
               <Badge variant="secondary" className="shrink-0">
                 {activeItems.length}
@@ -483,7 +483,7 @@ export default function RevisionesView() {
             </div>
 
             {activeItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center py-8 text-muted-foreground">
+              <div className="flex flex-col items-center justify-center text-center py-8 text-muted-foreground flex-1">
                 <ClipboardList className="h-10 w-10 mb-3 opacity-60" />
                 <p>
                   {isFiltering
@@ -493,23 +493,25 @@ export default function RevisionesView() {
               </div>
             ) : (
               <>
-                <ScrollArea className="max-h-[420px]">
-                  <div className="space-y-3 pr-4">
+                <ScrollArea className="flex-1 -mr-4 pr-4">
+                  <div className="space-y-3 pb-2">
                     {activeItems.map((revision) => (
                       <RevisionCard key={revision.id} revision={revision} onClick={handleRevisionClick} />
                     ))}
                   </div>
                 </ScrollArea>
 
-                <RevisionListPagination
-                  currentCount={activeItems.length}
-                  total={activeTotal}
-                  page={activePage}
-                  pageSize={activePageSize}
-                  loading={activeLoading}
-                  onPageChange={changeActivePage}
-                  entityLabel={activeEntityLabel}
-                />
+                <div className="shrink-0">
+                  <RevisionListPagination
+                    currentCount={activeItems.length}
+                    total={activeTotal}
+                    page={activePage}
+                    pageSize={activePageSize}
+                    loading={activeLoading}
+                    onPageChange={changeActivePage}
+                    entityLabel={activeEntityLabel}
+                  />
+                </div>
               </>
             )}
           </div>
